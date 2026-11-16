@@ -417,7 +417,7 @@
     `).join("");
   }
 
-  // Instagram-style Fullscreen Reel / Post Viewer
+  // Instagram-style Fullscreen Reel / Post Viewer with right-side action bar & 'Post' top header
   window.openFullscreenPostViewer = async function(initialPostId) {
     const existing = document.getElementById("fullscreen-reel-viewer");
     if (existing) existing.remove();
@@ -431,7 +431,7 @@
     `;
     document.body.appendChild(viewer);
 
-    viewer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading reel...</div>`;
+    viewer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading post...</div>`;
 
     const res = await window.api("/api/posts/feed");
     if (!res.success || !res.posts.length) {
@@ -457,52 +457,69 @@
             : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
         ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
-        <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="
-          position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.5); border: none; color: #fff;
-          width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 10; display:grid; place-items:center;
-        ">✕</button>
-
+        <!-- Top Header: Close on left, 'Post' title in middle, '+' button on right -->
         <div style="
-          position: absolute; right: 16px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 20px; z-index: 10;
+          position: absolute; top: 0; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10;
+          background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
         ">
+          <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="
+            background: rgba(0,0,0,0.5); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display:grid; place-items:center;
+          ">✕</button>
+          
+          <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Post</div>
+
+          <button onclick="window.openCreatePostModal()" style="
+            background: none; border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 24px; font-weight: 800; cursor: pointer; display:grid; place-items:center;
+          ">＋</button>
+        </div>
+
+        <!-- Right Side Instagram-style Large Action Buttons -->
+        <div style="
+          position: absolute; right: 16px; bottom: 95px; display: flex; flex-direction: column; align-items: center; gap: 22px; z-index: 10;
+        ">
+          <!-- Like -->
           <button class="reel-action-btn reel-like-btn ${post.likedByMe ? 'liked' : ''}" data-postid="${post.id}" style="
-            background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
-            <span>♥</span>
-            <span style="font-size: 12px; font-weight: 700;" class="reel-like-count">${post.likesCount}</span>
+            <span>❤️</span>
+            <span style="font-size: 13px; font-weight: 800;" class="reel-like-count">${post.likesCount}</span>
           </button>
 
+          <!-- Comment -->
           <button onclick="window.openReelComments('${post.id}')" style="
-            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
             <span>💬</span>
-            <span style="font-size: 12px; font-weight: 700;">${post.commentsCount}</span>
+            <span style="font-size: 13px; font-weight: 800;">${post.commentsCount}</span>
           </button>
 
+          <!-- Share -->
           <button onclick="if(navigator.share){navigator.share({url: window.location.href})}else{alert('Link copied!')}" style="
-            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 22px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
-            <span>↗</span>
-            <span style="font-size: 11px; font-weight: 700;">Share</span>
+            <span>↗️</span>
+            <span style="font-size: 12px; font-weight: 800;">Share</span>
           </button>
 
+          <!-- Save -->
           <button onclick="alert('Post saved!')" style="
-            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 22px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
-            <span>🔖</span>
-            <span style="font-size: 11px; font-weight: 700;">Save</span>
+            <span>📥</span>
+            <span style="font-size: 12px; font-weight: 800;">Save</span>
           </button>
         </div>
 
+        <!-- Bottom Details: User Info & Caption -->
         <div style="
-          position: absolute; bottom: 20px; left: 16px; right: 70px; z-index: 10;
-          background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding-top: 30px;
+          position: absolute; bottom: 20px; left: 16px; right: 75px; z-index: 10;
+          background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); padding-top: 35px;
         ">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <img src="${window.avatarUrl(post.user)}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.3);" />
-            <div style="font-weight: 700; font-size: 14px;">${post.user.displayName}</div>
+            <img src="${window.avatarUrl(post.user)}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
+            <div style="font-weight: 700; font-size: 15px;">${post.user.displayName}</div>
           </div>
-          ${post.caption ? `<div style="font-size: 13px; line-height: 1.4; color: #e2e8f0; max-height: 100px; overflow-y: auto; word-break: break-word;">${post.caption}</div>` : ""}
+          ${post.caption ? `<div style="font-size: 13.5px; line-height: 1.45; color: #e2e8f0; max-height: 120px; overflow-y: auto; word-break: break-word;">${post.caption}</div>` : ""}
         </div>
       </div>
     `).join("");
