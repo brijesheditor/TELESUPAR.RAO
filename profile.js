@@ -28,7 +28,7 @@
     .profile-grid-cell { aspect-ratio: 1/1; background: #111827; overflow: hidden; }
     .profile-grid-cell img, .profile-grid-cell video { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Instagram-Style Followers / Following Fullscreen Page (27718.png & 27719.png) */
+    /* Instagram-Style Followers / Following Fullscreen Page */
     .ig-ff-screen {
       position: fixed; inset: 0; background: #090d16; z-index: 120;
       display: flex; flex-direction: column; overflow-y: auto;
@@ -149,15 +149,13 @@
       </div>
     `;
 
-    // Open Followers / Following Fullscreen Page
     document.getElementById("open-followers-page").onclick = () => {
-      openFollowersFollowingPage(user, "followers", () => window.renderProfile(container));
+      window.openFollowersFollowingPage(user, "followers", () => window.renderProfile(container));
     };
     document.getElementById("open-following-page").onclick = () => {
-      openFollowersFollowingPage(user, "following", () => window.renderProfile(container));
+      window.openFollowersFollowingPage(user, "following", () => window.renderProfile(container));
     };
 
-    // Upload Avatar
     document.getElementById("prof-avatar-input").onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -167,7 +165,6 @@
       if (res.success) window.renderProfile(container);
     };
 
-    // Edit Name & Bio
     document.getElementById("btn-edit-profile").onclick = async () => {
       const displayName = prompt("Display Name (2-40 chars):", user.displayName);
       if (!displayName) return;
@@ -179,7 +176,6 @@
       if (res.success) window.renderProfile(container);
     };
 
-    // Logout
     document.getElementById("btn-logout").onclick = () => {
       localStorage.removeItem("ts_token");
       localStorage.removeItem("ts_user");
@@ -187,8 +183,8 @@
     };
   };
 
-  // Dedicated Followers / Following Screen (Matching 27718.png & 27719.png)
-  async function window.openFollowersFollowingPage(user, initialTab, onClose) {
+  // ✅ Sahi syntax assignment
+  window.openFollowersFollowingPage = async function(user, initialTab, onClose) {
     const screen = document.createElement("div");
     screen.className = "ig-ff-screen";
     document.body.appendChild(screen);
@@ -202,7 +198,7 @@
 
     let followersList = followersRes.success ? (followersRes.users || []) : [];
     let followingList = followingRes.success ? (followingRes.users || []) : [];
-    let activeTab = initialTab; // "followers" or "following"
+    let activeTab = initialTab; 
     let searchQuery = "";
     let filterOnlyNotFollowingBack = false;
     let sortMode = "Default";
@@ -211,9 +207,7 @@
       const followingIds = new Set(followingList.map(u => u.id));
       const followersIds = new Set(followersList.map(u => u.id));
 
-      // People in followers who you don't follow back
       const notFollowingBack = followersList.filter(u => !followingIds.has(u.id));
-      // Mutual friends
       const mutuals = followingList.filter(u => followersIds.has(u.id));
 
       let displayList = activeTab === "followers" ? [...followersList] : [...followingList];
@@ -328,19 +322,16 @@
         </div>
       `;
 
-      // Back button
       screen.querySelector("#ff-back-btn").onclick = () => {
         screen.remove();
         if (onClose) onClose();
       };
 
-      // Discover people button -> goes to Explore tab
       screen.querySelector("#ff-discover-btn").onclick = () => {
         screen.remove();
         window.switchTab("explore");
       };
 
-      // Switch Followers / Following tabs
       screen.querySelectorAll(".ig-ff-tab").forEach(tab => {
         tab.onclick = () => {
           activeTab = tab.dataset.tab;
@@ -349,7 +340,6 @@
         };
       });
 
-      // Live Search Input
       const searchInput = screen.querySelector("#ff-search-input");
       searchInput.oninput = (e) => {
         searchQuery = e.target.value;
@@ -359,7 +349,6 @@
         newInput.setSelectionRange(searchQuery.length, searchQuery.length);
       };
 
-      // Category Filter: People you don't follow back
       const catNotBack = screen.querySelector("#cat-not-following-back");
       if (catNotBack) {
         catNotBack.onclick = () => {
@@ -368,13 +357,11 @@
         };
       }
 
-      // Sort Toggle
       screen.querySelector("#ff-sort-toggle").onclick = () => {
         sortMode = sortMode === "Default" ? "A-Z" : "Default";
         renderScreen();
       };
 
-      // Message Button -> Opens Direct Chat
       screen.querySelectorAll("[data-msg-id]").forEach(btn => {
         btn.onclick = () => {
           screen.remove();
@@ -382,7 +369,6 @@
         };
       });
 
-      // Follow Back Button -> Calls POST /api/users/:userId/follow
       screen.querySelectorAll("[data-fback-id]").forEach(btn => {
         btn.onclick = async () => {
           const targetId = btn.dataset.fbackId;
@@ -396,7 +382,6 @@
         };
       });
 
-      // Unfollow / Action Button
       screen.querySelectorAll("[data-unfollow-id]").forEach(btn => {
         btn.onclick = async () => {
           const targetId = btn.dataset.unfollowId;
@@ -413,5 +398,5 @@
     }
 
     renderScreen();
-  }
+  };
 })();
