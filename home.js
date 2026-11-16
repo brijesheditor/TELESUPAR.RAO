@@ -156,7 +156,7 @@
         loadPosts();
       } else {
         btn.textContent = "Publish Post";
-        alert(res.message || "Could not publish post");
+        alert(res.Follow || "Could not publish post");
       }
     };
   };
