@@ -65,7 +65,7 @@
     }
     .story-viewer-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
     .story-viewer-top { position: relative; z-index: 2; padding: 16px; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); display: flex; justify-content: space-between; align-items: center; }
-    .story-viewer-bottom { position: relative; z-index: 2; padding: 16px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); display: flex; gap: 10px; }
+    .story-viewer-bottom { position: relative; z-index: 2; padding: 16px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); display: flex; gap: 10px; align-items: center; }
 
     /* Comments Drawer */
     .comments-box { padding: 12px 14px; background: #0f172a; border-top: 1px solid rgba(255,255,255,0.08); }
@@ -208,8 +208,8 @@
               <div style="font-size:11px; color:#cbd5e1;">${index + 1} / ${storyList.length}</div>
             </div>
           </div>
-          <div style="display:flex; gap:10px;">
-            ${isMine ? `<button id="add-more-story" class="btn-pill">+ Add</button>` : ""}
+          <div style="display:flex; gap:10px; align-items:center;">
+            ${isMine ? `<button id="add-more-story" style="background:#3b82f6; border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-weight:800; font-size:18px; display:grid; place-items:center; cursor:pointer;" title="Add Story">＋</button>` : ""}
             <button id="close-story-btn" style="background:rgba(0,0,0,0.5); border:none; color:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer;">✕</button>
           </div>
         </div>
@@ -218,8 +218,12 @@
             <input id="story-reply-input" placeholder="Reply to story..." style="flex:1; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:99px; padding:10px 16px; color:#fff; outline:none;" />
             <button id="story-like-btn" class="icon-btn" style="background:${s.likedByMe ? "#ec4899" : "rgba(255,255,255,0.15)"};">♥</button>
             <button id="story-send-reply" class="btn-pill">Send</button>
-          ` : `<div style="color:#fff; font-size:13px;">👁 ${s.viewsCount} views • ♥ ${s.likesCount} likes</div>`}
-          <button id="next-story-btn" class="icon-btn">›</button>
+          ` : `
+            <div style="color:#fff; font-size:13px; cursor:pointer; flex:1;" onclick="window.openStoryStatsModal('${s.id}')">
+              👁 ${s.viewsCount} views • ♥ ${s.likesCount} likes (Tap for details)
+            </div>
+          `}
+          <button id="next-story-btn" class="icon-btn" style="background:rgba(255,255,255,0.15); border:none; color:#fff; width:36px; height:36px; border-radius:50%; cursor:pointer;">›</button>
         </div>
       `;
 
@@ -254,6 +258,88 @@
     document.body.appendChild(viewer);
     renderSlide();
   }
+
+  // Story Viewers & Likes Modal
+  window.openStoryStatsModal = async function(storyId) {
+    const existing = document.getElementById("story-stats-screen");
+    if (existing) existing.remove();
+
+    const screen = document.createElement("div");
+    screen.id = "story-stats-screen";
+    screen.style.cssText = `
+      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 150;
+      display: flex; flex-direction: column; color: #fff; font-family: inherit;
+    `;
+    document.body.appendChild(screen);
+
+    screen.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">Loading activity...</p>`;
+
+    const [viewRes, likeRes] = await Promise.all([
+      window.api(`/api/stories/${storyId}/viewers`),
+      window.api(`/api/stories/${storyId}/likes`)
+    ]);
+
+    const viewers = viewRes.success ? (viewRes.viewers || []) : [];
+    const likes = likeRes.success ? (likeRes.likes || []) : [];
+
+    let activeTab = "viewers";
+
+    function renderModalContent() {
+      const list = activeTab === "viewers" ? viewers : likes;
+
+      screen.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid rgba(255,255,255,0.08);">
+          <div style="font-weight:800; font-size:16px;">Story Activity</div>
+          <button id="close-stats-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+        </div>
+
+        <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.08);">
+          <div class="stat-tab" data-tab="viewers" style="flex:1; text-align:center; padding:12px; font-weight:700; cursor:pointer; color:${activeTab === 'viewers' ? '#fff' : '#94a3b8'}; border-bottom:2px solid ${activeTab === 'viewers' ? '#fff' : 'transparent'}">
+            👁️ ${viewers.length} Viewers
+          </div>
+          <div class="stat-tab" data-tab="likes" style="flex:1; text-align:center; padding:12px; font-weight:700; cursor:pointer; color:${activeTab === 'likes' ? '#fff' : '#94a3b8'}; border-bottom:2px solid ${activeTab === 'likes' ? '#fff' : 'transparent'}">
+            ❤️ ${likes.length} Likes
+          </div>
+        </div>
+
+        <div style="flex:1; overflow-y:auto; padding:12px 16px;">
+          ${list.length ? list.map(item => {
+            const u = item.user || item;
+            return `
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <img src="${window.avatarUrl(u)}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;" />
+                  <div>
+                    <div style="font-weight:700; font-size:14px;">${u.username}</div>
+                    <div style="font-size:12px; color:#94a3b8;">${u.displayName || ''}</div>
+                  </div>
+                </div>
+                <button class="stat-msg-btn" data-userid="${u.id}" style="background:#1e293b; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;">Message</button>
+              </div>
+            `;
+          }).join("") : `<p style="text-align:center; color:#64748b; padding:40px;">No ${activeTab} yet.</p>`}
+        </div>
+      `;
+
+      screen.querySelector("#close-stats-btn").onclick = () => screen.remove();
+
+      screen.querySelectorAll(".stat-tab").forEach(tab => {
+        tab.onclick = () => {
+          activeTab = tab.dataset.tab;
+          renderModalContent();
+        };
+      });
+
+      screen.querySelectorAll(".stat-msg-btn").forEach(btn => {
+        btn.onclick = () => {
+          screen.remove();
+          window.openDirectChat(btn.dataset.userid);
+        };
+      });
+    }
+
+    renderModalContent();
+  };
 
   async function loadPosts() {
     const feed = document.getElementById("posts-feed");
@@ -320,8 +406,17 @@
       <div class="comment-item">
         <strong>${c.user?.displayName || "User"}:</strong> ${c.text}
         <span style="color:#8b5cf6; font-size:11px; margin-left:8px; cursor:pointer;" onclick="window.replyToComment('${postId}', '${c.id}')">Reply</span>
+        ${c.isMine ? `
+          <span style="color:#38bdf8; font-size:11px; margin-left:8px; cursor:pointer;" onclick="window.handleEditComment('${postId}', '${c.id}', '${c.text}', () => window.toggleComments('${postId}'))">Edit</span>
+          <span style="color:#f87171; font-size:11px; margin-left:8px; cursor:pointer;" onclick="window.handleDeleteComment('${postId}', '${c.id}', () => window.toggleComments('${postId}'))">Delete</span>
+        ` : ""}
         ${(c.replies || []).map(r => `
-          <div class="reply-item"><strong>${r.user?.displayName || "User"}:</strong> ${r.text}</div>
+          <div class="reply-item">
+            <strong>${r.user?.displayName || "User"}:</strong> ${r.text}
+            ${r.isMine ? `
+              <span style="color:#f87171; font-size:10px; margin-left:6px; cursor:pointer;" onclick="window.handleDeleteComment('${postId}', '${r.id}', () => window.toggleComments('${postId}'))">Delete</span>
+            ` : ""}
+          </div>
         `).join("")}
       </div>
     `).join("");
@@ -361,6 +456,36 @@
     if (res.success) {
       document.getElementById(`comments-${postId}`).classList.add("hidden");
       window.toggleComments(postId);
+    }
+  };
+
+  window.handleEditComment = async function(postId, commentId, oldText, onComplete) {
+    const newText = prompt("Edit your comment:", oldText);
+    if (!newText || newText.trim() === oldText) return;
+
+    const res = await window.api(`/api/posts/${postId}/comments/${commentId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ text: newText.trim() })
+    });
+
+    if (res.success) {
+      if (onComplete) onComplete();
+    } else {
+      alert(res.message || "Could not edit comment");
+    }
+  };
+
+  window.handleDeleteComment = async function(postId, commentId, onComplete) {
+    if (!confirm("Delete this comment?")) return;
+
+    const res = await window.api(`/api/posts/${postId}/comments/${commentId}`, {
+      method: "DELETE"
+    });
+
+    if (res.success) {
+      if (onComplete) onComplete();
+    } else {
+      alert(res.message || "Could not delete comment");
     }
   };
 
