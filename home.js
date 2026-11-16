@@ -417,7 +417,7 @@
     `).join("");
   }
 
-  // Instagram-style Fullscreen Reel / Post Viewer with right-side action bar & 'Post' top header
+  // Instagram-style Fullscreen Reel / Post Viewer with Telegram Back Arrow & Full Info Display
   window.openFullscreenPostViewer = async function(initialPostId) {
     const existing = document.getElementById("fullscreen-reel-viewer");
     if (existing) existing.remove();
@@ -457,14 +457,14 @@
             : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
         ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
-        <!-- Top Header: Close on left, 'Post' title in middle, '+' button on right -->
+        <!-- Top Header: Telegram-style Back Arrow on left, 'Post' title in middle, '+' button on right -->
         <div style="
           position: absolute; top: 0; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10;
           background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
         ">
           <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="
-            background: rgba(0,0,0,0.5); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display:grid; place-items:center;
-          ">✕</button>
+            background: none; border: none; color: #fff; font-size: 26px; cursor: pointer; width: 36px; height: 36px; display:grid; place-items:center; font-weight: 700;
+          " title="Back">←</button>
           
           <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Post</div>
 
@@ -481,12 +481,12 @@
           <button class="reel-action-btn reel-like-btn ${post.likedByMe ? 'liked' : ''}" data-postid="${post.id}" style="
             background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
-            <span>❤️</span>
+            <span>♥</span>
             <span style="font-size: 13px; font-weight: 800;" class="reel-like-count">${post.likesCount}</span>
           </button>
 
-          <!-- Comment -->
-          <button onclick="window.openReelComments('${post.id}')" style="
+          <!-- Comment (Opens Instagram-style Popup Drawer) -->
+          <button onclick="window.openReelCommentsModal('${post.id}')" style="
             background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
             <span>💬</span>
@@ -497,27 +497,36 @@
           <button onclick="if(navigator.share){navigator.share({url: window.location.href})}else{alert('Link copied!')}" style="
             background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
-            <span>↗️</span>
+            <span>↗</span>
             <span style="font-size: 12px; font-weight: 800;">Share</span>
           </button>
 
-          <!-- Save -->
-          <button onclick="alert('Post saved!')" style="
+          <!-- Save (Opens Instagram-style Save Collection Popup) -->
+          <button onclick="window.openSavePostModal('${post.id}')" style="
             background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
-            <span>📥</span>
+            <span>🔖</span>
             <span style="font-size: 12px; font-weight: 800;">Save</span>
           </button>
         </div>
 
-        <!-- Bottom Details: User Info & Caption -->
+        <!-- Bottom Details: Profile DP, Name, Follow/Message Button & Caption -->
         <div style="
-          position: absolute; bottom: 20px; left: 16px; right: 75px; z-index: 10;
-          background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); padding-top: 35px;
+          position: absolute; bottom: 20px; left: 16px; right: 80px; z-index: 10;
+          background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, transparent); padding: 25px 0 10px 0; display: flex; flex-direction: column; gap: 8px;
         ">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <img src="${window.avatarUrl(post.user)}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
-            <div style="font-weight: 700; font-size: 15px;">${post.user.displayName}</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <img src="${window.avatarUrl(post.user)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
+              <div style="font-weight: 700; font-size: 15px; color: #fff;">${post.user.displayName}</div>
+            </div>
+            <div id="reel-header-action-container-${post.id}">
+              ${post.isMyPost ? "" : (
+                post.isFollowing
+                  ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
+                  : `<button class="btn-follow-post" id="reel-follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
+              )}
+            </div>
           </div>
           ${post.caption ? `<div style="font-size: 13.5px; line-height: 1.45; color: #e2e8f0; max-height: 120px; overflow-y: auto; word-break: break-word;">${post.caption}</div>` : ""}
         </div>
@@ -537,21 +546,160 @@
     });
   };
 
-  window.openReelComments = async function(postId) {
-    window.toggleComments(postId);
+  // Instagram-style Comments Bottom Sheet Modal
+  window.openReelCommentsModal = async function(postId) {
+    const existing = document.getElementById("reel-comments-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "reel-comments-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250;
+      display: flex; flex-direction: column; justify-content: flex-end; font-family: inherit;
+    `;
+    
+    modal.innerHTML = `
+      <div style="background: #111827; border-top-left-radius: 24px; border-top-right-radius: 24px; max-height: 75vh; height: 75vh; display: flex; flex-direction: column; color: #fff; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative;">
+          <div style="font-weight: 800; font-size: 16px; width: 100%; text-align: center;">Comments</div>
+          <button id="close-reel-comments" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; position: absolute; right: 16px;">✕</button>
+        </div>
+        <div id="reel-comments-list" style="flex: 1; overflow-y: auto; padding: 16px;">
+          <p style="text-align: center; color: #94a3b8; padding: 20px;">Loading comments...</p>
+        </div>
+        <div style="padding: 12px 16px; background: #0f172a; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 10px; align-items: center;">
+          <input id="reel-comment-input" placeholder="Add a comment..." style="flex: 1; background: #1e293b; border: none; border-radius: 99px; padding: 10px 16px; color: #fff; font-size: 13px; outline: none;" />
+          <button class="btn-pill" id="reel-send-comment-btn" style="padding: 8px 18px;">Post</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector("#close-reel-comments").onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const loadCommentsList = async () => {
+      const listContainer = modal.querySelector("#reel-comments-list");
+      const res = await window.api(`/api/posts/${postId}/comments`);
+      if (!res.success) {
+        listContainer.innerHTML = `<p style="text-align: center; color: #f87171;">Failed to load comments</p>`;
+        return;
+      }
+      const comments = res.comments || [];
+      if (!comments.length) {
+        listContainer.innerHTML = `<p style="text-align: center; color: #64748b; padding: 40px;">No comments yet. Be the first to comment!</p>`;
+        return;
+      }
+
+      listContainer.innerHTML = comments.map(c => `
+        <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start;">
+          <img src="${window.avatarUrl(c.user)}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover;" />
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; font-size: 13px;">${c.user?.displayName || "User"}</span>
+              <span style="font-size: 11px; color: #94a3b8;">@${c.user?.username || ''}</span>
+            </div>
+            <div style="font-size: 13px; color: #e2e8f0; margin-top: 3px; word-break: break-word;">${c.text}</div>
+            <div style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: #94a3b8;">
+              <span style="cursor: pointer; color: #8b5cf6;" onclick="window.replyToReelComment('${postId}', '${c.id}', loadCommentsList)">Reply</span>
+              ${c.isMine ? `
+                <span style="cursor: pointer; color: #38bdf8;" onclick="window.handleEditComment('${postId}', '${c.id}', '${c.text}', loadCommentsList)">Edit</span>
+                <span style="cursor: pointer; color: #f87171;" onclick="window.handleDeleteComment('${postId}', '${c.id}', loadCommentsList)">Delete</span>
+              ` : ""}
+            </div>
+            ${(c.replies || []).map(r => `
+              <div style="display: flex; gap: 10px; margin-top: 8px; margin-left: 20px; border-left: 2px solid #3b82f6; padding-left: 10px;">
+                <img src="${window.avatarUrl(r.user)}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover;" />
+                <div style="flex: 1;">
+                  <span style="font-weight: 700; font-size: 12px;">${r.user?.displayName || "User"}</span>
+                  <div style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">${r.text}</div>
+                  ${r.isMine ? `<span style="cursor: pointer; color: #f87171; font-size: 10px;" onclick="window.handleDeleteComment('${postId}', '${r.id}', loadCommentsList)">Delete</span>` : ""}
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("");
+    };
+
+    loadCommentsList();
+
+    modal.querySelector("#reel-send-comment-btn").onclick = async () => {
+      const input = modal.querySelector("#reel-comment-input");
+      const text = input.value.trim();
+      if (!text) return;
+      const res = await window.api(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ text })
+      });
+      if (res.success) {
+        input.value = "";
+        loadCommentsList();
+      }
+    };
   };
 
-  // Handle Follow button click on post header
+  window.replyToReelComment = async function(postId, commentId, callback) {
+    const text = prompt("Enter your reply:");
+    if (!text || !text.trim()) return;
+    const res = await window.api(`/api/posts/${postId}/comments/${commentId}/replies`, {
+      method: "POST",
+      body: JSON.stringify({ text: text.trim() })
+    });
+    if (res.success && callback) callback();
+  };
+
+  // Instagram-style Save / Bookmark Bottom Sheet Modal
+  window.openSavePostModal = function(postId) {
+    const existing = document.getElementById("save-post-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "save-post-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250;
+      display: flex; flex-direction: column; justify-content: flex-end; font-family: inherit;
+    `;
+    modal.innerHTML = `
+      <div style="background: #111827; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; color: #fff; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="font-weight: 800; font-size: 16px;">Save to collection</div>
+          <button id="close-save-modal" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">✕</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer; margin-bottom: 12px;" onclick="alert('Saved to All Posts!'); document.getElementById('save-post-modal').remove();">
+          <div style="width: 44px; height: 44px; background: #3b82f6; border-radius: 8px; display: grid; place-items: center; font-size: 20px;">🔖</div>
+          <div>
+            <div style="font-weight: 700; font-size: 14px;">All Posts</div>
+            <div style="font-size: 12px; color: #94a3b8;">Default collection</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer;" onclick="const name = prompt('New collection name:'); if(name){ alert('Saved to ' + name); document.getElementById('save-post-modal').remove(); }">
+          <div style="width: 44px; height: 44px; background: #8b5cf6; border-radius: 8px; display: grid; place-items: center; font-size: 20px;">＋</div>
+          <div>
+            <div style="font-weight: 700; font-size: 14px;">New collection</div>
+            <div style="font-size: 12px; color: #94a3b8;">Create a collection of saved posts</div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector("#close-save-modal").onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  };
+
+  // Handle Follow button click on post header or fullscreen viewer
   window.handlePostFollow = async function(userId, postId) {
-    const btn = document.getElementById(`follow-btn-${postId}`);
+    const btn = document.getElementById(`follow-btn-${postId}`) || document.getElementById(`reel-follow-btn-${postId}`);
     if (btn) btn.textContent = "...";
 
     const res = await window.api(`/api/users/${userId}/follow`, { method: "POST" });
     if (res.success) {
       const container = document.getElementById(`post-action-container-${postId}`);
-      if (container) {
-        container.innerHTML = `<button class="btn-msg-post" onclick="window.openDirectChat('${userId}')">Message</button>`;
-      }
+      const reelContainer = document.getElementById(`reel-header-action-container-${postId}`);
+      
+      const msgHtml = `<button class="btn-msg-post" onclick="window.openDirectChat('${userId}')">Message</button>`;
+      if (container) container.innerHTML = msgHtml;
+      if (reelContainer) reelContainer.innerHTML = msgHtml;
     } else {
       if (btn) btn.textContent = "Follow";
       alert(res.message || "Could not follow user");
