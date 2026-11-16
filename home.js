@@ -394,7 +394,7 @@
 
         ${post.mediaUrl ? (
           post.mediaType === "video"
-            ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" controls playsinline></video>`
+            ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" playsinline></video>`
             : `<img src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" />`
         ) : ""}
 
@@ -414,7 +414,7 @@
     `).join("");
   }
 
-  // Instagram-style Fullscreen Reel / Post Viewer with Fixed Glassmorphism Top Bar
+  // Instagram-style Fullscreen Reel Viewer with "Reels" Header
   window.openFullscreenPostViewer = async function(initialPostId) {
     const existing = document.getElementById("fullscreen-reel-viewer");
     if (existing) existing.remove();
@@ -428,7 +428,7 @@
     `;
     document.body.appendChild(viewer);
 
-    // Fixed Glassmorphic Top Header (Stays fixed across all reel slides)
+    // Fixed Glassmorphic Top Header with "Reels" Title
     const fixedTopBar = document.createElement("div");
     fixedTopBar.style.cssText = `
       position: fixed; top: 0; left: 0; right: 0; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 210;
@@ -440,7 +440,7 @@
         background: none; border: none; color: #fff; font-size: 26px; cursor: pointer; width: 36px; height: 36px; display:grid; place-items:center; font-weight: 700;
       " title="Back">←</button>
       
-      <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Post</div>
+      <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Reels</div>
 
       <button onclick="window.openCreatePostModal()" style="
         background: none; border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 24px; font-weight: 800; cursor: pointer; display:grid; place-items:center;
@@ -452,12 +452,12 @@
     slidesContainer.style.cssText = `
       width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
     `;
-    slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading posts...</div>`;
+    slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading reels...</div>`;
     viewer.appendChild(slidesContainer);
 
     const res = await window.api("/api/posts/feed");
     if (!res.success || !res.posts.length) {
-      slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">No posts found.</div>`;
+      slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">No reels found.</div>`;
       return;
     }
 
@@ -488,7 +488,7 @@
             background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
             <span>♥</span>
-            <span style="font-size: 16px; font-weight: 1000;" class="reel-like-count">${post.likesCount}</span>
+            <span style="font-size: 13px; font-weight: 800;" class="reel-like-count">${post.likesCount}</span>
           </button>
 
           <!-- Comment -->
@@ -552,7 +552,6 @@
     });
   };
 
-  // Open User Profile
   window.openUserProfile = async function(userId) {
     if (window.openProfileModal) {
       window.openProfileModal(userId);
@@ -564,7 +563,6 @@
     }
   };
 
-  // Instagram-style Comments Bottom Sheet Modal
   window.openReelCommentsModal = async function(postId) {
     const existing = document.getElementById("reel-comments-modal");
     if (existing) existing.remove();
@@ -667,7 +665,6 @@
     if (res.success && callback) callback();
   };
 
-  // Instagram-style Save / Bookmark Bottom Sheet Modal
   window.openSavePostModal = function(postId) {
     const existing = document.getElementById("save-post-modal");
     if (existing) existing.remove();
@@ -705,7 +702,6 @@
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   };
 
-  // Handle Follow button click on post header or fullscreen viewer
   window.handlePostFollow = async function(userId, postId) {
     const btn = document.getElementById(`follow-btn-${postId}`) || document.getElementById(`reel-follow-btn-${postId}`);
     if (btn) btn.textContent = "...";
