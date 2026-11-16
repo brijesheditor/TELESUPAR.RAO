@@ -26,7 +26,7 @@
       border: 1px solid rgba(255,255,255,0.07); overflow: hidden;
     }
     .post-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; }
-    .post-user { display: flex; align-items: center; gap: 10px; }
+    .post-user { display: flex; align-items: center; gap: 10px; cursor: pointer; }
     .post-user img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
     .post-media { width: 100%; max-height: 420px; object-fit: cover; display: block; background: #000; cursor: pointer; }
     .post-caption { padding: 10px 14px; font-size: 14px; line-height: 1.45; color: #e2e8f0; cursor: pointer; }
@@ -72,7 +72,6 @@
       <input type="file" id="story-upload-input" accept="image/*,video/*" hidden />
     `;
 
-    // Inject Plus (+) button into top bar next to notification icon
     setTimeout(() => {
       if (!document.getElementById("header-create-post-btn")) {
         const plusBtn = document.createElement("button");
@@ -93,7 +92,6 @@
       }
     }, 150);
 
-    // Story Upload handler
     document.getElementById("story-upload-input").onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -135,7 +133,6 @@
     document.body.appendChild(modal);
 
     document.getElementById("close-post-modal").onclick = () => modal.remove();
-
     document.getElementById("modal-post-file").onchange = (e) => {
       const f = e.target.files[0];
       document.getElementById("modal-file-name").textContent = f ? f.name.slice(0, 20) : "";
@@ -379,7 +376,7 @@
     feed.innerHTML = data.posts.map(post => `
       <div class="post-card" id="post-${post.id}">
         <div class="post-header">
-          <div class="post-user">
+          <div class="post-user" onclick="window.openUserProfile('${post.user.id}')">
             <img src="${window.avatarUrl(post.user)}" />
             <div>
               <div style="font-weight:700; font-size:14px;">${post.user.displayName}</div>
@@ -417,7 +414,7 @@
     `).join("");
   }
 
-  // Instagram-style Fullscreen Reel / Post Viewer with Telegram Back Arrow & Full Info Display
+  // Instagram-style Fullscreen Reel / Post Viewer with Fixed Glassmorphism Top Bar
   window.openFullscreenPostViewer = async function(initialPostId) {
     const existing = document.getElementById("fullscreen-reel-viewer");
     if (existing) existing.remove();
@@ -431,11 +428,36 @@
     `;
     document.body.appendChild(viewer);
 
-    viewer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading post...</div>`;
+    // Fixed Glassmorphic Top Header (Stays fixed across all reel slides)
+    const fixedTopBar = document.createElement("div");
+    fixedTopBar.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 210;
+      background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    `;
+    fixedTopBar.innerHTML = `
+      <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="
+        background: none; border: none; color: #fff; font-size: 26px; cursor: pointer; width: 36px; height: 36px; display:grid; place-items:center; font-weight: 700;
+      " title="Back">←</button>
+      
+      <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Post</div>
+
+      <button onclick="window.openCreatePostModal()" style="
+        background: none; border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 24px; font-weight: 800; cursor: pointer; display:grid; place-items:center;
+      ">＋</button>
+    `;
+    viewer.appendChild(fixedTopBar);
+
+    const slidesContainer = document.createElement("div");
+    slidesContainer.style.cssText = `
+      width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
+    `;
+    slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading posts...</div>`;
+    viewer.appendChild(slidesContainer);
 
     const res = await window.api("/api/posts/feed");
     if (!res.success || !res.posts.length) {
-      viewer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">No posts found. <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="margin-top:10px; background:#3b82f6; border:none; color:#fff; padding:8px 16px; border-radius:8px;">Close</button></div>`;
+      slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">No posts found.</div>`;
       return;
     }
 
@@ -446,7 +468,7 @@
       posts.unshift(item);
     }
 
-    viewer.innerHTML = posts.map((post) => `
+    slidesContainer.innerHTML = posts.map((post) => `
       <div class="reel-slide" data-postid="${post.id}" style="
         width: 100vw; height: 100vh; scroll-snap-align: start; position: relative;
         display: flex; align-items: center; justify-content: center; background: #0b0f19; overflow: hidden;
@@ -457,22 +479,6 @@
             : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
         ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
-        <!-- Top Header: Telegram-style Back Arrow on left, 'Post' title in middle, '+' button on right -->
-        <div style="
-          position: absolute; top: 0; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10;
-          background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-        ">
-          <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="
-            background: none; border: none; color: #fff; font-size: 26px; cursor: pointer; width: 36px; height: 36px; display:grid; place-items:center; font-weight: 700;
-          " title="Back">←</button>
-          
-          <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Post</div>
-
-          <button onclick="window.openCreatePostModal()" style="
-            background: none; border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 24px; font-weight: 800; cursor: pointer; display:grid; place-items:center;
-          ">＋</button>
-        </div>
-
         <!-- Right Side Instagram-style Large Action Buttons -->
         <div style="
           position: absolute; right: 16px; bottom: 95px; display: flex; flex-direction: column; align-items: center; gap: 22px; z-index: 10;
@@ -482,10 +488,10 @@
             background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
             <span>♥</span>
-            <span style="font-size: 13px; font-weight: 800;" class="reel-like-count">${post.likesCount}</span>
+            <span style="font-size: 16px; font-weight: 1000;" class="reel-like-count">${post.likesCount}</span>
           </button>
 
-          <!-- Comment (Opens Instagram-style Popup Drawer) -->
+          <!-- Comment -->
           <button onclick="window.openReelCommentsModal('${post.id}')" style="
             background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
@@ -501,7 +507,7 @@
             <span style="font-size: 12px; font-weight: 800;">Share</span>
           </button>
 
-          <!-- Save (Opens Instagram-style Save Collection Popup) -->
+          <!-- Save -->
           <button onclick="window.openSavePostModal('${post.id}')" style="
             background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
           ">
@@ -510,13 +516,13 @@
           </button>
         </div>
 
-        <!-- Bottom Details: Profile DP, Name, Follow/Message Button & Caption -->
+        <!-- Bottom Details: Left side Profile DP + Name (clickable to profile), Right side Follow/Message -->
         <div style="
           position: absolute; bottom: 20px; left: 16px; right: 80px; z-index: 10;
           background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, transparent); padding: 25px 0 10px 0; display: flex; flex-direction: column; gap: 8px;
         ">
           <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="window.openUserProfile('${post.user.id}')">
               <img src="${window.avatarUrl(post.user)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
               <div style="font-weight: 700; font-size: 15px; color: #fff;">${post.user.displayName}</div>
             </div>
@@ -533,7 +539,7 @@
       </div>
     `).join("");
 
-    viewer.querySelectorAll(".reel-like-btn").forEach(btn => {
+    slidesContainer.querySelectorAll(".reel-like-btn").forEach(btn => {
       btn.onclick = async () => {
         const postId = btn.dataset.postid;
         const res = await window.api(`/api/posts/${postId}/like`, { method: "POST" });
@@ -544,6 +550,18 @@
         }
       };
     });
+  };
+
+  // Open User Profile
+  window.openUserProfile = async function(userId) {
+    if (window.openProfileModal) {
+      window.openProfileModal(userId);
+    } else {
+      const res = await window.api(`/api/users/${userId}/profile`);
+      if (res.success) {
+        alert(`Profile: ${res.user.displayName} (@${res.user.username})`);
+      }
+    }
   };
 
   // Instagram-style Comments Bottom Sheet Modal
