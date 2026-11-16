@@ -2,19 +2,14 @@
   const style = document.createElement("style");
   style.textContent = `
     .stories-bar {
-      display: flex;
-      gap: 14px;
-      padding: 14px 16px;
-      overflow-x: auto;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      scrollbar-width: none;
+      display: flex; gap: 14px; padding: 14px 16px; overflow-x: auto;
+      border-bottom: 1px solid rgba(255,255,255,0.07); scrollbar-width: none;
     }
     .stories-bar::-webkit-scrollbar { display: none; }
     .story-item { display: flex; flex-direction: column; align-items: center; width: 68px; flex-shrink: 0; cursor: pointer; }
     .story-ring {
       width: 62px; height: 62px; border-radius: 50%; padding: 2.5px;
-      background: linear-gradient(45deg, #f59e0b, #ec4899, #8b5cf6);
-      position: relative;
+      background: linear-gradient(45deg, #f59e0b, #ec4899, #8b5cf6); position: relative;
     }
     .story-ring.seen { background: #334155; }
     .story-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #090d16; }
@@ -44,6 +39,15 @@
     .btn-pill {
       background: linear-gradient(135deg, #6366f1, #ec4899); border: none; color: #fff;
       padding: 7px 16px; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .btn-follow-post {
+      background: #3b82f6; color: #fff; border: none; padding: 6px 14px;
+      border-radius: 9px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .btn-msg-post {
+      background: #1e293b; color: #fff; border: none; padding: 6px 14px;
+      border-radius: 9px; font-size: 12px; font-weight: 700; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1);
     }
 
     /* Story Fullscreen Viewer */
@@ -81,7 +85,6 @@
         plusBtn.title = "Create Post";
         plusBtn.onclick = () => window.openCreatePostModal();
 
-        // Find notification icon or top-right container to place it right before notification
         const notificationIcon = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:last-child') || document.querySelector('div[style*="display: flex"] button:last-child');
         
         if (notificationIcon && notificationIcon.parentNode) {
@@ -104,7 +107,6 @@
     loadPosts();
   };
 
-  // Create Post Modal (Triggered from Top Bar + button)
   window.openCreatePostModal = function() {
     const existing = document.getElementById("create-post-modal");
     if (existing) existing.remove();
@@ -156,7 +158,7 @@
         loadPosts();
       } else {
         btn.textContent = "Publish Post";
-        alert(res.Follow || "Could not publish post");
+        alert(res.message || "Could not publish post");
       }
     };
   };
@@ -284,7 +286,6 @@
     renderSlide();
   }
 
-  // Story Viewers & Likes Modal
   window.openStoryStatsModal = async function(storyId) {
     const existing = document.getElementById("story-stats-screen");
     if (existing) existing.remove();
@@ -385,7 +386,13 @@
               <div style="font-size:11px; color:#94a3b8;">@${post.user.username}</div>
             </div>
           </div>
-          <button class="action-chip" onclick="window.openDirectChat('${post.user.id}')">Message</button>
+          <div id="post-action-container-${post.id}">
+            ${post.isMyPost ? "" : (
+              post.isFollowing
+                ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
+                : `<button class="btn-follow-post" id="follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
+            )}
+          </div>
         </div>
 
         ${post.mediaUrl ? (
@@ -409,6 +416,23 @@
       </div>
     `).join("");
   }
+
+  // Handle Follow button click on post header
+  window.handlePostFollow = async function(userId, postId) {
+    const btn = document.getElementById(`follow-btn-${postId}`);
+    if (btn) btn.textContent = "...";
+
+    const res = await window.api(`/api/users/${userId}/follow`, { method: "POST" });
+    if (res.success) {
+      const container = document.getElementById(`post-action-container-${postId}`);
+      if (container) {
+        container.innerHTML = `<button class="btn-msg-post" onclick="window.openDirectChat('${userId}')">Message</button>`;
+      }
+    } else {
+      if (btn) btn.textContent = "Follow";
+      alert(res.message || "Could not follow user");
+    }
+  };
 
   window.togglePostLike = async function(postId, btn) {
     const res = await window.api(`/api/posts/${postId}/like`, { method: "POST" });
