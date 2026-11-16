@@ -28,8 +28,8 @@
     .post-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; }
     .post-user { display: flex; align-items: center; gap: 10px; }
     .post-user img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
-    .post-media { width: 100%; max-height: 420px; object-fit: cover; display: block; background: #000; }
-    .post-caption { padding: 10px 14px; font-size: 14px; line-height: 1.45; color: #e2e8f0; }
+    .post-media { width: 100%; max-height: 420px; object-fit: cover; display: block; background: #000; cursor: pointer; }
+    .post-caption { padding: 10px 14px; font-size: 14px; line-height: 1.45; color: #e2e8f0; cursor: pointer; }
     .post-actions { display: flex; gap: 18px; padding: 10px 14px 14px; align-items: center; }
     .action-chip {
       background: rgba(255,255,255,0.05); border: none; color: #e2e8f0; padding: 7px 13px;
@@ -397,11 +397,11 @@
 
         ${post.mediaUrl ? (
           post.mediaType === "video"
-            ? `<video src="${post.mediaUrl}" class="post-media" controls playsinline></video>`
-            : `<img src="${post.mediaUrl}" class="post-media" />`
+            ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" controls playsinline></video>`
+            : `<img src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" />`
         ) : ""}
 
-        ${post.caption ? `<div class="post-caption">${post.caption}</div>` : ""}
+        ${post.caption ? `<div class="post-caption" onclick="window.openFullscreenPostViewer('${post.id}')">${post.caption}</div>` : ""}
 
         <div class="post-actions">
           <button class="action-chip ${post.likedByMe ? "liked" : ""}" onclick="window.togglePostLike('${post.id}', this)">
@@ -416,6 +416,113 @@
       </div>
     `).join("");
   }
+
+  // Instagram-style Fullscreen Reel / Post Viewer
+  window.openFullscreenPostViewer = async function(initialPostId) {
+    const existing = document.getElementById("fullscreen-reel-viewer");
+    if (existing) existing.remove();
+
+    const viewer = document.createElement("div");
+    viewer.id = "fullscreen-reel-viewer";
+    viewer.style.cssText = `
+      position: fixed; inset: 0; background: #000; z-index: 200;
+      overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
+      font-family: inherit; color: #fff;
+    `;
+    document.body.appendChild(viewer);
+
+    viewer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading reel...</div>`;
+
+    const res = await window.api("/api/posts/feed");
+    if (!res.success || !res.posts.length) {
+      viewer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">No posts found. <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="margin-top:10px; background:#3b82f6; border:none; color:#fff; padding:8px 16px; border-radius:8px;">Close</button></div>`;
+      return;
+    }
+
+    const posts = res.posts;
+    const targetIdx = posts.findIndex(p => p.id === initialPostId);
+    if (targetIdx > 0) {
+      const item = posts.splice(targetIdx, 1)[0];
+      posts.unshift(item);
+    }
+
+    viewer.innerHTML = posts.map((post) => `
+      <div class="reel-slide" data-postid="${post.id}" style="
+        width: 100vw; height: 100vh; scroll-snap-align: start; position: relative;
+        display: flex; align-items: center; justify-content: center; background: #0b0f19; overflow: hidden;
+      ">
+        ${post.mediaUrl ? (
+          post.mediaType === "video"
+            ? `<video src="${post.mediaUrl}" class="reel-media" autoplay loop playsinline controls style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
+            : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
+        ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
+
+        <button onclick="document.getElementById('fullscreen-reel-viewer').remove()" style="
+          position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.5); border: none; color: #fff;
+          width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 10; display:grid; place-items:center;
+        ">✕</button>
+
+        <div style="
+          position: absolute; right: 16px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 20px; z-index: 10;
+        ">
+          <button class="reel-action-btn reel-like-btn ${post.likedByMe ? 'liked' : ''}" data-postid="${post.id}" style="
+            background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          ">
+            <span>♥</span>
+            <span style="font-size: 12px; font-weight: 700;" class="reel-like-count">${post.likesCount}</span>
+          </button>
+
+          <button onclick="window.openReelComments('${post.id}')" style="
+            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          ">
+            <span>💬</span>
+            <span style="font-size: 12px; font-weight: 700;">${post.commentsCount}</span>
+          </button>
+
+          <button onclick="if(navigator.share){navigator.share({url: window.location.href})}else{alert('Link copied!')}" style="
+            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 22px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          ">
+            <span>↗</span>
+            <span style="font-size: 11px; font-weight: 700;">Share</span>
+          </button>
+
+          <button onclick="alert('Post saved!')" style="
+            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 22px; gap: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          ">
+            <span>🔖</span>
+            <span style="font-size: 11px; font-weight: 700;">Save</span>
+          </button>
+        </div>
+
+        <div style="
+          position: absolute; bottom: 20px; left: 16px; right: 70px; z-index: 10;
+          background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding-top: 30px;
+        ">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <img src="${window.avatarUrl(post.user)}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.3);" />
+            <div style="font-weight: 700; font-size: 14px;">${post.user.displayName}</div>
+          </div>
+          ${post.caption ? `<div style="font-size: 13px; line-height: 1.4; color: #e2e8f0; max-height: 100px; overflow-y: auto; word-break: break-word;">${post.caption}</div>` : ""}
+        </div>
+      </div>
+    `).join("");
+
+    viewer.querySelectorAll(".reel-like-btn").forEach(btn => {
+      btn.onclick = async () => {
+        const postId = btn.dataset.postid;
+        const res = await window.api(`/api/posts/${postId}/like`, { method: "POST" });
+        if (res.success) {
+          btn.classList.toggle("liked", res.liked);
+          btn.style.color = res.liked ? "#ec4899" : "#fff";
+          btn.querySelector(".reel-like-count").textContent = res.likesCount;
+        }
+      };
+    });
+  };
+
+  window.openReelComments = async function(postId) {
+    window.toggleComments(postId);
+  };
 
   // Handle Follow button click on post header
   window.handlePostFollow = async function(userId, postId) {
@@ -444,6 +551,7 @@
 
   window.toggleComments = async function(postId) {
     const box = document.getElementById(`comments-${postId}`);
+    if (!box) return;
     box.classList.toggle("hidden");
     if (box.classList.contains("hidden")) return;
 
@@ -481,6 +589,7 @@
 
   window.submitComment = async function(postId) {
     const input = document.getElementById(`cinput-${postId}`);
+    if (!input) return;
     const text = input.value.trim();
     if (!text) return;
     const res = await window.api(`/api/posts/${postId}/comments`, {
@@ -489,7 +598,7 @@
     });
     if (res.success) {
       const countEl = document.getElementById(`ccount-${postId}`);
-      countEl.textContent = Number(countEl.textContent) + 1;
+      if (countEl) countEl.textContent = Number(countEl.textContent) + 1;
       document.getElementById(`comments-${postId}`).classList.add("hidden");
       window.toggleComments(postId);
     }
