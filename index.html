@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TELESUPAR</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg-main: #090d16;
+      --bg-card: #111827;
+      --bg-elevated: #1e293b;
+      --border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-primary: #6366f1;
+      --accent-secondary: #ec4899;
+      --accent-teal: #14b8a6;
+      --gradient-brand: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+      --gradient-nav: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg-main); color: var(--text-primary); display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+
+    /* Mobile-first App Frame */
+    #app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--bg-main);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: 86px;
+    }
+
+    /* Top Header */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(14px);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-title {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      background: var(--gradient-brand);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .icon-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      position: relative;
+      transition: 0.2s;
+    }
+    .icon-btn:active { transform: scale(0.92); }
+    .badge-dot {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 17px;
+      height: 17px;
+      border-radius: 99px;
+      display: grid;
+      place-items: center;
+      padding: 0 4px;
+    }
+
+    /* Main Content Area */
+    #main-view { flex: 1; width: 100%; }
+
+    /* Circular Bottom Navigation Bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 456px;
+      height: 66px;
+      background: rgba(17, 24, 39, 0.92);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 35px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 10px;
+      z-index: 50;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .nav-item {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .nav-item svg { width: 22px; height: 22px; transition: 0.3s; }
+    .nav-label { font-size: 10px; margin-top: 3px; font-weight: 600; transition: 0.25s; }
+
+    /* Active Circle Effect */
+    .nav-item.active {
+      background: var(--gradient-brand);
+      color: #ffffff;
+      transform: translateY(-10px) scale(1.08);
+      box-shadow: 0 8px 20px rgba(168, 85, 247, 0.5), 0 0 0 4px var(--bg-main);
+    }
+    .nav-item.active .nav-label { display: none; }
+    .nav-item.active svg { width: 24px; height: 24px; }
+
+    /* Auth Screen */
+    #auth-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-main);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px 22px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .auth-input {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 13px 15px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    .auth-input:focus { border-color: #8b5cf6; }
+    .btn-primary {
+      width: 100%;
+      background: var(--gradient-brand);
+      border: none;
+      color: #fff;
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .hidden { display: none !important; }
+
+    /* Notification Modal */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 80;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    .drawer-box {
+      width: 100%;
+      max-width: 480px;
+      max-height: 75vh;
+      background: var(--bg-card);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 20px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen" class="hidden">
+    <div class="auth-card">
+      <h1 class="brand-title" style="text-align:center; font-size:28px; margin-bottom:6px;">TELESUPAR</h1>
+      <p style="text-align:center; color:var(--text-secondary); font-size:13px; margin-bottom:22px;">Social • Chat • Channels • Stories</p>
+      
+      <div id="register-fields" class="hidden">
+        <input type="text" id="auth-username" class="auth-input" placeholder="Username (e.g. rahul_dev)" />
+        <input type="text" id="auth-displayname" class="auth-input" placeholder="Display Name" />
+      </div>
+      <input type="email" id="auth-email" class="auth-input" placeholder="Email Address" />
+      <input type="password" id="auth-password" class="auth-input" placeholder="Password (min 6 chars)" />
+      
+      <p id="auth-error" style="color:#f87171; font-size:12px; margin-bottom:10px;"></p>
+      <button class="btn-primary" id="auth-submit-btn">Login to TELESUPAR</button>
+      
+      <p style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-secondary);">
+        <span id="auth-toggle-text">New to TELESUPAR?</span>
+        <a href="#" id="auth-toggle-link" style="color:#a855f7; font-weight:700; text-decoration:none;">Create Account</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app-container">
+    <header class="top-header">
+      <div class="brand-title">TELESUPAR</div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btn-notifications" title="Notifications">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="badge-dot hidden" id="notif-badge">0</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main-view"></main>
+
+    <!-- CIRCULAR BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="home">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="nav-label">Home</span>
+      </button>
+
+      <button class="nav-item" data-tab="explore">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <span class="nav-label">Explore</span>
+      </button>
+
+      <button class="nav-item" data-tab="chat">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <span class="nav-label">Chat</span>
+      </button>
+
+      <button class="nav-item" data-tab="groups">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="nav-label">Channel</span>
+      </button>
+
+      <button class="nav-item" data-tab="profile">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        <span class="nav-label">Profile</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- NOTIFICATIONS MODAL -->
+  <div id="notif-modal" class="drawer-overlay hidden">
+    <div class="drawer-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3>Notifications</h3>
+        <button id="close-notif" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div id="notif-list"></div>
+    </div>
+  </div>
+
+  <!-- SHARED CORE & MODULE SCRIPTS -->
+  <script>
+    // CHANGE THIS TO YOUR DEPLOYED SERVER URL (e.g. https://your-app.onrender.com)
+    window.API_BASE = "http://localhost:3000";
+
+    window.AppState = {
+      token: localStorage.getItem("ts_token") || "",
+      user: JSON.parse(localStorage.getItem("ts_user") || "null"),
+      socket: null,
+      activeTab: "home",
+      activeChatUser: null
+    };
+
+    window.api = async function(path, options = {}) {
+      const headers = options.headers || {};
+      if (window.AppState.token) {
+        headers["Authorization"] = "Bearer " + window.AppState.token;
+      }
+      if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+      const res = await fetch(window.API_BASE + path, { ...options, headers });
+      const data = await res.json();
+      if (res.status === 401) {
+        localStorage.removeItem("ts_token");
+        location.reload();
+      }
+      return data;
+    };
+
+    window.avatarUrl = function(user) {
+      if (user && user.avatar) return user.avatar;
+      const name = encodeURIComponent((user && (user.displayName || user.username)) || "U");
+      return `https://ui-avatars.com/api/?name=${name}&background=6366f1&color=fff&bold=true`;
+    };
+
+    // Auth Logic
+    let isRegisterMode = false;
+    const authScreen = document.getElementById("auth-screen");
+    document.getElementById("auth-toggle-link").onclick = (e) => {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      document.getElementById("register-fields").classList.toggle("hidden", !isRegisterMode);
+      document.getElementById("auth-submit-btn").textContent = isRegisterMode ? "Create Account" : "Login to TELESUPAR";
+      document.getElementById("auth-toggle-text").textContent = isRegisterMode ? "Already have an account?" : "New to TELESUPAR?";
+      document.getElementById("auth-toggle-link").textContent = isRegisterMode ? "Login" : "Create Account";
+    };
+
+    document.getElementById("auth-submit-btn").onclick = async () => {
+      const email = document.getElementById("auth-email").value.trim();
+      const password = document.getElementById("auth-password").value;
+      const endpoint = isRegisterMode ? "/api/register" : "/api/login";
+      const payload = isRegisterMode
+        ? {
+            username: document.getElementById("auth-username").value.trim(),
+            displayName: document.getElementById("auth-displayname").value.trim(),
+            email,
+            password
+          }
+        : { email, password };
+
+      const res = await window.api(endpoint, { method: "POST", body: JSON.stringify(payload) });
+      if (!res.success) {
+        document.getElementById("auth-error").textContent = res.message || "Authentication failed";
+        return;
+      }
+      localStorage.setItem("ts_token", res.token);
+      localStorage.setItem("ts_user", JSON.stringify(res.user));
+      window.AppState.token = res.token;
+      window.AppState.user = res.user;
+      initApp();
+    };
+
+    // Navigation Switcher (Circular Active State)
+    window.switchTab = function(tabName) {
+      window.AppState.activeTab = tabName;
+      document.querySelectorAll(".nav-item").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabName);
+      });
+      const container = document.getElementById("main-view");
+      if (tabName === "home" && window.renderHome) window.renderHome(container);
+      if (tabName === "explore" && window.renderExplore) window.renderExplore(container);
+      if (tabName === "chat" && window.renderChat) window.renderChat(container);
+      if (tabName === "groups" && window.renderGroups) window.renderGroups(container);
+      if (tabName === "profile" && window.renderProfile) window.renderProfile(container);
+    };
+
+    document.querySelectorAll(".nav-item").forEach(btn => {
+      btn.addEventListener("click", () => window.switchTab(btn.dataset.tab));
+    });
+
+    // Notifications Drawer
+    document.getElementById("btn-notifications").onclick = async () => {
+      document.getElementById("notif-modal").classList.remove("hidden");
+      const data = await window.api("/api/notifications");
+      const list = document.getElementById("notif-list");
+      if (!data.success || !data.notifications.length) {
+        list.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:20px;">No notifications yet</p>`;
+        return;
+      }
+      list.innerHTML = data.notifications.map(n => `
+        <div style="display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <img src="${window.avatarUrl(n.actor)}" style="width:38px; height:38px; border-radius:50%; object-fit:cover;" />
+          <div style="font-size:13px;">
+            <strong>${n.actor?.displayName || "Someone"}</strong>
+            ${n.type === "post_like" ? "liked your post" : ""}
+            ${n.type === "post_comment" ? `commented: "${n.commentText}"` : ""}
+            ${n.type === "post_comment_reply" ? `replied: "${n.commentText}"` : ""}
+            ${n.type === "story_like" ? "liked your story" : ""}
+            ${n.type === "new_follow" ? "started following you" : ""}
+          </div>
+        </div>
+      `).join("");
+      await window.api("/api/notifications/read", { method: "PATCH" });
+      document.getElementById("notif-badge").classList.add("hidden");
+    };
+    document.getElementById("close-notif").onclick = () => document.getElementById("notif-modal").classList.add("hidden");
+
+    async function loadNotifCount() {
+      const data = await window.api("/api/notifications");
+      const badge = document.getElementById("notif-badge");
+      if (data.success && data.unreadCount > 0) {
+        badge.textContent = data.unreadCount;
+        badge.classList.remove("hidden");
+      }
+    }
+
+    function initSocket() {
+      if (typeof io === "undefined") return;
+      const socket = io(window.API_BASE);
+      socket.on("connect", () => socket.emit("authenticate", window.AppState.token));
+      window.AppState.socket = socket;
+    }
+
+    async function initApp() {
+      if (!window.AppState.token) {
+        authScreen.classList.remove("hidden");
+        return;
+      }
+      authScreen.classList.add("hidden");
+      const me = await window.api("/api/me");
+      if (me.success) {
+        window.AppState.user = me.user;
+        localStorage.setItem("ts_user", JSON.stringify(me.user));
+      }
+      initSocket();
+      loadNotifCount();
+      window.switchTab("home");
+    }
+
+    window.addEventListener("DOMContentLoaded", initApp);
+  </script>
+
+  <!-- FEATURE MODULES -->
+  <script src="home.js"></script>
+  <script src="explore.js"></script>
+  <script src="chat.js"></script>
+  <script src="groups.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>
