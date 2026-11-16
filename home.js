@@ -25,23 +25,6 @@
     }
     .story-name { font-size: 11px; color: #cbd5e1; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 66px; }
 
-    /* Create Post Box */
-    .create-post-card {
-      margin: 12px 14px; background: #111827; border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px; padding: 12px 14px;
-    }
-    .create-post-input {
-      width: 100%; background: transparent; border: none; color: #fff; font-size: 14px; outline: none; resize: none;
-    }
-    .create-post-actions {
-      display: flex; justify-content: space-between; align-items: center; margin-top: 10px;
-      padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .btn-pill {
-      background: linear-gradient(135deg, #6366f1, #ec4899); border: none; color: #fff;
-      padding: 7px 16px; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer;
-    }
-
     /* Post Card */
     .post-card {
       background: #111827; margin: 12px 14px; border-radius: 20px;
@@ -58,6 +41,10 @@
       border-radius: 99px; display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;
     }
     .action-chip.liked { background: rgba(236, 72, 153, 0.18); color: #f472b6; }
+    .btn-pill {
+      background: linear-gradient(135deg, #6366f1, #ec4899); border: none; color: #fff;
+      padding: 7px 16px; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
 
     /* Story Fullscreen Viewer */
     .story-viewer {
@@ -77,52 +64,33 @@
   window.renderHome = async function(container) {
     container.innerHTML = `
       <div class="stories-bar" id="stories-bar"></div>
-
-      <div class="create-post-card">
-        <textarea id="new-post-caption" class="create-post-input" rows="2" placeholder="Share a photo, video or thought on TELESUPAR..."></textarea>
-        <div class="create-post-actions">
-          <label style="color:#a855f7; font-size:13px; font-weight:600; cursor:pointer;">
-            📷 Photo / Video
-            <input type="file" id="new-post-file" accept="image/*,video/*" hidden />
-          </label>
-          <span id="post-file-name" style="font-size:11px; color:#94a3b8;"></span>
-          <button class="btn-pill" id="btn-publish-post">Post</button>
-        </div>
-      </div>
-
       <div id="posts-feed"><p style="text-align:center; color:#94a3b8; padding:30px;">Loading feed...</p></div>
       <input type="file" id="story-upload-input" accept="image/*,video/*" hidden />
     `;
 
-    // File label
-    document.getElementById("new-post-file").onchange = (e) => {
-      const f = e.target.files[0];
-      document.getElementById("post-file-name").textContent = f ? f.name.slice(0, 18) : "";
-    };
+    // Inject Plus (+) button into top bar next to notification icon
+    setTimeout(() => {
+      if (!document.getElementById("header-create-post-btn")) {
+        const plusBtn = document.createElement("button");
+        plusBtn.id = "header-create-post-btn";
+        plusBtn.innerHTML = "＋";
+        plusBtn.style.cssText = `
+          background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;
+          margin-right: 8px; display: grid; place-items: center; width: 36px; height: 36px; font-weight: 800;
+        `;
+        plusBtn.title = "Create Post";
+        plusBtn.onclick = () => window.openCreatePostModal();
 
-    // Publish Post
-    document.getElementById("btn-publish-post").onclick = async () => {
-      const caption = document.getElementById("new-post-caption").value.trim();
-      const file = document.getElementById("new-post-file").files[0];
-      if (!caption && !file) return;
-
-      const fd = new FormData();
-      fd.append("caption", caption);
-      if (file) fd.append("file", file);
-
-      const btn = document.getElementById("btn-publish-post");
-      btn.textContent = "Posting...";
-      const res = await window.api("/api/posts", { method: "POST", body: fd });
-      btn.textContent = "Post";
-      if (res.success) {
-        document.getElementById("new-post-caption").value = "";
-        document.getElementById("new-post-file").value = "";
-        document.getElementById("post-file-name").textContent = "";
-        loadPosts();
+        // Find notification icon or top-right container to place it right before notification
+        const notificationIcon = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:last-child') || document.querySelector('div[style*="display: flex"] button:last-child');
+        
+        if (notificationIcon && notificationIcon.parentNode) {
+          notificationIcon.parentNode.insertBefore(plusBtn, notificationIcon);
+        }
       }
-    };
+    }, 150);
 
-    // Story Upload
+    // Story Upload handler
     document.getElementById("story-upload-input").onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -134,6 +102,63 @@
 
     loadStories();
     loadPosts();
+  };
+
+  // Create Post Modal (Triggered from Top Bar + button)
+  window.openCreatePostModal = function() {
+    const existing = document.getElementById("create-post-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "create-post-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 150;
+      display: flex; flex-direction: column; color: #fff; padding: 20px; font-family: inherit;
+    `;
+    modal.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div style="font-weight:800; font-size:18px;">Create New Post</div>
+        <button id="close-post-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
+      </div>
+      <textarea id="modal-post-caption" rows="4" placeholder="Share a photo, video or thought on TELESUPAR..." style="width:100%; background:#1e293b; border:none; border-radius:12px; padding:12px; color:#fff; font-size:14px; outline:none; resize:none; margin-bottom:14px;"></textarea>
+      <div style="display:flex; align-items:center; justify-content:space-between; background:#1e293b; padding:12px 16px; border-radius:12px; margin-bottom:20px;">
+        <label style="color:#a855f7; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px;">
+          📷 Choose Photo / Video
+          <input type="file" id="modal-post-file" accept="image/*,video/*" hidden />
+        </label>
+        <span id="modal-file-name" style="font-size:12px; color:#94a3b8;"></span>
+      </div>
+      <button class="btn-pill" id="modal-publish-btn" style="width:100%; padding:12px; font-size:14px; font-weight:700;">Publish Post</button>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("close-post-modal").onclick = () => modal.remove();
+
+    document.getElementById("modal-post-file").onchange = (e) => {
+      const f = e.target.files[0];
+      document.getElementById("modal-file-name").textContent = f ? f.name.slice(0, 20) : "";
+    };
+
+    document.getElementById("modal-publish-btn").onclick = async () => {
+      const caption = document.getElementById("modal-post-caption").value.trim();
+      const file = document.getElementById("modal-post-file").files[0];
+      if (!caption && !file) return;
+
+      const fd = new FormData();
+      fd.append("caption", caption);
+      if (file) fd.append("file", file);
+
+      const btn = document.getElementById("modal-publish-btn");
+      btn.textContent = "Publishing...";
+      const res = await window.api("/api/posts", { method: "POST", body: fd });
+      if (res.success) {
+        modal.remove();
+        loadPosts();
+      } else {
+        btn.textContent = "Publish Post";
+        alert(res.message || "Could not publish post");
+      }
+    };
   };
 
   async function loadStories() {
