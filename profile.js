@@ -188,7 +188,7 @@
   };
 
   // Dedicated Followers / Following Screen (Matching 27718.png & 27719.png)
-  async function openFollowersFollowingPage(user, initialTab, onClose) {
+  async function window.openFollowersFollowingPage(user, initialTab, onClose) {
     const screen = document.createElement("div");
     screen.className = "ig-ff-screen";
     document.body.appendChild(screen);
