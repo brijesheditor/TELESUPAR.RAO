@@ -111,6 +111,8 @@
     .ig-stats-row {
       flex: 1; display: flex; justify-content: space-around; text-align: center;
     }
+    .ig-stat-box { cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: 0.2s; }
+    .ig-stat-box:hover { background: rgba(255,255,255,0.06); }
     .ig-stat-val { font-size: 17px; font-weight: 800; color: #fff; }
     .ig-stat-lbl { font-size: 12px; color: #94a3b8; }
     .ig-bio-section { padding: 4px 16px 14px; }
@@ -127,7 +129,6 @@
   `;
   document.head.appendChild(style);
 
-  // Real Mute State Helper (Persisted in localStorage)
   function getMutedUsers() {
     return JSON.parse(localStorage.getItem("ts_muted_users") || "{}");
   }
@@ -243,13 +244,11 @@
       </div>
     `;
 
-    // Three Dots Popup in Chat Header
     document.getElementById("btn-chat-menu").onclick = (e) => {
       e.stopPropagation();
       openMorePopup(other, container);
     };
 
-    // Click on DP/Name to open Chat Details View (27714.png)
     document.getElementById("open-user-vault").onclick = () => openChatDetailsView(other, container, conv);
 
     const socket = window.AppState.socket;
@@ -258,7 +257,6 @@
       socket.off("newMessage").on("newMessage", (msg) => {
         if (msg.conversationId === conv.id) {
           appendMessage(msg, myId);
-          // Play notification beep only if user is NOT muted
           if (msg.senderId !== myId && !isUserMuted(other.id)) {
             playBeep();
           }
@@ -312,7 +310,6 @@
     };
   }
 
-  // Subtle notification sound when unmuted
   function playBeep() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -325,7 +322,6 @@
     } catch (e) {}
   }
 
-  // Reusable More Options Popup (Call, Video Call, Block, Report, etc.)
   function openMorePopup(user, container) {
     const existing = document.getElementById("active-more-popup");
     if (existing) { existing.remove(); return; }
@@ -369,7 +365,6 @@
     };
   }
 
-  // Chat Details Screen (Message | Profile | Mute | More)
   async function openChatDetailsView(user, container, conv) {
     const room = document.getElementById("active-chat-room");
     if (room) room.style.display = "none";
@@ -399,7 +394,6 @@
             ${muted ? "Notifications Muted 🔕" : (user.isOnline ? "Online" : "last seen recently")}
           </div>
 
-          <!-- 4 Requested Buttons: Message | Profile | Mute | More -->
           <div class="tg-action-buttons">
             <div class="tg-action-btn" id="btn-act-message">
               <span style="font-size:18px;">💬</span> Message
@@ -452,19 +446,16 @@
         </div>
       `;
 
-      // Back to Chat
       profileView.querySelector("#close-tg-profile").onclick = () => {
         profileView.remove();
         if (room) room.style.display = "flex";
       };
 
-      // 1. Message Button
       profileView.querySelector("#btn-act-message").onclick = () => {
         profileView.remove();
         if (room) room.style.display = "flex";
       };
 
-      // 2. Profile Button -> Opens Instagram-Style Full Profile (27716.png)
       profileView.querySelector("#btn-act-profile").onclick = () => {
         openInstagramUserProfile(user, () => {
           profileView.remove();
@@ -472,7 +463,6 @@
         });
       };
 
-      // 3. Real Mute Button
       profileView.querySelector("#btn-act-mute").onclick = () => {
         const nowMuted = toggleUserMute(user.id);
         const headerBadge = document.getElementById("header-mute-badge");
@@ -480,7 +470,6 @@
         renderDetailsContent();
       };
 
-      // 4. More Button -> Opens Glassmorphism Popup
       profileView.querySelector("#btn-act-more").onclick = (e) => {
         e.stopPropagation();
         openMorePopup(user, container);
@@ -497,7 +486,6 @@
     renderDetailsContent();
   }
 
-  // Instagram-Style User Profile Screen (Matching 27716.png)
   async function openInstagramUserProfile(user, onMessageClick) {
     const igModal = document.createElement("div");
     igModal.className = "ig-profile-modal";
@@ -533,15 +521,15 @@
         <div class="ig-header-stats">
           <img src="${window.avatarUrl(fullUser)}" class="ig-dp" />
           <div class="ig-stats-row">
-            <div>
+            <div class="ig-stat-box">
               <div class="ig-stat-val">${userPosts.length}</div>
               <div class="ig-stat-lbl">posts</div>
             </div>
-            <div>
+            <div class="ig-stat-box" id="ig-followers-box">
               <div class="ig-stat-val" id="ig-followers-num">${followersCount}</div>
               <div class="ig-stat-lbl">followers</div>
             </div>
-            <div>
+            <div class="ig-stat-box" id="ig-following-box">
               <div class="ig-stat-val">${followingCount}</div>
               <div class="ig-stat-lbl">following</div>
             </div>
@@ -583,6 +571,21 @@
       `;
 
       igModal.querySelector("#ig-back-btn").onclick = () => igModal.remove();
+      
+      // Click on Followers count -> Open Followers list page for this user
+      igModal.querySelector("#ig-followers-box").onclick = () => {
+        if (window.openFollowersFollowingPage) {
+          window.openFollowersFollowingPage(fullUser, "followers");
+        }
+      };
+
+      // Click on Following count -> Open Following list page for this user
+      igModal.querySelector("#ig-following-box").onclick = () => {
+        if (window.openFollowersFollowingPage) {
+          window.openFollowersFollowingPage(fullUser, "following");
+        }
+      };
+
       igModal.querySelector("#ig-more-btn").onclick = (e) => {
         e.stopPropagation();
         openMorePopup(fullUser, document.body);
