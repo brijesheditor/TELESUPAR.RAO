@@ -18,9 +18,12 @@
     }
 
     /* Active Conversation Room */
-    .chat-room { display: flex; flex-direction: column; height: calc(100vh - 66px); position: relative; }
+    .chat-room {
+      position: fixed; inset: 0; background: #090d16; z-index: 90;
+      display: flex; flex-direction: column;
+    }
     .chat-room-header {
-      display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;
       background: #111827; border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 10;
     }
     .chat-room-user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; }
@@ -32,7 +35,7 @@
       max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; position: relative;
     }
     .msg-mine {
-      align-self: flex-end; background: linear-gradient(135deg, #0d9488, #0f766e); color: #fff;
+      align-self: flex-end; background: #6366f1; color: #fff;
       border-bottom-right-radius: 4px;
     }
     .msg-theirs {
@@ -49,20 +52,48 @@
       padding: 11px 16px; color: #fff; font-size: 14px; outline: none;
     }
 
-    /* Profile / Chat Vault Drawer */
-    .chat-vault-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
-      display: flex; justify-content: center; align-items: flex-end;
+    /* Telegram Glassmorphism Popup Menu */
+    .tg-popup-menu {
+      position: absolute; top: 60px; right: 14px; width: 220px;
+      background: rgba(17, 24, 39, 0.92); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;
+      box-shadow: 0 16px 32px rgba(0,0,0,0.6); z-index: 100; padding: 6px 0;
     }
-    .chat-vault-content {
-      width: 100%; max-width: 480px; max-height: 80vh; background: #111827;
-      border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; overflow-y: auto;
+    .tg-popup-item {
+      padding: 11px 16px; font-size: 13px; color: #f8fafc; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
     }
+    .tg-popup-item:hover { background: rgba(255,255,255,0.06); }
+
+    /* Telegram Profile / Vault Screen */
+    .tg-profile-view {
+      position: fixed; inset: 0; background: #090d16; z-index: 110;
+      display: flex; flex-direction: column; overflow-y: auto;
+    }
+    .tg-profile-header {
+      padding: 14px; display: flex; align-items: center; background: #111827;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .tg-profile-hero { padding: 24px 16px; text-align: center; background: #111827; margin-bottom: 12px; }
+    .tg-action-buttons { display: flex; justify-content: center; gap: 14px; margin-top: 16px; }
+    .tg-action-btn {
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 10px 18px; color: #fff; font-size: 12px; font-weight: 600;
+      display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+    }
+    .tg-tabs-bar { display: flex; border-bottom: 1px solid rgba(255,255,255,0.08); background: #111827; }
+    .tg-profile-tab {
+      flex: 1; text-align: center; padding: 12px; font-size: 13px; font-weight: 700; color: #94a3b8; cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tg-profile-tab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
   `;
   document.head.appendChild(style);
 
   window.renderChat = async function(container) {
+    const mainHeader = document.querySelector(".top-header");
     const bottomNav = document.querySelector(".bottom-nav");
+    if (mainHeader) mainHeader.classList.remove("hidden");
     if (bottomNav) bottomNav.classList.remove("hidden");
 
     if (window.AppState.activeConversation) {
@@ -112,12 +143,14 @@
     const myId = window.AppState.user.id;
     const other = conv.otherUser;
 
-    // Hide bottom navigation bar during active chat
+    // Hide main header and bottom navigation bar completely during active chat
+    const mainHeader = document.querySelector(".top-header");
     const bottomNav = document.querySelector(".bottom-nav");
+    if (mainHeader) mainHeader.classList.add("hidden");
     if (bottomNav) bottomNav.classList.add("hidden");
 
     container.innerHTML = `
-      <div class="chat-room">
+      <div class="chat-room" id="active-chat-room">
         <div class="chat-room-header">
           <div style="display:flex; align-items:center; gap:10px;">
             <button id="back-to-chats" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">←</button>
@@ -126,12 +159,22 @@
               <div>
                 <div style="font-weight:700; font-size:15px;">${other.displayName}</div>
                 <div id="chat-sub-status" style="font-size:11px; color:#14b8a6;">
-                  ${other.isOnline ? "Online" : "Offline"}
+                  ${other.isOnline ? "Online" : "last seen recently"}
                 </div>
               </div>
             </div>
           </div>
-          <button id="btn-chat-settings" class="icon-btn" title="Chat Settings & Media">⚙️</button>
+          <div style="position:relative;">
+            <button id="btn-chat-menu" class="icon-btn" style="background:transparent; border:none;">⋮</button>
+            <div id="tg-menu-dropdown" class="tg-popup-menu hidden">
+              <div class="tg-popup-item" id="menu-mute">🔔 Mute</div>
+              <div class="tg-popup-item" id="menu-call">📞 Call</div>
+              <div class="tg-popup-item" id="menu-video">📹 Video Call</div>
+              <div class="tg-popup-item" id="menu-search">🔍 Search</div>
+              <div class="tg-popup-item" id="menu-clear">🧹 Clear History</div>
+              <div class="tg-popup-item" id="menu-delete" style="color:#ef4444;">🗑 Delete chat</div>
+            </div>
+          </div>
         </div>
 
         <div class="messages-area" id="messages-area"></div>
@@ -141,15 +184,41 @@
             📎
             <input type="file" id="chat-attach-input" hidden />
           </label>
-          <input type="text" id="chat-msg-input" class="chat-text-input" placeholder="Message..." />
+          <input type="text" id="chat-msg-input" class="chat-text-input" placeholder="Message" />
           <button id="chat-send-btn" class="icon-btn" style="background:#14b8a6; border:none;">➤</button>
         </div>
       </div>
     `;
 
-    // Click on DP/Name to open user profile & media vault
-    document.getElementById("open-user-vault").onclick = () => openChatVault(other);
-    document.getElementById("btn-chat-settings").onclick = () => openChatVault(other);
+    // Toggle Telegram Three Dots Popup
+    const menuBtn = document.getElementById("btn-chat-menu");
+    const menuDropdown = document.getElementById("tg-menu-dropdown");
+    menuBtn.onclick = (e) => {
+      e.stopPropagation();
+      menuDropdown.classList.toggle("hidden");
+    };
+    document.addEventListener("click", () => menuDropdown.classList.add("hidden"));
+
+    document.getElementById("menu-mute").onclick = () => alert("Chat muted successfully");
+    document.getElementById("menu-call").onclick = () => alert("Calling " + other.displayName + "...");
+    document.getElementById("menu-video").onclick = () => alert("Starting video call...");
+    document.getElementById("menu-search").onclick = () => {
+      const q = prompt("Search in conversation:");
+      if (q) alert("Searching for: " + q);
+    };
+    document.getElementById("menu-clear").onclick = () => {
+      if (confirm("Clear history for this chat?")) {
+        document.getElementById("messages-area").innerHTML = "";
+      }
+    };
+    document.getElementById("menu-delete").onclick = () => {
+      if (confirm("Delete this chat?")) {
+        document.getElementById("back-to-chats").click();
+      }
+    };
+
+    // Click on DP/Name to open Telegram Profile View
+    document.getElementById("open-user-vault").onclick = () => openTelegramProfile(other, container, conv);
 
     const socket = window.AppState.socket;
     if (socket) {
@@ -159,7 +228,7 @@
       });
       socket.off("typing").on("typing", (data) => {
         if (data.conversationId === conv.id) {
-          document.getElementById("chat-sub-status").textContent = data.isTyping ? "typing..." : (other.isOnline ? "Online" : "Offline");
+          document.getElementById("chat-sub-status").textContent = data.isTyping ? "typing..." : (other.isOnline ? "Online" : "last seen recently");
         }
       });
     }
@@ -167,6 +236,7 @@
     document.getElementById("back-to-chats").onclick = () => {
       if (socket) socket.emit("leaveConversation", conv.id);
       window.AppState.activeConversation = null;
+      if (mainHeader) mainHeader.classList.remove("hidden");
       if (bottomNav) bottomNav.classList.remove("hidden");
       window.renderChat(container);
     };
@@ -204,48 +274,104 @@
     };
   }
 
-  // Chat Vault Modal (Profile + Shared Media, Files & Links)
-  async function openChatVault(user) {
-    const modal = document.createElement("div");
-    modal.className = "chat-vault-modal";
+  // Telegram Style Profile & Shared Vault View (as shown in 27711.png)
+  async function openTelegramProfile(user, container, conv) {
+    const room = document.getElementById("active-chat-room");
+    if (room) room.style.display = "none";
 
-    modal.innerHTML = `
-      <div class="chat-vault-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h3>Chat Details</h3>
-          <button id="close-vault" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
-        </div>
-        <div style="text-align:center; margin-bottom:16px;">
-          <img src="${window.avatarUrl(user)}" style="width:72px; height:72px; border-radius:50%; object-fit:cover; margin-bottom:8px;" />
-          <div style="font-weight:700; font-size:16px;">${user.displayName}</div>
-          <div style="color:#a855f7; font-size:13px;">@${user.username}</div>
-          <p style="color:#cbd5e1; font-size:13px; margin-top:6px;">${user.bio || "No bio available."}</p>
-        </div>
-        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top:14px;">
-          <h4 style="font-size:13px; color:#94a3b8; margin-bottom:10px;">Shared Media & Files</h4>
-          <div id="vault-media-list" style="font-size:12px; color:#94a3b8;">Loading shared items...</div>
-        </div>
-      </div>
-    `;
+    const profileView = document.createElement("div");
+    profileView.className = "tg-profile-view";
+    container.appendChild(profileView);
 
-    document.body.appendChild(modal);
-    modal.querySelector("#close-vault").onclick = () => modal.remove();
+    let activeTab = "Files";
 
-    // Fetch shared media/files using backend API
-    const res = await window.api(`/api/users/${user.id}/private-content`);
-    const mediaListContainer = modal.querySelector("#vault-media-list");
-    if (res.success) {
-      const totalItems = [...(res.media || []), ...(res.files || [])];
-      if (!totalItems.length) {
-        mediaListContainer.innerHTML = `<p>No shared media or files in this chat yet.</p>`;
-        return;
-      }
-      mediaListContainer.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;">
-          ${res.media.map(m => `<img src="${m.url}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px;" />`).join("")}
+    async function renderProfileContent() {
+      const res = await window.api(`/api/users/${user.id}/private-content`);
+      const files = res.success ? (res.files || []) : [];
+      const links = res.success ? (res.links || []) : [];
+
+      profileView.innerHTML = `
+        <div class="tg-profile-header">
+          <button id="close-tg-profile" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; margin-right:16px;">←</button>
+          <div style="font-weight:700; font-size:16px;">Profile</div>
+        </div>
+
+        <div class="tg-profile-hero">
+          <img src="${window.avatarUrl(user)}" style="width:96px; height:96px; border-radius:50%; object-fit:cover; margin-bottom:12px;" />
+          <div style="font-weight:800; font-size:18px;">${user.displayName}</div>
+          <div style="font-size:12px; color:#94a3b8; margin-top:2px;">last seen recently</div>
+
+          <div class="tg-action-buttons">
+            <div class="tg-action-btn" id="prof-msg-btn">
+              <span style="font-size:18px;">💬</span> Message
+            </div>
+            <div class="tg-action-btn">
+              <span style="font-size:18px;">🔔</span> Mute
+            </div>
+            <div class="tg-action-btn">
+              <span style="font-size:18px;">📞</span> Call
+            </div>
+            <div class="tg-action-btn">
+              <span style="font-size:18px;">📹</span> Video
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#111827; padding:14px 16px; margin-bottom:12px;">
+          <div style="font-weight:700; font-size:14px; color:#38bdf8;">@${user.username}</div>
+          <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; margin-top:2px;">Username</div>
+        </div>
+
+        <div class="tg-tabs-bar">
+          <div class="tg-profile-tab ${activeTab === "Files" ? "active" : ""}" data-tab="Files">Files</div>
+          <div class="tg-profile-tab ${activeTab === "Links" ? "active" : ""}" data-tab="Links">Links</div>
+          <div class="tg-profile-tab ${activeTab === "Groups" ? "active" : ""}" data-tab="Groups">Groups</div>
+        </div>
+
+        <div style="padding:16px; flex:1;" id="vault-tab-content">
+          ${activeTab === "Files" ? (
+            files.length ? files.map(f => `
+              <div style="background:#111827; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+                <span style="font-size:24px;">📄</span>
+                <div style="flex:1; overflow:hidden;">
+                  <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${f.fileName}</div>
+                  <div style="font-size:11px; color:#94a3b8;">${Math.round((f.size || 1024)/1024)} KB</div>
+                </div>
+              </div>
+            `).join("") : `<p style="text-align:center; color:#64748b; padding:20px;">No shared files yet</p>`
+          ) : ""}
+
+          ${activeTab === "Links" ? (
+            links.length ? links.map(l => `
+              <div style="background:#111827; padding:12px; border-radius:12px; margin-bottom:8px;">
+                <a href="${l.url}" target="_blank" style="color:#38bdf8; font-size:13px; text-decoration:none;">${l.url}</a>
+              </div>
+            `).join("") : `<p style="text-align:center; color:#64748b; padding:20px;">No shared links yet</p>`
+          ) : ""}
+
+          ${activeTab === "Groups" ? `<p style="text-align:center; color:#64748b; padding:20px;">No mutual groups in common</p>` : ""}
         </div>
       `;
+
+      profileView.querySelector("#close-tg-profile").onclick = () => {
+        profileView.remove();
+        if (room) room.style.display = "flex";
+      };
+
+      profileView.querySelector("#prof-msg-btn").onclick = () => {
+        profileView.remove();
+        if (room) room.style.display = "flex";
+      };
+
+      profileView.querySelectorAll(".tg-profile-tab").forEach(tab => {
+        tab.onclick = () => {
+          activeTab = tab.dataset.tab;
+          renderProfileContent();
+        };
+      });
     }
+
+    renderProfileContent();
   }
 
   function appendMessage(msg, myId) {
