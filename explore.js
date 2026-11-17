@@ -228,7 +228,7 @@
     }
   }
 
-  // Instagram-style Profile Page View with fixed Message Navigation
+  // Instagram-style Profile Page View with Direct Chat Integration
   window.openUserExploreProfile = async function(userId) {
     let existing = document.getElementById("explore-user-profile-modal");
     if (existing) existing.remove();
@@ -358,25 +358,19 @@
           }
         };
 
-        // Message Button Handler (Creates/Gets Conversation and switches to Chat tab)
+        // Message Button Handler (Directly opens chat window)
         document.getElementById("profile-msg-btn").onclick = async () => {
           try {
             const chatRes = await window.api(`/api/conversations/${userId}`, { method: "POST" });
             if (chatRes && chatRes.success && chatRes.conversation) {
               modal.remove(); // Remove profile modal
               
-              // Automatically switch to Chat tab in bottom navigation
-              const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
-                                 document.querySelector('.bottom-nav button:nth-child(3)') ||
-                                 Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Chat') || b.innerHTML.includes('chat'));
-              
-              if (chatTabBtn) {
-                chatTabBtn.click();
-              } else if (window.renderChat) {
-                window.renderChat(document.getElementById("app") || document.body, chatRes.conversation.id);
+              if (window.openDirectChat) {
+                window.openDirectChat(chatRes.conversation.id, p);
               } else {
-                localStorage.setItem("active_chat_id", chatRes.conversation.id);
-                window.location.reload();
+                const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
+                                   document.querySelector('.bottom-nav button:nth-child(3)');
+                if (chatTabBtn) chatTabBtn.click();
               }
             } else {
               alert("Could not open chat with this user.");
