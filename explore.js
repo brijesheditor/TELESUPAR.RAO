@@ -1,4 +1,3 @@
-
 (function () {
   const style = document.createElement("style");
 
@@ -482,6 +481,7 @@
     `;
   }
 
+  
   function renderResults() {
     const results = document.getElementById("explore-results");
     if (!results) return;
@@ -493,6 +493,8 @@
         <div class="explore-section-title">People</div>
         ${renderUsers()}
       `;
+
+      loadFollowStatuses();
       return;
     }
 
@@ -518,5 +520,41 @@
       <div class="explore-section-title">Videos and posts</div>
       ${renderGrid(posts)}
     `;
+
+    loadFollowStatuses();
   }
+
+  // LOAD REAL FOLLOW STATUS
+  async function loadFollowStatuses() {
+    const buttons = document.querySelectorAll(
+      "#explore-results [data-follow]"
+    );
+
+    for (const btn of buttons) {
+      const userId = btn.dataset.follow;
+
+      try {
+        const status = await window.api(
+          `/api/users/${encodeURIComponent(userId)}/follow-status`
+        );
+
+        if (!status.success || !btn.isConnected) continue;
+
+        btn.dataset.following = String(status.following);
+
+        btn.textContent = status.following
+          ? "Following"
+          : "Follow";
+
+        btn.classList.toggle(
+          "follow",
+          !status.following
+        );
+
+      } catch (error) {
+        console.error("Follow status error:", error);
+      }
+    }
+  }
+
 })();
