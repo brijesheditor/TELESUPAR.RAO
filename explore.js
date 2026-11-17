@@ -172,7 +172,6 @@
 
     grid.innerHTML = filtered.map(post => {
       const isVideo = post.mediaType === "video" || (post.mediaUrl && post.mediaUrl.match(/\.(mp4|webm|mov)$/i));
-      // Displaying views count instead of likes
       const statCount = formatCount(post.viewsCount || post.likesCount || 0);
       let cleanText = (post.caption || "").replace(/^\[.*?\]\s*/, "");
 
@@ -212,8 +211,8 @@
         usersBox.innerHTML = `
           <div style="font-size:11px; font-weight:700; color:#94a3b8; margin-bottom:6px; text-transform:uppercase;">Educators & Students</div>
           ${res.users.map(u => `
-            <div class="explore-user-row" onclick="window.openUserProfile('${u.id}')">
-              <img src="${window.avatarUrl(u)}" alt="${u.displayName}" />
+            <div class="explore-user-row" onclick="window.openUserExploreProfile('${u.id}')">
+              <img src="${window.avatarUrl ? window.avatarUrl(u) : (u.avatar || '')}" alt="${u.displayName}" />
               <div style="flex:1; min-width:0;">
                 <div style="font-weight:700; font-size:14px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.displayName}</div>
                 <div style="font-size:12px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@${u.username}</div>
@@ -228,6 +227,53 @@
       usersBox.style.display = "none";
     }
   }
+
+  // Standalone profile opener to guarantee it works from explore search
+  window.openUserExploreProfile = async function(userId) {
+    let existing = document.getElementById("explore-user-profile-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "explore-user-profile-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: #090d16; z-index: 400;
+      display: flex; flex-direction: column; color: #fff; font-family: inherit; overflow-y: auto;
+    `;
+    modal.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#111827; position:sticky; top:0; z-index:10;">
+        <button id="close-user-profile" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">←</button>
+        <div style="font-weight:800; font-size:17px;" id="modal-username-title">Profile</div>
+      </div>
+      <div id="profile-modal-content" style="padding:20px; text-align:center; color:#94a3b8;">Loading profile...</div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("close-user-profile").onclick = () => modal.remove();
+
+    try {
+      const res = await window.api(`/api/users/${userId}/profile`);
+      const content = document.getElementById("profile-modal-content");
+
+      if (res && res.success && res.profile) {
+        const p = res.profile;
+        document.getElementById("modal-username-title").textContent = p.username || "Profile";
+        
+        content.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+            <img src="${window.avatarUrl ? window.avatarUrl(p) : (p.avatar || '')}" style="width:84px; height:84px; border-radius:50%; object-fit:cover; border:2px solid #6366f1;" />
+            <div style="font-size:20px; font-weight:800; color:#fff;">${p.displayName}</div>
+            <div style="font-size:13px; color:#94a3b8; margin-top:-8px;">@${p.username}</div>
+            <div style="font-size:14px; color:#cbd5e1; max-width:400px; text-align:center; margin-top:4px;">${p.bio || "No bio added yet."}</div>
+            <button onclick="window.openDirectChat && window.openDirectChat('${p.id}', ${JSON.stringify(p).replace(/"/g, '&quot;')})" style="margin-top:14px; background:linear-gradient(135deg, #6366f1, #ec4899); border:none; color:#fff; font-weight:700; padding:10px 24px; border-radius:99px; cursor:pointer;">Send Message / Doubt</button>
+          </div>
+        `;
+      } else {
+        content.innerHTML = `<p style="color:#ef4444;">Could not load profile details.</p>`;
+      }
+    } catch (_) {
+      document.getElementById("profile-modal-content").innerHTML = `<p style="color:#ef4444;">Failed to connect to server.</p>`;
+    }
+  };
 
   async function openSavedLessonsModal() {
     alert("Saved study posts feature coming up next!");
