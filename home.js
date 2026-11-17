@@ -135,7 +135,6 @@
     loadPosts();
   };
 
-  // Helper for relative time formatting (e.g., 5s, 1h, 3d)
   function formatTimeAgo(dateString) {
     if (!dateString) return "";
     const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
@@ -148,7 +147,6 @@
     return `${days}d`;
   }
 
-  // Hook into notification button to display rich activity with time and post target preview
   function setupNotificationButtonHook() {
     const notifBtn = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:nth-last-child(3)');
     if (notifBtn && !notifBtn._hooked) {
@@ -198,19 +196,30 @@
       const actor = n.user || n.actor || { displayName: "Someone", username: "user" };
       
       let actionText = "interacted with your post";
-      if (n.type === "like") actionText = "liked your study post/reel";
-      else if (n.type === "comment" || n.type === "doubt") actionText = `commented: "${n.text || '...'}"`;
-      else if (n.type === "reply") actionText = `replied to your doubt: "${n.text || '...'}"`;
-      else if (n.type === "follow") actionText = "started following you";
+      const type = (n.type || "").toLowerCase();
+      if (type.includes("like")) {
+        actionText = n.storyId ? "liked your story" : "liked your study post/reel";
+      } else if (type.includes("comment") || type.includes("doubt")) {
+        actionText = `commented: "${n.text || n.commentText || '...'}"`;
+      } else if (type.includes("reply")) {
+        actionText = `replied to your doubt: "${n.text || '...'}"`;
+      } else if (type.includes("follow")) {
+        actionText = "started following you";
+      }
 
-      const mediaThumb = n.post && n.post.mediaUrl ? (
-        n.post.mediaType === "video"
-          ? `<video src="${n.post.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px; background:#000;"></video>`
-          : `<img src="${n.post.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px;" />`
-      ) : "";
+      // Fixed Media Thumbnail rendering for images and videos
+      let mediaThumb = "";
+      const targetPost = n.post || n.targetPost;
+      if (targetPost && targetPost.mediaUrl) {
+        if (targetPost.mediaType === "video" || targetPost.mediaUrl.match(/\.(mp4|webm|mov)$/i)) {
+          mediaThumb = `<video src="${targetPost.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px; background:#000;" muted preload="metadata"></video>`;
+        } else {
+          mediaThumb = `<img src="${targetPost.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px;" />`;
+        }
+      }
 
       return `
-        <div class="notif-item" data-postid="${n.post?.id || ''}" style="
+        <div class="notif-item" data-postid="${targetPost?.id || ''}" style="
           display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;
         ">
           <div style="display:flex; align-items:center; gap:12px; flex:1;">
@@ -297,7 +306,6 @@
     }
   }
 
-  // Educational Post Creation Modal with Subject Category Selection Dropdown
   window.openCreatePostModal = function() {
     const existing = document.getElementById("create-post-modal");
     if (existing) existing.remove();
@@ -570,7 +578,6 @@
     }).join("");
   }
 
-  // Instagram-style Post Options Menu (Report, Edit, Delete)
   window.openPostOptionsMenu = function(postId, isMyPost) {
     const existing = document.getElementById("post-options-modal");
     if (existing) existing.remove();
