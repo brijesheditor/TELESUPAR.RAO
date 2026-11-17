@@ -106,7 +106,6 @@
         }
       }
 
-      setupNotificationButtonHook();
       updateBottomNavBadges();
     }, 100);
 
@@ -134,118 +133,6 @@
     loadStories();
     loadPosts();
   };
-
-  function formatTimeAgo(dateString) {
-    if (!dateString) return "";
-    const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `${days}d`;
-  }
-
-  function setupNotificationButtonHook() {
-    const notifBtn = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:nth-last-child(3)');
-    if (notifBtn && !notifBtn._hooked) {
-      notifBtn._hooked = true;
-      const origClick = notifBtn.onclick;
-      notifBtn.onclick = async (e) => {
-        if (origClick) origClick.call(notifBtn, e);
-        showCustomNotificationsModal();
-      };
-    }
-  }
-
-  async function showCustomNotificationsModal() {
-    const existing = document.getElementById("custom-notifications-modal");
-    if (existing) existing.remove();
-
-    const modal = document.createElement("div");
-    modal.id = "custom-notifications-modal";
-    modal.style.cssText = `
-      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 300;
-      display: flex; flex-direction: column; color: #fff; font-family: inherit;
-    `;
-    modal.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid rgba(255,255,255,0.08);">
-        <div style="font-weight:800; font-size:18px;">Notifications & Activity</div>
-        <button id="close-notif-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
-      </div>
-      <div id="notif-list-container" style="flex:1; overflow-y:auto; padding:12px 16px;">
-        <p style="text-align:center; color:#94a3b8; padding:30px;">Loading activities...</p>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    modal.querySelector("#close-notif-modal").onclick = () => modal.remove();
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-
-    const container = modal.querySelector("#notif-list-container");
-    const res = await window.api("/api/notifications");
-    
-    if (!res.success || !res.notifications || !res.notifications.length) {
-      container.innerHTML = `<p style="text-align:center; color:#64748b; padding:40px;">No recent notifications.</p>`;
-      return;
-    }
-
-    container.innerHTML = res.notifications.map(n => {
-      const timeStr = formatTimeAgo(n.createdAt || n.timestamp);
-      const actor = n.user || n.actor || { displayName: "Someone", username: "user" };
-      
-      let actionText = "interacted with your post";
-      const type = (n.type || "").toLowerCase();
-      if (type.includes("like")) {
-        actionText = n.storyId ? "liked your story" : "liked your study post/reel";
-      } else if (type.includes("comment") || type.includes("doubt")) {
-        actionText = `commented: "${n.text || n.commentText || '...'}"`;
-      } else if (type.includes("reply")) {
-        actionText = `replied to your doubt: "${n.text || '...'}"`;
-      } else if (type.includes("follow")) {
-        actionText = "started following you";
-      }
-
-      // Fixed Media Thumbnail rendering for images and videos
-      let mediaThumb = "";
-      const targetPost = n.post || n.targetPost;
-      if (targetPost && targetPost.mediaUrl) {
-        if (targetPost.mediaType === "video" || targetPost.mediaUrl.match(/\.(mp4|webm|mov)$/i)) {
-          mediaThumb = `<video src="${targetPost.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px; background:#000;" muted preload="metadata"></video>`;
-        } else {
-          mediaThumb = `<img src="${targetPost.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px;" />`;
-        }
-      }
-
-      return `
-        <div class="notif-item" data-postid="${targetPost?.id || ''}" style="
-          display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;
-        ">
-          <div style="display:flex; align-items:center; gap:12px; flex:1;">
-            <img src="${window.avatarUrl(actor)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
-            <div style="flex:1;">
-              <div style="font-size:13.5px; color:#e2e8f0; line-height:1.4;">
-                <strong style="color:#fff;">${actor.displayName || actor.username}</strong> ${actionText}
-              </div>
-              <div style="font-size:11px; color:#94a3b8; margin-top:2px;">${timeStr} ago</div>
-            </div>
-          </div>
-          ${mediaThumb}
-        </div>
-      `;
-    }).join("");
-
-    container.querySelectorAll(".notif-item").forEach(el => {
-      el.onclick = () => {
-        const postId = el.dataset.postid;
-        if (postId) {
-          modal.remove();
-          window.openFullscreenPostViewer(postId);
-        }
-      };
-    });
-  }
 
   async function updateBottomNavBadges() {
     try {
