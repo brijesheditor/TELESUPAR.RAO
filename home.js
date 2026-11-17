@@ -26,7 +26,7 @@
       border: 1px solid rgba(255,255,255,0.07); overflow: hidden;
     }
     .post-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; }
-    .post-user { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .post-user { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; }
     .post-user img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
     .post-media { width: 100%; max-height: 420px; object-fit: cover; display: block; background: #000; cursor: pointer; }
     .post-caption { padding: 8px 14px 12px 14px; font-size: 14px; line-height: 1.45; color: #e2e8f0; word-break: break-word; }
@@ -53,6 +53,9 @@
       display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa;
       font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;
     }
+    .post-options-btn {
+      background: none; border: none; color: #94a3b8; font-size: 18px; font-weight: 800; cursor: pointer; padding: 4px 8px;
+    }
 
     /* Story Fullscreen Viewer */
     .story-viewer {
@@ -72,45 +75,40 @@
   window.renderHome = async function(container) {
     container.innerHTML = `
       <div class="stories-bar" id="stories-bar"></div>
-      <div id="posts-feed"><p style="text-align:center; color:#94a3b8; padding:30px;">Loading feed...</p></div>
+      <div id="posts-feed"><p style="text-align:center; color:#94a3b8; padding:30px;">Loading educational feed...</p></div>
       <input type="file" id="story-upload-input" accept="image/*,video/*" hidden />
     `;
 
     setTimeout(() => {
       const topHeader = document.querySelector('header') || document.querySelector('.app-header');
-      if (topHeader) topHeader.style.display = "flex";
-
-      if (!document.getElementById("header-reels-btn")) {
-        const headerIconsContainer = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:last-child') || document.querySelector('div[style*="display: flex"] button:last-child');
+      if (topHeader) {
+        topHeader.style.display = "flex";
         
-        if (headerIconsContainer && headerIconsContainer.parentNode) {
+        if (!document.getElementById("header-reels-btn")) {
+          const actionArea = topHeader.querySelector('div:last-child') || topHeader;
+          
           const reelsBtn = document.createElement("button");
           reelsBtn.id = "header-reels-btn";
           reelsBtn.innerHTML = "🎬";
-          reelsBtn.style.cssText = `
-            background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;
-            margin-right: 4px; display: grid; place-items: center; width: 36px; height: 36px;
-          `;
-          reelsBtn.title = "Reels Viewer";
+          reelsBtn.style.cssText = `background:none; border:none; color:#fff; font-size:20px; cursor:pointer; width:36px; height:36px; display:grid; place-items:center;`;
+          reelsBtn.title = "Educational Reels";
           reelsBtn.onclick = () => window.openFullscreenPostViewer();
 
           const plusBtn = document.createElement("button");
           plusBtn.id = "header-create-post-btn";
           plusBtn.innerHTML = "＋";
-          plusBtn.style.cssText = `
-            background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;
-            margin-right: 8px; display: grid; place-items: center; width: 36px; height: 36px; font-weight: 800;
-          `;
+          plusBtn.style.cssText = `background:none; border:none; color:#fff; font-size:24px; font-weight:800; cursor:pointer; width:36px; height:36px; display:grid; place-items:center;`;
           plusBtn.title = "Create Educational Post";
           plusBtn.onclick = () => window.openCreatePostModal();
 
-          headerIconsContainer.parentNode.insertBefore(reelsBtn, headerIconsContainer);
-          headerIconsContainer.parentNode.insertBefore(plusBtn, headerIconsContainer);
+          actionArea.prepend(plusBtn);
+          actionArea.prepend(reelsBtn);
         }
       }
 
+      setupNotificationButtonHook();
       updateBottomNavBadges();
-    }, 150);
+    }, 100);
 
     if (window.switchTab && !window._telesuparTabHooked) {
       window._telesuparTabHooked = true;
@@ -136,6 +134,109 @@
     loadStories();
     loadPosts();
   };
+
+  // Helper for relative time formatting (e.g., 5s, 1h, 3d)
+  function formatTimeAgo(dateString) {
+    if (!dateString) return "";
+    const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  }
+
+  // Hook into notification button to display rich activity with time and post target preview
+  function setupNotificationButtonHook() {
+    const notifBtn = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:nth-last-child(3)');
+    if (notifBtn && !notifBtn._hooked) {
+      notifBtn._hooked = true;
+      const origClick = notifBtn.onclick;
+      notifBtn.onclick = async (e) => {
+        if (origClick) origClick.call(notifBtn, e);
+        showCustomNotificationsModal();
+      };
+    }
+  }
+
+  async function showCustomNotificationsModal() {
+    const existing = document.getElementById("custom-notifications-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "custom-notifications-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 300;
+      display: flex; flex-direction: column; color: #fff; font-family: inherit;
+    `;
+    modal.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div style="font-weight:800; font-size:18px;">Notifications & Activity</div>
+        <button id="close-notif-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
+      </div>
+      <div id="notif-list-container" style="flex:1; overflow-y:auto; padding:12px 16px;">
+        <p style="text-align:center; color:#94a3b8; padding:30px;">Loading activities...</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector("#close-notif-modal").onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const container = modal.querySelector("#notif-list-container");
+    const res = await window.api("/api/notifications");
+    
+    if (!res.success || !res.notifications || !res.notifications.length) {
+      container.innerHTML = `<p style="text-align:center; color:#64748b; padding:40px;">No recent notifications.</p>`;
+      return;
+    }
+
+    container.innerHTML = res.notifications.map(n => {
+      const timeStr = formatTimeAgo(n.createdAt || n.timestamp);
+      const actor = n.user || n.actor || { displayName: "Someone", username: "user" };
+      
+      let actionText = "interacted with your post";
+      if (n.type === "like") actionText = "liked your study post/reel";
+      else if (n.type === "comment" || n.type === "doubt") actionText = `commented: "${n.text || '...'}"`;
+      else if (n.type === "reply") actionText = `replied to your doubt: "${n.text || '...'}"`;
+      else if (n.type === "follow") actionText = "started following you";
+
+      const mediaThumb = n.post && n.post.mediaUrl ? (
+        n.post.mediaType === "video"
+          ? `<video src="${n.post.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px; background:#000;"></video>`
+          : `<img src="${n.post.mediaUrl}" style="width:42px; height:42px; object-fit:cover; border-radius:8px;" />`
+      ) : "";
+
+      return `
+        <div class="notif-item" data-postid="${n.post?.id || ''}" style="
+          display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;
+        ">
+          <div style="display:flex; align-items:center; gap:12px; flex:1;">
+            <img src="${window.avatarUrl(actor)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
+            <div style="flex:1;">
+              <div style="font-size:13.5px; color:#e2e8f0; line-height:1.4;">
+                <strong style="color:#fff;">${actor.displayName || actor.username}</strong> ${actionText}
+              </div>
+              <div style="font-size:11px; color:#94a3b8; margin-top:2px;">${timeStr} ago</div>
+            </div>
+          </div>
+          ${mediaThumb}
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".notif-item").forEach(el => {
+      el.onclick = () => {
+        const postId = el.dataset.postid;
+        if (postId) {
+          modal.remove();
+          window.openFullscreenPostViewer(postId);
+        }
+      };
+    });
+  }
 
   async function updateBottomNavBadges() {
     try {
@@ -196,7 +297,7 @@
     }
   }
 
-  // Educational Post Creation Modal with Subject Category Selection
+  // Educational Post Creation Modal with Subject Category Selection Dropdown
   window.openCreatePostModal = function() {
     const existing = document.getElementById("create-post-modal");
     if (existing) existing.remove();
@@ -204,7 +305,7 @@
     const modal = document.createElement("div");
     modal.id = "create-post-modal";
     modal.style.cssText = `
-      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 150;
+      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 300;
       display: flex; flex-direction: column; color: #fff; padding: 20px; font-family: inherit; overflow-y: auto;
     `;
     modal.innerHTML = `
@@ -213,7 +314,7 @@
         <button id="close-post-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
       </div>
 
-      <label style="font-size:13px; color:#94a3b8; margin-bottom:6px; display:block;">Select Subject / Category</label>
+      <label style="font-size:13px; color:#94a3b8; margin-bottom:6px; display:block;">Select Subject Category</label>
       <select id="modal-post-category" style="width:100%; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px; color:#fff; font-size:14px; outline:none; margin-bottom:14px;">
         <option value="Mathematics">📐 Mathematics</option>
         <option value="Physics">⚡ Physics</option>
@@ -255,7 +356,6 @@
         return;
       }
 
-      // Prepend subject tag to caption for educational filtering & identification
       const caption = `[${category}] ${rawCaption}`;
 
       const fd = new FormData();
@@ -398,87 +498,6 @@
     renderSlide();
   }
 
-  window.openStoryStatsModal = async function(storyId) {
-    const existing = document.getElementById("story-stats-screen");
-    if (existing) existing.remove();
-
-    const screen = document.createElement("div");
-    screen.id = "story-stats-screen";
-    screen.style.cssText = `
-      position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 150;
-      display: flex; flex-direction: column; color: #fff; font-family: inherit;
-    `;
-    document.body.appendChild(screen);
-
-    screen.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">Loading activity...</p>`;
-
-    const [viewRes, likeRes] = await Promise.all([
-      window.api(`/api/stories/${storyId}/viewers`),
-      window.api(`/api/stories/${storyId}/likes`)
-    ]);
-
-    const viewers = viewRes.success ? (viewRes.viewers || []) : [];
-    const likes = likeRes.success ? (likeRes.likes || []) : [];
-
-    let activeTab = "viewers";
-
-    function renderModalContent() {
-      const list = activeTab === "viewers" ? viewers : likes;
-
-      screen.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid rgba(255,255,255,0.08);">
-          <div style="font-weight:800; font-size:16px;">Story Activity</div>
-          <button id="close-stats-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
-        </div>
-
-        <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.08);">
-          <div class="stat-tab" data-tab="viewers" style="flex:1; text-align:center; padding:12px; font-weight:700; cursor:pointer; color:${activeTab === 'viewers' ? '#fff' : '#94a3b8'}; border-bottom:2px solid ${activeTab === 'viewers' ? '#fff' : 'transparent'}">
-            👁️ ${viewers.length} Viewers
-          </div>
-          <div class="stat-tab" data-tab="likes" style="flex:1; text-align:center; padding:12px; font-weight:700; cursor:pointer; color:${activeTab === 'likes' ? '#fff' : '#94a3b8'}; border-bottom:2px solid ${activeTab === 'likes' ? '#fff' : 'transparent'}">
-            ❤️ ${likes.length} Likes
-          </div>
-        </div>
-
-        <div style="flex:1; overflow-y:auto; padding:12px 16px;">
-          ${list.length ? list.map(item => {
-            const u = item.user || item;
-            return `
-              <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                  <img src="${window.avatarUrl(u)}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;" />
-                  <div>
-                    <div style="font-weight:700; font-size:14px;">${u.username}</div>
-                    <div style="font-size:12px; color:#94a3b8;">${u.displayName || ''}</div>
-                  </div>
-                </div>
-                <button class="stat-msg-btn" data-userid="${u.id}" style="background:#1e293b; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;">Message</button>
-              </div>
-            `;
-          }).join("") : `<p style="text-align:center; color:#64748b; padding:40px;">No ${activeTab} yet.</p>`}
-        </div>
-      `;
-
-      screen.querySelector("#close-stats-btn").onclick = () => screen.remove();
-
-      screen.querySelectorAll(".stat-tab").forEach(tab => {
-        tab.onclick = () => {
-          activeTab = tab.dataset.tab;
-          renderModalContent();
-        };
-      });
-
-      screen.querySelectorAll(".stat-msg-btn").forEach(btn => {
-        btn.onclick = () => {
-          screen.remove();
-          window.openDirectChat(btn.dataset.userid);
-        };
-      });
-    }
-
-    renderModalContent();
-  };
-
   async function loadPosts() {
     const feed = document.getElementById("posts-feed");
     if (!feed) return;
@@ -489,7 +508,6 @@
     }
 
     feed.innerHTML = data.posts.map(post => {
-      // Extract category tag if present in caption
       let displayCaption = post.caption || "";
       let categoryBadge = "";
       if (displayCaption.startsWith("[")) {
@@ -511,12 +529,16 @@
                 <div style="font-size:11px; color:#94a3b8;">@${post.user.username}</div>
               </div>
             </div>
-            <div id="post-action-container-${post.id}">
-              ${post.isMyPost ? "" : (
-                post.isFollowing
-                  ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
-                  : `<button class="btn-follow-post" id="follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
-              )}
+            
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div id="post-action-container-${post.id}">
+                ${post.isMyPost ? "" : (
+                  post.isFollowing
+                    ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
+                    : `<button class="btn-follow-post" id="follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
+                )}
+              </div>
+              <button class="post-options-btn" onclick="window.openPostOptionsMenu('${post.id}', ${post.isMyPost})">⋮</button>
             </div>
           </div>
 
@@ -547,6 +569,77 @@
       `;
     }).join("");
   }
+
+  // Instagram-style Post Options Menu (Report, Edit, Delete)
+  window.openPostOptionsMenu = function(postId, isMyPost) {
+    const existing = document.getElementById("post-options-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "post-options-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 350;
+      display: flex; flex-direction: column; justify-content: flex-end; font-family: inherit;
+    `;
+    
+    let optionsHtml = `
+      <div style="padding: 14px 20px; font-weight: 700; color: #ef4444; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06);" onclick="window.handleReportPost('${postId}')">🚨 Report Non-Educational / Inappropriate Content</div>
+    `;
+
+    if (isMyPost) {
+      optionsHtml = `
+        <div style="padding: 14px 20px; font-weight: 700; color: #38bdf8; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06);" onclick="window.handleEditPostModal('${postId}')">✏️ Edit Post</div>
+        <div style="padding: 14px 20px; font-weight: 700; color: #ef4444; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06);" onclick="window.handleDeletePost('${postId}')">🗑️ Delete Post</div>
+      ` + optionsHtml;
+    }
+
+    modal.innerHTML = `
+      <div style="background: #111827; border-top-left-radius: 20px; border-top-right-radius: 20px; overflow: hidden; color: #fff; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px;">
+        <div style="width: 40px; height: 4px; background: #334155; border-radius: 99px; margin: 10px auto 16px auto;"></div>
+        ${optionsHtml}
+        <div style="padding: 14px 20px; text-align: center; font-weight: 600; color: #94a3b8; cursor: pointer; margin-top: 6px;" onclick="document.getElementById('post-options-modal').remove()">Cancel</div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  };
+
+  window.handleReportPost = async function(postId) {
+    document.getElementById('post-options-modal')?.remove();
+    const reason = prompt("Select report reason:\n1. Non-educational content / Comedy / Prank\n2. Promotion / Spam\n3. Inappropriate material");
+    if (!reason) return;
+    const res = await window.api(`/api/posts/${postId}/report`, {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    });
+    alert(res.success ? "Post reported successfully. Our moderators will review it." : (res.message || "Could not report post"));
+  };
+
+  window.handleDeletePost = async function(postId) {
+    document.getElementById('post-options-modal')?.remove();
+    if (!confirm("Are you sure you want to delete this educational post?")) return;
+    const res = await window.api(`/api/posts/${postId}`, { method: "DELETE" });
+    if (res.success) {
+      loadPosts();
+    } else {
+      alert(res.message || "Could not delete post");
+    }
+  };
+
+  window.handleEditPostModal = async function(postId) {
+    document.getElementById('post-options-modal')?.remove();
+    const newCaption = prompt("Edit your lesson caption:");
+    if (newCaption === null) return;
+    const res = await window.api(`/api/posts/${postId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ caption: newCaption.trim() })
+    });
+    if (res.success) {
+      loadPosts();
+    } else {
+      alert(res.message || "Could not edit post");
+    }
+  };
 
   window.openFullscreenPostViewer = async function(initialPostId) {
     const existing = document.getElementById("fullscreen-reel-viewer");
@@ -581,9 +674,7 @@
     viewer.appendChild(fixedTopBar);
 
     const slidesContainer = document.createElement("div");
-    slidesContainer.style.cssText = `
-      width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
-    `;
+    slidesContainer.style.cssText = `width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;`;
     slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading educational reels...</div>`;
     viewer.appendChild(slidesContainer);
 
@@ -625,9 +716,7 @@
               : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
           ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
-          <div style="
-            position: absolute; right: 16px; bottom: 95px; display: flex; flex-direction: column; align-items: center; gap: 22px; z-index: 10;
-          ">
+          <div style="position: absolute; right: 16px; bottom: 95px; display: flex; flex-direction: column; align-items: center; gap: 22px; z-index: 10;">
             <button class="reel-action-btn reel-like-btn ${post.likedByMe ? 'liked' : ''}" data-postid="${post.id}" style="
               background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
             ">
@@ -641,20 +730,6 @@
               <span>💬</span>
               <span style="font-size: 13px; font-weight: 800;">${post.commentsCount}</span>
             </button>
-
-            <button onclick="if(navigator.share){navigator.share({url: window.location.href})}else{alert('Link copied!')}" style="
-              background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-            ">
-              <span>↗</span>
-              <span style="font-size: 12px; font-weight: 800;">Share</span>
-            </button>
-
-            <button onclick="window.openSavePostModal('${post.id}')" style="
-              background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-            ">
-              <span>🔖</span>
-              <span style="font-size: 12px; font-weight: 800;">Save</span>
-            </button>
           </div>
 
           <div style="
@@ -665,13 +740,6 @@
               <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="window.openUserProfile('${post.user.id}')">
                 <img src="${window.avatarUrl(post.user)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
                 <div style="font-weight: 700; font-size: 15px; color: #fff;">${post.user.displayName}</div>
-              </div>
-              <div id="reel-header-action-container-${post.id}">
-                ${post.isMyPost ? "" : (
-                  post.isFollowing
-                    ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
-                    : `<button class="btn-follow-post" id="reel-follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
-                )}
               </div>
             </div>
             ${categoryBadge}
@@ -694,17 +762,6 @@
     });
   };
 
-  window.openUserProfile = async function(userId) {
-    if (window.openProfileModal) {
-      window.openProfileModal(userId);
-    } else {
-      const res = await window.api(`/api/users/${userId}/profile`);
-      if (res.success) {
-        alert(`Profile: ${res.user.displayName} (@${res.user.username})`);
-      }
-    }
-  };
-
   window.openReelCommentsModal = async function(postId) {
     const existing = document.getElementById("reel-comments-modal");
     if (existing) existing.remove();
@@ -715,7 +772,6 @@
       position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250;
       display: flex; flex-direction: column; justify-content: flex-end; font-family: inherit;
     `;
-    
     modal.innerHTML = `
       <div style="background: #111827; border-top-left-radius: 24px; border-top-right-radius: 24px; max-height: 75vh; height: 75vh; display: flex; flex-direction: column; color: #fff; border-top: 1px solid rgba(255,255,255,0.1);">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative;">
@@ -739,42 +795,20 @@
     const loadCommentsList = async () => {
       const listContainer = modal.querySelector("#reel-comments-list");
       const res = await window.api(`/api/posts/${postId}/comments`);
-      if (!res.success) {
-        listContainer.innerHTML = `<p style="text-align: center; color: #f87171;">Failed to load comments</p>`;
-        return;
-      }
+      if (!res.success) return;
       const comments = res.comments || [];
       if (!comments.length) {
         listContainer.innerHTML = `<p style="text-align: center; color: #64748b; padding: 40px;">No doubts or comments yet. Ask the first question!</p>`;
         return;
       }
-
       listContainer.innerHTML = comments.map(c => `
         <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start;">
           <img src="${window.avatarUrl(c.user)}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover;" />
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-weight: 700; font-size: 13px;">${c.user?.displayName || "User"}</span>
-              <span style="font-size: 11px; color: #94a3b8;">@${c.user?.username || ''}</span>
             </div>
-            <div style="font-size: 13px; color: #e2e8f0; margin-top: 3px; word-break: break-word;">${c.text}</div>
-            <div style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: #94a3b8;">
-              <span style="cursor: pointer; color: #8b5cf6;" onclick="window.replyToReelComment('${postId}', '${c.id}', loadCommentsList)">Reply</span>
-              ${c.isMine ? `
-                <span style="cursor: pointer; color: #38bdf8;" onclick="window.handleEditComment('${postId}', '${c.id}', '${c.text}', loadCommentsList)">Edit</span>
-                <span style="cursor: pointer; color: #f87171;" onclick="window.handleDeleteComment('${postId}', '${c.id}', loadCommentsList)">Delete</span>
-              ` : ""}
-            </div>
-            ${(c.replies || []).map(r => `
-              <div style="display: flex; gap: 10px; margin-top: 8px; margin-left: 20px; border-left: 2px solid #3b82f6; padding-left: 10px;">
-                <img src="${window.avatarUrl(r.user)}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover;" />
-                <div style="flex: 1;">
-                  <span style="font-weight: 700; font-size: 12px;">${r.user?.displayName || "User"}</span>
-                  <div style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">${r.text}</div>
-                  ${r.isMine ? `<span style="cursor: pointer; color: #f87171; font-size: 10px;" onclick="window.handleDeleteComment('${postId}', '${r.id}', loadCommentsList)">Delete</span>` : ""}
-                </div>
-              </div>
-            `).join("")}
+            <div style="font-size: 13px; color: #e2e8f0; margin-top: 3px;">${c.text}</div>
           </div>
         </div>
       `).join("");
@@ -797,71 +831,6 @@
     };
   };
 
-  window.replyToReelComment = async function(postId, commentId, callback) {
-    const text = prompt("Enter your reply:");
-    if (!text || !text.trim()) return;
-    const res = await window.api(`/api/posts/${postId}/comments/${commentId}/replies`, {
-      method: "POST",
-      body: JSON.stringify({ text: text.trim() })
-    });
-    if (res.success && callback) callback();
-  };
-
-  window.openSavePostModal = function(postId) {
-    const existing = document.getElementById("save-post-modal");
-    if (existing) existing.remove();
-
-    const modal = document.createElement("div");
-    modal.id = "save-post-modal";
-    modal.style.cssText = `
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250;
-      display: flex; flex-direction: column; justify-content: flex-end; font-family: inherit;
-    `;
-    modal.innerHTML = `
-      <div style="background: #111827; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; color: #fff; border-top: 1px solid rgba(255,255,255,0.1);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div style="font-weight: 800; font-size: 16px;">Save Lesson</div>
-          <button id="close-save-modal" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">✕</button>
-        </div>
-        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer; margin-bottom: 12px;" onclick="alert('Saved to Study Notes!'); document.getElementById('save-post-modal').remove();">
-          <div style="width: 44px; height: 44px; background: #3b82f6; border-radius: 8px; display: grid; place-items: center; font-size: 20px;">🔖</div>
-          <div>
-            <div style="font-weight: 700; font-size: 14px;">Study Notes</div>
-            <div style="font-size: 12px; color: #94a3b8;">Default collection</div>
-          </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer;" onclick="const name = prompt('New subject playlist name:'); if(name){ alert('Saved to ' + name); document.getElementById('save-post-modal').remove(); }">
-          <div style="width: 44px; height: 44px; background: #8b5cf6; border-radius: 8px; display: grid; place-items: center; font-size: 20px;">＋</div>
-          <div>
-            <div style="font-weight: 700; font-size: 14px;">New Playlist</div>
-            <div style="font-size: 12px; color: #94a3b8;">Create a custom subject playlist</div>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.querySelector("#close-save-modal").onclick = () => modal.remove();
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-  };
-
-  window.handlePostFollow = async function(userId, postId) {
-    const btn = document.getElementById(`follow-btn-${postId}`) || document.getElementById(`reel-follow-btn-${postId}`);
-    if (btn) btn.textContent = "...";
-
-    const res = await window.api(`/api/users/${userId}/follow`, { method: "POST" });
-    if (res.success) {
-      const container = document.getElementById(`post-action-container-${postId}`);
-      const reelContainer = document.getElementById(`reel-header-action-container-${postId}`);
-      
-      const msgHtml = `<button class="btn-msg-post" onclick="window.openDirectChat('${userId}')">Message</button>`;
-      if (container) container.innerHTML = msgHtml;
-      if (reelContainer) reelContainer.innerHTML = msgHtml;
-    } else {
-      if (btn) btn.textContent = "Follow";
-      alert(res.message || "Could not follow user");
-    }
-  };
-
   window.togglePostLike = async function(postId, btn) {
     const res = await window.api(`/api/posts/${postId}/like`, { method: "POST" });
     if (res.success) {
@@ -875,32 +844,11 @@
     if (!box) return;
     box.classList.toggle("hidden");
     if (box.classList.contains("hidden")) return;
-
     box.innerHTML = `<div style="font-size:12px; color:#94a3b8;">Loading comments...</div>`;
     const res = await window.api(`/api/posts/${postId}/comments`);
     if (!res.success) return;
-
-    const listHtml = res.comments.map(c => `
-      <div class="comment-item">
-        <strong>${c.user?.displayName || "User"}:</strong> ${c.text}
-        <span style="color:#8b5cf6; font-size:11px; margin-left:8px; cursor:pointer;" onclick="window.replyToComment('${postId}', '${c.id}')">Reply</span>
-        ${c.isMine ? `
-          <span style="color:#38bdf8; font-size:11px; margin-left:8px; cursor:pointer;" onclick="window.handleEditComment('${postId}', '${c.id}', '${c.text}', () => window.toggleComments('${postId}'))">Edit</span>
-          <span style="color:#f87171; font-size:11px; margin-left:8px; cursor:pointer;" onclick="window.handleDeleteComment('${postId}', '${c.id}', () => window.toggleComments('${postId}'))">Delete</span>
-        ` : ""}
-        ${(c.replies || []).map(r => `
-          <div class="reply-item">
-            <strong>${r.user?.displayName || "User"}:</strong> ${r.text}
-            ${r.isMine ? `
-              <span style="color:#f87171; font-size:10px; margin-left:6px; cursor:pointer;" onclick="window.handleDeleteComment('${postId}', '${r.id}', () => window.toggleComments('${postId}'))">Delete</span>
-            ` : ""}
-          </div>
-        `).join("")}
-      </div>
-    `).join("");
-
     box.innerHTML = `
-      <div>${listHtml || "<p style='font-size:12px; color:#64748b; margin-bottom:8px;'>No comments yet.</p>"}</div>
+      <div>${(res.comments || []).map(c => `<div class="comment-item"><strong>${c.user?.displayName}:</strong> ${c.text}</div>`).join("") || "No comments yet."}</div>
       <div style="display:flex; gap:8px; margin-top:8px;">
         <input id="cinput-${postId}" placeholder="Ask a doubt..." style="flex:1; background:#1e293b; border:none; border-radius:99px; padding:8px 14px; color:#fff; font-size:12px; outline:none;" />
         <button class="btn-pill" onclick="window.submitComment('${postId}')">Send</button>
@@ -910,69 +858,14 @@
 
   window.submitComment = async function(postId) {
     const input = document.getElementById(`cinput-${postId}`);
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) return;
+    if (!input || !input.value.trim()) return;
     const res = await window.api(`/api/posts/${postId}/comments`, {
       method: "POST",
-      body: JSON.stringify({ text })
-    });
-    if (res.success) {
-      const countEl = document.getElementById(`ccount-${postId}`);
-      if (countEl) countEl.textContent = Number(countEl.textContent) + 1;
-      document.getElementById(`comments-${postId}`).classList.add("hidden");
-      window.toggleComments(postId);
-    }
-  };
-
-  window.replyToComment = async function(postId, commentId) {
-    const text = prompt("Enter your reply:");
-    if (!text || !text.trim()) return;
-    const res = await window.api(`/api/posts/${postId}/comments/${commentId}/replies`, {
-      method: "POST",
-      body: JSON.stringify({ text: text.trim() })
+      body: JSON.stringify({ text: input.value.trim() })
     });
     if (res.success) {
       document.getElementById(`comments-${postId}`).classList.add("hidden");
       window.toggleComments(postId);
-    }
-  };
-
-  window.handleEditComment = async function(postId, commentId, oldText, onComplete) {
-    const newText = prompt("Edit your comment:", oldText);
-    if (!newText || newText.trim() === oldText) return;
-
-    const res = await window.api(`/api/posts/${postId}/comments/${commentId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ text: newText.trim() })
-    });
-
-    if (res.success) {
-      if (onComplete) onComplete();
-    } else {
-      alert(res.message || "Could not edit comment");
-    }
-  };
-
-  window.handleDeleteComment = async function(postId, commentId, onComplete) {
-    if (!confirm("Delete this comment?")) return;
-
-    const res = await window.api(`/api/posts/${postId}/comments/${commentId}`, {
-      method: "DELETE"
-    });
-
-    if (res.success) {
-      if (onComplete) onComplete();
-    } else {
-      alert(res.message || "Could not delete comment");
-    }
-  };
-
-  window.openDirectChat = async function(userId) {
-    const res = await window.api(`/api/conversations/${userId}`, { method: "POST" });
-    if (res.success) {
-      window.AppState.activeConversation = res.conversation;
-      window.switchTab("chat");
     }
   };
 })();
