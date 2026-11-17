@@ -49,6 +49,10 @@
       border-radius: 9px; font-size: 12px; font-weight: 700; cursor: pointer;
       border: 1px solid rgba(255,255,255,0.1);
     }
+    .edu-badge {
+      display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa;
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;
+    }
 
     /* Story Fullscreen Viewer */
     .story-viewer {
@@ -72,9 +76,7 @@
       <input type="file" id="story-upload-input" accept="image/*,video/*" hidden />
     `;
 
-    // Ensure Top Bar elements (Reels & Plus) are ONLY visible on Home tab
     setTimeout(() => {
-      // Show top bar container if hidden previously
       const topHeader = document.querySelector('header') || document.querySelector('.app-header');
       if (topHeader) topHeader.style.display = "flex";
 
@@ -99,7 +101,7 @@
             background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;
             margin-right: 8px; display: grid; place-items: center; width: 36px; height: 36px; font-weight: 800;
           `;
-          plusBtn.title = "Create Post";
+          plusBtn.title = "Create Educational Post";
           plusBtn.onclick = () => window.openCreatePostModal();
 
           headerIconsContainer.parentNode.insertBefore(reelsBtn, headerIconsContainer);
@@ -110,7 +112,6 @@
       updateBottomNavBadges();
     }, 150);
 
-    // Also hook into tab switching if available to hide top header on other tabs
     if (window.switchTab && !window._telesuparTabHooked) {
       window._telesuparTabHooked = true;
       const originalSwitchTab = window.switchTab;
@@ -150,7 +151,6 @@
         channelRes.channels.forEach(ch => { totalUnreadChannel += (ch.unreadCount || 0); });
       }
 
-      // Update Chat nav badge
       const chatNavBtn = document.querySelector('button[onclick*="chat"]') || document.querySelector('nav button:nth-child(3)') || document.querySelector('[data-tab="chat"]');
       if (chatNavBtn) {
         chatNavBtn.style.position = 'relative';
@@ -168,7 +168,6 @@
         }
       }
 
-      // Update Channel nav badge
       const channelNavBtn = document.querySelector('button[onclick*="channel"]') || document.querySelector('nav button:nth-child(4)') || document.querySelector('[data-tab="channel"]');
       if (channelNavBtn) {
         channelNavBtn.style.position = 'relative';
@@ -186,7 +185,6 @@
         }
       }
 
-      // Update Profile nav icon with user avatar
       const profileNavBtn = document.querySelector('button[onclick*="profile"]') || document.querySelector('nav button:last-child') || document.querySelector('[data-tab="profile"]');
       if (profileNavBtn && window.AppState && window.AppState.user) {
         const me = window.AppState.user;
@@ -198,6 +196,7 @@
     }
   }
 
+  // Educational Post Creation Modal with Subject Category Selection
   window.openCreatePostModal = function() {
     const existing = document.getElementById("create-post-modal");
     if (existing) existing.remove();
@@ -206,22 +205,37 @@
     modal.id = "create-post-modal";
     modal.style.cssText = `
       position: fixed; inset: 0; background: rgba(9,13,22,0.95); z-index: 150;
-      display: flex; flex-direction: column; color: #fff; padding: 20px; font-family: inherit;
+      display: flex; flex-direction: column; color: #fff; padding: 20px; font-family: inherit; overflow-y: auto;
     `;
     modal.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <div style="font-weight:800; font-size:18px;">Create New Post</div>
+        <div style="font-weight:800; font-size:18px;">Create Educational Post</div>
         <button id="close-post-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
       </div>
-      <textarea id="modal-post-caption" rows="4" placeholder="Share a photo, video or thought on TELESUPAR..." style="width:100%; background:#1e293b; border:none; border-radius:12px; padding:12px; color:#fff; font-size:14px; outline:none; resize:none; margin-bottom:14px;"></textarea>
+
+      <label style="font-size:13px; color:#94a3b8; margin-bottom:6px; display:block;">Select Subject / Category</label>
+      <select id="modal-post-category" style="width:100%; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px; color:#fff; font-size:14px; outline:none; margin-bottom:14px;">
+        <option value="Mathematics">📐 Mathematics</option>
+        <option value="Physics">⚡ Physics</option>
+        <option value="Chemistry">🧪 Chemistry</option>
+        <option value="Biology">🧬 Biology</option>
+        <option value="Programming">💻 Programming & Tech</option>
+        <option value="General Studies">📚 General Studies / GK</option>
+        <option value="English">📖 English & Grammar</option>
+      </select>
+
+      <label style="font-size:13px; color:#94a3b8; margin-bottom:6px; display:block;">Lesson Description / Question</label>
+      <textarea id="modal-post-caption" rows="4" placeholder="Explain the concept, formula or study notes..." style="width:100%; background:#1e293b; border:none; border-radius:12px; padding:12px; color:#fff; font-size:14px; outline:none; resize:none; margin-bottom:14px;"></textarea>
+      
       <div style="display:flex; align-items:center; justify-content:space-between; background:#1e293b; padding:12px 16px; border-radius:12px; margin-bottom:20px;">
         <label style="color:#a855f7; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px;">
-          📷 Choose Photo / Video
+          📷 Attach Study Video / Diagram
           <input type="file" id="modal-post-file" accept="image/*,video/*" hidden />
         </label>
         <span id="modal-file-name" style="font-size:12px; color:#94a3b8;"></span>
       </div>
-      <button class="btn-pill" id="modal-publish-btn" style="width:100%; padding:12px; font-size:14px; font-weight:700;">Publish Post</button>
+
+      <button class="btn-pill" id="modal-publish-btn" style="width:100%; padding:12px; font-size:14px; font-weight:700;">Publish Educational Post</button>
     `;
     document.body.appendChild(modal);
 
@@ -232,22 +246,30 @@
     };
 
     document.getElementById("modal-publish-btn").onclick = async () => {
-      const caption = document.getElementById("modal-post-caption").value.trim();
+      const category = document.getElementById("modal-post-category").value;
+      const rawCaption = document.getElementById("modal-post-caption").value.trim();
       const file = document.getElementById("modal-post-file").files[0];
-      if (!caption && !file) return;
+      
+      if (!rawCaption && !file) {
+        alert("Please add a description or attach media.");
+        return;
+      }
+
+      // Prepend subject tag to caption for educational filtering & identification
+      const caption = `[${category}] ${rawCaption}`;
 
       const fd = new FormData();
       fd.append("caption", caption);
       if (file) fd.append("file", file);
 
       const btn = document.getElementById("modal-publish-btn");
-      btn.textContent = "Publishing...";
+      btn.textContent = "Publishing Lesson...";
       const res = await window.api("/api/posts", { method: "POST", body: fd });
       if (res.success) {
         modal.remove();
         loadPosts();
       } else {
-        btn.textContent = "Publish Post";
+        btn.textContent = "Publish Educational Post";
         alert(res.message || "Could not publish post");
       }
     };
@@ -332,7 +354,7 @@
         </div>
         <div class="story-viewer-bottom">
           ${!isMine ? `
-            <input id="story-reply-input" placeholder="Reply to story..." style="flex:1; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:99px; padding:10px 16px; color:#fff; outline:none;" />
+            <input id="story-reply-input" placeholder="Ask a doubt..." style="flex:1; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:99px; padding:10px 16px; color:#fff; outline:none;" />
             <button id="story-like-btn" class="icon-btn" style="background:${s.likedByMe ? "#ec4899" : "rgba(255,255,255,0.15)"};">♥</button>
             <button id="story-send-reply" class="btn-pill">Send</button>
           ` : `
@@ -462,52 +484,70 @@
     if (!feed) return;
     const data = await window.api("/api/posts/feed");
     if (!data.success || !data.posts.length) {
-      feed.innerHTML = `<p style="text-align:center; color:#94a3b8; padding:30px;">No posts yet. Be the first to post!</p>`;
+      feed.innerHTML = `<p style="text-align:center; color:#94a3b8; padding:30px;">No lessons posted yet. Be the first educator to share!</p>`;
       return;
     }
 
-    feed.innerHTML = data.posts.map(post => `
-      <div class="post-card" id="post-${post.id}">
-        <div class="post-header">
-          <div class="post-user" onclick="window.openUserProfile('${post.user.id}')">
-            <img src="${window.avatarUrl(post.user)}" />
-            <div>
-              <div style="font-weight:700; font-size:14px;">${post.user.displayName}</div>
-              <div style="font-size:11px; color:#94a3b8;">@${post.user.username}</div>
+    feed.innerHTML = data.posts.map(post => {
+      // Extract category tag if present in caption
+      let displayCaption = post.caption || "";
+      let categoryBadge = "";
+      if (displayCaption.startsWith("[")) {
+        const closingIdx = displayCaption.indexOf("]");
+        if (closingIdx !== -1) {
+          const catName = displayCaption.substring(1, closingIdx);
+          categoryBadge = `<div class="edu-badge">📚 ${catName}</div>`;
+          displayCaption = displayCaption.substring(closingIdx + 1).trim();
+        }
+      }
+
+      return `
+        <div class="post-card" id="post-${post.id}">
+          <div class="post-header">
+            <div class="post-user" onclick="window.openUserProfile('${post.user.id}')">
+              <img src="${window.avatarUrl(post.user)}" />
+              <div>
+                <div style="font-weight:700; font-size:14px;">${post.user.displayName}</div>
+                <div style="font-size:11px; color:#94a3b8;">@${post.user.username}</div>
+              </div>
+            </div>
+            <div id="post-action-container-${post.id}">
+              ${post.isMyPost ? "" : (
+                post.isFollowing
+                  ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
+                  : `<button class="btn-follow-post" id="follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
+              )}
             </div>
           </div>
-          <div id="post-action-container-${post.id}">
-            ${post.isMyPost ? "" : (
-              post.isFollowing
-                ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
-                : `<button class="btn-follow-post" id="follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
-            )}
+
+          ${post.mediaUrl ? (
+            post.mediaType === "video"
+              ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" playsinline muted></video>`
+              : `<img src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" />`
+          ) : ""}
+
+          <div class="post-actions">
+            <button class="action-chip ${post.likedByMe ? "liked" : ""}" onclick="window.togglePostLike('${post.id}', this)">
+              ♥ <span>${post.likesCount}</span>
+            </button>
+            <button class="action-chip" onclick="window.toggleComments('${post.id}')">
+              💬 <span id="ccount-${post.id}">${post.commentsCount}</span>
+            </button>
           </div>
+
+          ${(categoryBadge || displayCaption) ? `
+            <div class="post-caption" onclick="window.openFullscreenPostViewer('${post.id}')">
+              ${categoryBadge}
+              <div>${displayCaption}</div>
+            </div>
+          ` : ""}
+
+          <div class="comments-box hidden" id="comments-${post.id}"></div>
         </div>
-
-        ${post.mediaUrl ? (
-          post.mediaType === "video"
-            ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" playsinline muted></video>`
-            : `<img src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" />`
-        ) : ""}
-
-        <div class="post-actions">
-          <button class="action-chip ${post.likedByMe ? "liked" : ""}" onclick="window.togglePostLike('${post.id}', this)">
-            ♥ <span>${post.likesCount}</span>
-          </button>
-          <button class="action-chip" onclick="window.toggleComments('${post.id}')">
-            💬 <span id="ccount-${post.id}">${post.commentsCount}</span>
-          </button>
-        </div>
-
-        ${post.caption ? `<div class="post-caption" onclick="window.openFullscreenPostViewer('${post.id}')">${post.caption}</div>` : ""}
-
-        <div class="comments-box hidden" id="comments-${post.id}"></div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   }
 
-  // Instagram-style Fullscreen Reel Viewer with "Reels" Header
   window.openFullscreenPostViewer = async function(initialPostId) {
     const existing = document.getElementById("fullscreen-reel-viewer");
     if (existing) existing.remove();
@@ -532,7 +572,7 @@
         background: none; border: none; color: #fff; font-size: 26px; cursor: pointer; width: 36px; height: 36px; display:grid; place-items:center; font-weight: 700;
       " title="Back">←</button>
       
-      <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Reels</div>
+      <div style="font-weight: 800; font-size: 17px; letter-spacing: 0.5px; color: #fff;">Educational Reels</div>
 
       <button onclick="window.openCreatePostModal()" style="
         background: none; border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 24px; font-weight: 800; cursor: pointer; display:grid; place-items:center;
@@ -544,7 +584,7 @@
     slidesContainer.style.cssText = `
       width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
     `;
-    slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading reels...</div>`;
+    slidesContainer.innerHTML = `<div style="display:grid; place-items:center; height:100vh; color:#94a3b8;">Loading educational reels...</div>`;
     viewer.appendChild(slidesContainer);
 
     const res = await window.api("/api/posts/feed");
@@ -562,76 +602,84 @@
       }
     }
 
-    slidesContainer.innerHTML = posts.map((post) => `
-      <div class="reel-slide" data-postid="${post.id}" style="
-        width: 100vw; height: 100vh; scroll-snap-align: start; position: relative;
-        display: flex; align-items: center; justify-content: center; background: #0b0f19; overflow: hidden;
-      ">
-        ${post.mediaUrl ? (
-          post.mediaType === "video"
-            ? `<video src="${post.mediaUrl}" class="reel-media" autoplay loop playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
-            : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
-        ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
+    slidesContainer.innerHTML = posts.map((post) => {
+      let displayCaption = post.caption || "";
+      let categoryBadge = "";
+      if (displayCaption.startsWith("[")) {
+        const closingIdx = displayCaption.indexOf("]");
+        if (closingIdx !== -1) {
+          const catName = displayCaption.substring(1, closingIdx);
+          categoryBadge = `<div class="edu-badge">📚 ${catName}</div>`;
+          displayCaption = displayCaption.substring(closingIdx + 1).trim();
+        }
+      }
 
-        <!-- Right Side Instagram-style Large Action Buttons -->
-        <div style="
-          position: absolute; right: 16px; bottom: 95px; display: flex; flex-direction: column; align-items: center; gap: 22px; z-index: 10;
+      return `
+        <div class="reel-slide" data-postid="${post.id}" style="
+          width: 100vw; height: 100vh; scroll-snap-align: start; position: relative;
+          display: flex; align-items: center; justify-content: center; background: #0b0f19; overflow: hidden;
         ">
-          <!-- Like -->
-          <button class="reel-action-btn reel-like-btn ${post.likedByMe ? 'liked' : ''}" data-postid="${post.id}" style="
-            background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-          ">
-            <span>♥</span>
-            <span style="font-size: 13px; font-weight: 800;" class="reel-like-count">${post.likesCount}</span>
-          </button>
+          ${post.mediaUrl ? (
+            post.mediaType === "video"
+              ? `<video src="${post.mediaUrl}" class="reel-media" autoplay loop playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
+              : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
+          ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
-          <!-- Comment -->
-          <button onclick="window.openReelCommentsModal('${post.id}')" style="
-            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+          <div style="
+            position: absolute; right: 16px; bottom: 95px; display: flex; flex-direction: column; align-items: center; gap: 22px; z-index: 10;
           ">
-            <span>💬</span>
-            <span style="font-size: 13px; font-weight: 800;">${post.commentsCount}</span>
-          </button>
+            <button class="reel-action-btn reel-like-btn ${post.likedByMe ? 'liked' : ''}" data-postid="${post.id}" style="
+              background: none; border: none; color: ${post.likedByMe ? '#ec4899' : '#fff'}; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 28px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+            ">
+              <span>♥</span>
+              <span style="font-size: 13px; font-weight: 800;" class="reel-like-count">${post.likesCount}</span>
+            </button>
 
-          <!-- Share -->
-          <button onclick="if(navigator.share){navigator.share({url: window.location.href})}else{alert('Link copied!')}" style="
-            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-          ">
-            <span>↗</span>
-            <span style="font-size: 12px; font-weight: 800;">Share</span>
-          </button>
+            <button onclick="window.openReelCommentsModal('${post.id}')" style="
+              background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 26px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+            ">
+              <span>💬</span>
+              <span style="font-size: 13px; font-weight: 800;">${post.commentsCount}</span>
+            </button>
 
-          <!-- Save -->
-          <button onclick="window.openSavePostModal('${post.id}')" style="
-            background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-          ">
-            <span>🔖</span>
-            <span style="font-size: 12px; font-weight: 800;">Save</span>
-          </button>
-        </div>
+            <button onclick="if(navigator.share){navigator.share({url: window.location.href})}else{alert('Link copied!')}" style="
+              background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+            ">
+              <span>↗</span>
+              <span style="font-size: 12px; font-weight: 800;">Share</span>
+            </button>
 
-        <!-- Bottom Details -->
-        <div style="
-          position: absolute; bottom: 20px; left: 16px; right: 80px; z-index: 10;
-          background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, transparent); padding: 25px 0 10px 0; display: flex; flex-direction: column; gap: 8px;
-        ">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="window.openUserProfile('${post.user.id}')">
-              <img src="${window.avatarUrl(post.user)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
-              <div style="font-weight: 700; font-size: 15px; color: #fff;">${post.user.displayName}</div>
-            </div>
-            <div id="reel-header-action-container-${post.id}">
-              ${post.isMyPost ? "" : (
-                post.isFollowing
-                  ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
-                  : `<button class="btn-follow-post" id="reel-follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
-              )}
-            </div>
+            <button onclick="window.openSavePostModal('${post.id}')" style="
+              background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 24px; gap: 4px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+            ">
+              <span>🔖</span>
+              <span style="font-size: 12px; font-weight: 800;">Save</span>
+            </button>
           </div>
-          ${post.caption ? `<div style="font-size: 13.5px; line-height: 1.45; color: #e2e8f0; max-height: 120px; overflow-y: auto; word-break: break-word;">${post.caption}</div>` : ""}
+
+          <div style="
+            position: absolute; bottom: 20px; left: 16px; right: 80px; z-index: 10;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, transparent); padding: 25px 0 10px 0; display: flex; flex-direction: column; gap: 6px;
+          ">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="window.openUserProfile('${post.user.id}')">
+                <img src="${window.avatarUrl(post.user)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.4);" />
+                <div style="font-weight: 700; font-size: 15px; color: #fff;">${post.user.displayName}</div>
+              </div>
+              <div id="reel-header-action-container-${post.id}">
+                ${post.isMyPost ? "" : (
+                  post.isFollowing
+                    ? `<button class="btn-msg-post" onclick="window.openDirectChat('${post.user.id}')">Message</button>`
+                    : `<button class="btn-follow-post" id="reel-follow-btn-${post.id}" onclick="window.handlePostFollow('${post.user.id}', '${post.id}')">Follow</button>`
+                )}
+              </div>
+            </div>
+            ${categoryBadge}
+            ${displayCaption ? `<div style="font-size: 13.5px; line-height: 1.45; color: #e2e8f0; max-height: 120px; overflow-y: auto; word-break: break-word;">${displayCaption}</div>` : ""}
+          </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     slidesContainer.querySelectorAll(".reel-like-btn").forEach(btn => {
       btn.onclick = async () => {
@@ -671,14 +719,14 @@
     modal.innerHTML = `
       <div style="background: #111827; border-top-left-radius: 24px; border-top-right-radius: 24px; max-height: 75vh; height: 75vh; display: flex; flex-direction: column; color: #fff; border-top: 1px solid rgba(255,255,255,0.1);">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative;">
-          <div style="font-weight: 800; font-size: 16px; width: 100%; text-align: center;">Comments</div>
+          <div style="font-weight: 800; font-size: 16px; width: 100%; text-align: center;">Comments & Doubts</div>
           <button id="close-reel-comments" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; position: absolute; right: 16px;">✕</button>
         </div>
         <div id="reel-comments-list" style="flex: 1; overflow-y: auto; padding: 16px;">
-          <p style="text-align: center; color: #94a3b8; padding: 20px;">Loading comments...</p>
+          <p style="text-align: center; color: #94a3b8; padding: 20px;">Loading discussions...</p>
         </div>
         <div style="padding: 12px 16px; background: #0f172a; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 10px; align-items: center;">
-          <input id="reel-comment-input" placeholder="Add a comment..." style="flex: 1; background: #1e293b; border: none; border-radius: 99px; padding: 10px 16px; color: #fff; font-size: 13px; outline: none;" />
+          <input id="reel-comment-input" placeholder="Ask a doubt or comment..." style="flex: 1; background: #1e293b; border: none; border-radius: 99px; padding: 10px 16px; color: #fff; font-size: 13px; outline: none;" />
           <button class="btn-pill" id="reel-send-comment-btn" style="padding: 8px 18px;">Post</button>
         </div>
       </div>
@@ -697,7 +745,7 @@
       }
       const comments = res.comments || [];
       if (!comments.length) {
-        listContainer.innerHTML = `<p style="text-align: center; color: #64748b; padding: 40px;">No comments yet. Be the first to comment!</p>`;
+        listContainer.innerHTML = `<p style="text-align: center; color: #64748b; padding: 40px;">No doubts or comments yet. Ask the first question!</p>`;
         return;
       }
 
@@ -772,21 +820,21 @@
     modal.innerHTML = `
       <div style="background: #111827; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; color: #fff; border-top: 1px solid rgba(255,255,255,0.1);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div style="font-weight: 800; font-size: 16px;">Save to collection</div>
+          <div style="font-weight: 800; font-size: 16px;">Save Lesson</div>
           <button id="close-save-modal" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">✕</button>
         </div>
-        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer; margin-bottom: 12px;" onclick="alert('Saved to All Posts!'); document.getElementById('save-post-modal').remove();">
+        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer; margin-bottom: 12px;" onclick="alert('Saved to Study Notes!'); document.getElementById('save-post-modal').remove();">
           <div style="width: 44px; height: 44px; background: #3b82f6; border-radius: 8px; display: grid; place-items: center; font-size: 20px;">🔖</div>
           <div>
-            <div style="font-weight: 700; font-size: 14px;">All Posts</div>
+            <div style="font-weight: 700; font-size: 14px;">Study Notes</div>
             <div style="font-size: 12px; color: #94a3b8;">Default collection</div>
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer;" onclick="const name = prompt('New collection name:'); if(name){ alert('Saved to ' + name); document.getElementById('save-post-modal').remove(); }">
+        <div style="display: flex; align-items: center; gap: 14px; padding: 12px; background: #1e293b; border-radius: 12px; cursor: pointer;" onclick="const name = prompt('New subject playlist name:'); if(name){ alert('Saved to ' + name); document.getElementById('save-post-modal').remove(); }">
           <div style="width: 44px; height: 44px; background: #8b5cf6; border-radius: 8px; display: grid; place-items: center; font-size: 20px;">＋</div>
           <div>
-            <div style="font-weight: 700; font-size: 14px;">New collection</div>
-            <div style="font-size: 12px; color: #94a3b8;">Create a collection of saved posts</div>
+            <div style="font-weight: 700; font-size: 14px;">New Playlist</div>
+            <div style="font-size: 12px; color: #94a3b8;">Create a custom subject playlist</div>
           </div>
         </div>
       </div>
@@ -854,7 +902,7 @@
     box.innerHTML = `
       <div>${listHtml || "<p style='font-size:12px; color:#64748b; margin-bottom:8px;'>No comments yet.</p>"}</div>
       <div style="display:flex; gap:8px; margin-top:8px;">
-        <input id="cinput-${postId}" placeholder="Write a comment..." style="flex:1; background:#1e293b; border:none; border-radius:99px; padding:8px 14px; color:#fff; font-size:12px; outline:none;" />
+        <input id="cinput-${postId}" placeholder="Ask a doubt..." style="flex:1; background:#1e293b; border:none; border-radius:99px; padding:8px 14px; color:#fff; font-size:12px; outline:none;" />
         <button class="btn-pill" onclick="window.submitComment('${postId}')">Send</button>
       </div>
     `;
