@@ -1,560 +1,409 @@
-(function () {
+(function() {
   const style = document.createElement("style");
-
   style.textContent = `
-    .explore-page {
-      background: #0b0f12;
+    .explore-container {
+      background: #090d16;
       min-height: 100vh;
       color: #fff;
-      padding-bottom: 15px;
+      font-family: inherit;
+      padding-bottom: 70px;
     }
 
-    .explore-top {
+    /* Top Search Header */
+    .explore-top-bar {
       position: sticky;
       top: 0;
-      z-index: 30;
-      background: #0b0f12;
+      z-index: 50;
+      background: rgba(9, 13, 22, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 10px 12px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .explore-search-box {
       flex: 1;
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: #252a30;
-      border-radius: 35px;
-      padding: 0 15px;
-      height: 50px;
+      background: #1e293b;
+      border-radius: 99px;
+      padding: 8px 14px;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .explore-search-box input {
-      width: 100%;
-      border: 0;
-      outline: 0;
+      flex: 1;
       background: transparent;
-      color: white;
-      font-size: 15px;
-      min-width: 0;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
     }
 
     .explore-search-box input::placeholder {
-      color: #a5acb7;
+      color: #94a3b8;
     }
 
-    .explore-search-icon {
-      font-size: 21px;
-      color: white;
+    .explore-saved-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+    }
+    .explore-saved-btn:active {
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    .explore-bookmark {
-      font-size: 26px;
-      color: white;
-      padding: 5px;
-      flex-shrink: 0;
-    }
-
-    .explore-tabs {
+    /* Subject Filter Pills */
+    .explore-cats {
       display: flex;
-      gap: 9px;
-      padding: 0 14px 12px;
+      gap: 8px;
+      padding: 8px 12px;
       overflow-x: auto;
       scrollbar-width: none;
+      background: #090d16;
     }
-
-    .explore-tabs button {
-      border: 0;
-      border-radius: 22px;
-      padding: 9px 19px;
-      background: #20252c;
+    .explore-cats::-webkit-scrollbar {
+      display: none;
+    }
+    .explore-cat-pill {
+      background: #111827;
       color: #cbd5e1;
-      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
       white-space: nowrap;
+      cursor: pointer;
+    }
+    .explore-cat-pill.active {
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      color: #fff;
+      border-color: transparent;
     }
 
-    .explore-tabs button.active {
-      background: #fff;
-      color: #111;
-    }
-
-    .explore-section-title {
-      padding: 12px 15px 8px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #cbd5e1;
-    }
-
-    .explore-users {
-      padding-bottom: 8px;
-    }
-
-    .explore-user {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      padding: 10px 15px;
-      border-bottom: 1px solid rgba(255,255,255,.05);
-    }
-
-    .explore-user-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: #252a30;
-    }
-
-    .explore-user-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .explore-user-name {
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .explore-user-handle {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 3px;
-    }
-
-    .explore-online {
-      color: #22c55e;
-      font-size: 11px;
-    }
-
-    .explore-user-actions {
-      display: flex;
-      gap: 7px;
-    }
-
-    .explore-action-btn {
-      border: 0;
-      border-radius: 9px;
-      padding: 8px 11px;
-      color: white;
-      background: #303640;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .explore-action-btn.follow {
-      background: #2878ed;
-    }
-
+    /* 3-Column Grid */
     .explore-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 3px;
-      padding: 2px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: #090d16;
     }
 
-    .explore-grid-item {
+    .explore-tile {
       position: relative;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 3 / 4;
+      background: #111827;
       overflow: hidden;
-      background: #20252c;
-      border: 0;
-      padding: 0;
       cursor: pointer;
     }
 
-    .explore-grid-item img,
-    .explore-grid-item video {
+    .explore-tile img,
+    .explore-tile video {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
 
-    .explore-play {
+    .explore-text-tile {
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #1e1b4b, #0f172a);
+      font-size: 11px;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .explore-tile-overlay {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      font-size: 17px;
-      text-shadow: 0 1px 5px #000;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%);
+      pointer-events: none;
     }
 
-    .explore-empty {
-      grid-column: 1 / -1;
-      padding: 40px 15px;
-      text-align: center;
-      color: #929aa6;
+    .explore-tile-stats {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      z-index: 2;
+    }
+
+    .explore-reel-icon {
+      position: absolute;
+      top: 6px;
+      right: 6px;
       font-size: 13px;
+      color: #fff;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+      z-index: 2;
     }
 
-    .explore-loading {
-      text-align: center;
-      padding: 35px;
-      color: #9ca3af;
+    /* Search Users Section */
+    .explore-users-results {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .explore-user-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+    .explore-user-row img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
     }
   `;
-
   document.head.appendChild(style);
 
-  let allPosts = [];
-  let allUsers = [];
-  let activeFilter = "all";
-  let searchTimer = null;
-  let currentQuery = "";
+  let allPostsCache = [];
+  let activeCategory = "All";
 
-  function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, ch => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[ch]);
-  }
-
-  function safeMediaURL(value) {
-    try {
-      const url = new URL(value, window.location.origin);
-      return ["https:", "http:"].includes(url.protocol)
-        ? escapeHTML(url.href)
-        : "";
-    } catch {
-      return "";
-    }
-  }
-
-  function getAvatar(user) {
-    return safeMediaURL(window.avatarUrl(user));
-  }
-
-  window.renderExplore = async function (container) {
+  window.renderExplore = async function(container) {
     container.innerHTML = `
-      <div class="explore-page">
-
-        <div class="explore-top">
+      <div class="explore-container">
+        <div class="explore-top-bar">
           <div class="explore-search-box">
-            <span class="explore-search-icon">⌕</span>
-            <input
-              id="explore-search"
-              type="search"
-              autocomplete="off"
-              placeholder="Search videos, people or ID"
-            />
-            <button id="explore-clear"
-              style="display:none;background:none;border:0;color:#fff;font-size:20px">
-              ×
-            </button>
+            <span style="color:#60a5fa; font-size:15px;">🔍</span>
+            <input type="text" id="explore-search-input" placeholder="Search notes, educators, topics..." autocomplete="off" />
+            <button id="explore-clear-search" style="display:none; background:none; border:none; color:#94a3b8; font-size:14px; cursor:pointer;">✕</button>
           </div>
-          <span class="explore-bookmark" title="Saved posts feature not yet available">
-            ♧
-          </span>
+          <button class="explore-saved-btn" id="explore-saved-btn" title="Saved Lessons">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
         </div>
 
-        <div class="explore-tabs">
-          <button class="active" data-filter="all">All</button>
-          <button data-filter="videos">Videos</button>
-          <button data-filter="people">People</button>
+        <div class="explore-cats" id="explore-cats-bar">
+          ${["All", "Mathematics", "Physics", "Chemistry", "Biology", "Programming", "General Studies", "English"]
+            .map(cat => `<button class="explore-cat-pill ${cat === "All" ? "active" : ""}" data-cat="${cat}">${cat}</button>`)
+            .join("")}
         </div>
 
-        <div id="explore-results">
-          <div class="explore-loading">Loading Explore...</div>
-        </div>
+        <div id="explore-users-box" class="explore-users-results" style="display:none;"></div>
 
+        <div class="explore-grid" id="explore-grid">
+          <div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#94a3b8;">Loading trending lessons...</div>
+        </div>
       </div>
     `;
 
-    const input = container.querySelector("#explore-search");
-    const clearBtn = container.querySelector("#explore-clear");
-    const results = container.querySelector("#explore-results");
-
-    container.querySelectorAll("[data-filter]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        activeFilter = btn.dataset.filter;
-
-        container.querySelectorAll("[data-filter]").forEach(tab => {
-          tab.classList.toggle("active", tab === btn);
-        });
-
-        renderResults();
-      });
+    // Category click handlers
+    container.querySelectorAll(".explore-cat-pill").forEach(btn => {
+      btn.onclick = () => {
+        container.querySelectorAll(".explore-cat-pill").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeCategory = btn.dataset.cat;
+        renderGridFiltered();
+      };
     });
 
-    input.addEventListener("input", () => {
-      currentQuery = input.value.trim();
-      clearBtn.style.display = currentQuery ? "block" : "none";
+    // Search input handlers
+    const searchInput = document.getElementById("explore-search-input");
+    const clearBtn = document.getElementById("explore-clear-search");
 
-      clearTimeout(searchTimer);
-
-      searchTimer = setTimeout(async () => {
-        await searchPeople(currentQuery);
-        renderResults();
-      }, 350);
-
-      renderResults();
-    });
-
-    clearBtn.onclick = () => {
-      input.value = "";
-      currentQuery = "";
-      clearBtn.style.display = "none";
-      searchPeople("").then(renderResults);
+    searchInput.oninput = async () => {
+      const q = searchInput.value.trim();
+      clearBtn.style.display = q ? "block" : "none";
+      renderGridFiltered();
+      searchUsersFromServer(q);
     };
 
-    results.addEventListener("click", async event => {
-      const followBtn = event.target.closest("[data-follow]");
-      const chatBtn = event.target.closest("[data-chat]");
-      const postBtn = event.target.closest("[data-post]");
+    clearBtn.onclick = () => {
+      searchInput.value = "";
+      clearBtn.style.display = "none";
+      document.getElementById("explore-users-box").style.display = "none";
+      renderGridFiltered();
+    };
 
-      if (followBtn) {
-        const userId = followBtn.dataset.follow;
-        followBtn.disabled = true;
+    // Saved lessons modal
+    document.getElementById("explore-saved-btn").onclick = () => openSavedLessonsModal();
 
-        try {
-          const following = followBtn.dataset.following === "true";
-
-          const response = await window.api(
-            `/api/users/${encodeURIComponent(userId)}/follow`,
-            { method: following ? "DELETE" : "POST" }
-          );
-
-          if (!response.success) {
-            alert(response.message || "Follow action failed");
-            return;
-          }
-
-          followBtn.dataset.following = String(response.following);
-          followBtn.textContent = response.following ? "Following" : "Follow";
-          followBtn.classList.toggle("follow", !response.following);
-
-        } catch (error) {
-          alert("Network error. Please try again.");
-        } finally {
-          followBtn.disabled = false;
-        }
-      }
-
-      if (chatBtn) {
-        window.openDirectChat(chatBtn.dataset.chat);
-      }
-
-      if (postBtn) {
-        const postId = postBtn.dataset.post;
-        if (typeof window.openFullscreenPostViewer === "function") {
-          window.openFullscreenPostViewer(postId);
-        }
-      }
-    });
-
-    try {
-      const [postResponse] = await Promise.all([
-        window.api("/api/posts/feed")
-      ]);
-
-      allPosts = postResponse.success
-        ? (postResponse.posts || []).filter(post => post.mediaUrl)
-        : [];
-
-      await searchPeople("");
-
-      renderResults();
-
-    } catch (error) {
-      results.innerHTML =
-        `<div class="explore-empty">Could not load Explore. Please try again.</div>`;
-    }
+    await fetchExplorePosts();
   };
 
-  async function searchPeople(query) {
+  function formatCount(num) {
+    if (!num) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+    return String(num);
+  }
+
+  async function fetchExplorePosts() {
+    const grid = document.getElementById("explore-grid");
     try {
-      const response = await window.api(
-        `/api/users?search=${encodeURIComponent(query)}`
-      );
+      // Try /api/posts/explore first, fallback to /api/posts/feed
+      let res = await window.api("/api/posts/explore");
+      if (!res || !res.success) {
+        res = await window.api("/api/posts/feed");
+      }
 
-      allUsers = response.success
-        ? (response.users || [])
-        : [];
-
-    } catch (error) {
-      allUsers = [];
+      if (res && res.success && Array.isArray(res.posts)) {
+        allPostsCache = res.posts;
+        renderGridFiltered();
+      } else {
+        grid.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#94a3b8;">No lessons found.</div>`;
+      }
+    } catch (err) {
+      grid.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#ef4444;">Failed to load explore feed.</div>`;
     }
   }
 
-  function matchingPosts() {
-    let posts = [...allPosts];
+  function renderGridFiltered() {
+    const grid = document.getElementById("explore-grid");
+    if (!grid) return;
 
-    if (activeFilter === "videos") {
-      posts = posts.filter(p => p.mediaType === "video");
+    const query = (document.getElementById("explore-search-input")?.value || "").toLowerCase().trim();
+
+    const filtered = allPostsCache.filter(post => {
+      const caption = (post.caption || "").toLowerCase();
+      const author = (post.user?.displayName || post.user?.username || "").toLowerCase();
+
+      const matchesCat = activeCategory === "All" || caption.includes(`[${activeCategory.toLowerCase()}]`);
+      const matchesQuery = !query || caption.includes(query) || author.includes(query);
+
+      return matchesCat && matchesQuery;
+    });
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#64748b;">No matching lessons or reels found.</div>`;
+      return;
     }
 
-    if (currentQuery) {
-      const q = currentQuery.toLowerCase();
+    grid.innerHTML = filtered.map(post => {
+      const isVideo = post.mediaType === "video" || (post.mediaUrl && post.mediaUrl.match(/\.(mp4|webm|mov)$/i));
+      const statCount = formatCount(post.viewsCount || post.likesCount || 0);
 
-      posts = posts.filter(post => {
-        const author = post.user || {};
+      let cleanText = (post.caption || "").replace(/^\[.*?\]\s*/, "");
 
-        return [
-          post.caption,
-          post.id,
-          author.username,
-          author.displayName,
-          author.id
-        ].some(value =>
-          String(value || "").toLowerCase().includes(q)
-        );
-      });
-    }
-
-    return posts;
+      return `
+        <div class="explore-tile" onclick="window.openFullscreenPostViewer('${post.id}')">
+          ${post.mediaUrl ? (
+            isVideo
+              ? `<video src="${post.mediaUrl}" muted preload="metadata" playsinline></video>`
+              : `<img src="${post.mediaUrl}" loading="lazy" />`
+          ) : `
+            <div class="explore-text-tile">${cleanText.slice(0, 75) || "Study Note"}</div>
+          `}
+          ${isVideo ? `<div class="explore-reel-icon">🎬</div>` : ""}
+          <div class="explore-tile-overlay"></div>
+          <div class="explore-tile-stats">
+            <span>${post.viewsCount ? "👁" : "♥"}</span>
+            <span>${statCount}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
-  function renderUsers() {
-    if (!allUsers.length) {
-      return `<div class="explore-empty">No accounts found.</div>`;
+  async function searchUsersFromServer(query) {
+    const usersBox = document.getElementById("explore-users-box");
+    if (!usersBox) return;
+
+    if (!query || query.length < 2) {
+      usersBox.style.display = "none";
+      return;
     }
 
-    return `
-      <div class="explore-users">
-        ${allUsers.slice(0, 12).map(user => {
-          const id = escapeHTML(user.id);
-          const name = escapeHTML(user.displayName || user.username);
-          const username = escapeHTML(user.username);
-          const avatar = getAvatar(user);
-
-          return `
-            <div class="explore-user">
-              <img class="explore-user-avatar"
-                src="${avatar}" alt=""
-                onerror="this.style.opacity='.3'">
-
-              <div class="explore-user-info">
-                <div class="explore-user-name">${name}</div>
-                <div class="explore-user-handle">@${username}</div>
-                ${user.isOnline
-                  ? `<div class="explore-online">● Active now</div>`
-                  : ""}
-              </div>
-
-              <div class="explore-user-actions">
-                <button class="explore-action-btn follow"
-                  data-follow="${id}" data-following="false">
-                  Follow
-                </button>
-                <button class="explore-action-btn" data-chat="${id}">
-                  Chat
-                </button>
+    try {
+      const res = await window.api(`/api/users/search?q=${encodeURIComponent(query)}`);
+      if (res && res.success && res.users && res.users.length) {
+        usersBox.style.display = "block";
+        usersBox.innerHTML = `
+          <div style="font-size:11px; font-weight:700; color:#94a3b8; margin-bottom:6px; text-transform:uppercase;">Educators & Students</div>
+          ${res.users.map(u => `
+            <div class="explore-user-row" onclick="window.openUserProfile('${u.id}')">
+              <img src="${window.avatarUrl(u)}" />
+              <div>
+                <div style="font-weight:700; font-size:14px; color:#fff;">${u.displayName}</div>
+                <div style="font-size:12px; color:#94a3b8;">@${u.username}</div>
               </div>
             </div>
-          `;
-        }).join("")}
-      </div>
-    `;
-  }
-
-  function renderGrid(posts) {
-    if (!posts.length) {
-      return `<div class="explore-empty">No matching media found.</div>`;
-    }
-
-    return `
-      <div class="explore-grid">
-        ${posts.map(post => {
-          const url = safeMediaURL(post.mediaUrl);
-          if (!url) return "";
-
-          const video = post.mediaType === "video";
-
-          return `
-            <button class="explore-grid-item"
-              data-post="${escapeHTML(post.id)}"
-              aria-label="Open post">
-
-              ${video
-                ? `<video src="${url}" muted playsinline preload="metadata"></video>
-                   <span class="explore-play">▶</span>`
-                : `<img src="${url}" loading="lazy" alt="">`
-              }
-            </button>
-          `;
-        }).join("")}
-      </div>
-    `;
-  }
-
-  
-  function renderResults() {
-    const results = document.getElementById("explore-results");
-    if (!results) return;
-
-    const posts = matchingPosts();
-
-    if (activeFilter === "people") {
-      results.innerHTML = `
-        <div class="explore-section-title">People</div>
-        ${renderUsers()}
-      `;
-
-      loadFollowStatuses();
-      return;
-    }
-
-    if (activeFilter === "videos") {
-      results.innerHTML = `
-        <div class="explore-section-title">Videos</div>
-        ${renderGrid(posts)}
-      `;
-      return;
-    }
-
-    if (!currentQuery) {
-      results.innerHTML = `
-        ${renderGrid(posts)}
-      `;
-      return;
-    }
-
-    results.innerHTML = `
-      <div class="explore-section-title">People</div>
-      ${renderUsers()}
-
-      <div class="explore-section-title">Videos and posts</div>
-      ${renderGrid(posts)}
-    `;
-
-    loadFollowStatuses();
-  }
-
-  // LOAD REAL FOLLOW STATUS
-  async function loadFollowStatuses() {
-    const buttons = document.querySelectorAll(
-      "#explore-results [data-follow]"
-    );
-
-    for (const btn of buttons) {
-      const userId = btn.dataset.follow;
-
-      try {
-        const status = await window.api(
-          `/api/users/${encodeURIComponent(userId)}/follow-status`
-        );
-
-        if (!status.success || !btn.isConnected) continue;
-
-        btn.dataset.following = String(status.following);
-
-        btn.textContent = status.following
-          ? "Following"
-          : "Follow";
-
-        btn.classList.toggle(
-          "follow",
-          !status.following
-        );
-
-      } catch (error) {
-        console.error("Follow status error:", error);
+          `).join("")}
+        `;
+      } else {
+        usersBox.style.display = "none";
       }
+    } catch (_) {
+      usersBox.style.display = "none";
     }
   }
 
+  async function openSavedLessonsModal() {
+    const existing = document.getElementById("saved-lessons-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "saved-lessons-modal";
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: #090d16; z-index: 320;
+      display: flex; flex-direction: column; color: #fff; font-family: inherit;
+    `;
+    modal.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <button id="close-saved-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">←</button>
+        <div style="font-weight:800; font-size:17px;">Saved Study Material</div>
+      </div>
+      <div id="saved-grid-content" class="explore-grid" style="flex:1; overflow-y:auto;">
+        <div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#94a3b8;">Loading saved posts...</div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("close-saved-modal").onclick = () => modal.remove();
+
+    const container = document.getElementById("saved-grid-content");
+    try {
+      const res = await window.api("/api/posts/saved");
+      if (res && res.success && res.posts && res.posts.length) {
+        container.innerHTML = res.posts.map(post => {
+          const isVideo = post.mediaType === "video";
+          return `
+            <div class="explore-tile" onclick="document.getElementById('saved-lessons-modal').remove(); window.openFullscreenPostViewer('${post.id}');">
+              ${post.mediaUrl ? (
+                isVideo
+                  ? `<video src="${post.mediaUrl}" muted preload="metadata"></video>`
+                  : `<img src="${post.mediaUrl}" />`
+              ) : `<div class="explore-text-tile">${(post.caption || "").slice(0, 60)}</div>`}
+              <div class="explore-tile-overlay"></div>
+              <div class="explore-tile-stats">♥ ${formatCount(post.likesCount || 0)}</div>
+            </div>
+          `;
+        }).join("");
+      } else {
+        container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:50px; color:#64748b;">No saved study lessons yet.</div>`;
+      }
+    } catch (_) {
+      container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:50px; color:#64748b;">No saved study lessons yet.</div>`;
+    }
+  }
 })();
