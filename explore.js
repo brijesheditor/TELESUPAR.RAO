@@ -228,7 +228,7 @@
     }
   }
 
-  // Instagram-style Profile Page View matching user screenshot layout
+  // Instagram-style Profile Page View with working Message & Follow buttons
   window.openUserExploreProfile = async function(userId) {
     let existing = document.getElementById("explore-user-profile-modal");
     if (existing) existing.remove();
@@ -240,7 +240,7 @@
       display: flex; flex-direction: column; color: #fff; font-family: inherit; overflow-y: auto;
     `;
     modal.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#111827; position:sticky; top:0; z-index:10;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#111827; position:sticky; top:0; z-index:10;">
         <div style="display:flex; align-items:center; gap:12px;">
           <button id="close-user-profile" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">←</button>
           <div style="font-weight:800; font-size:17px;" id="modal-username-title">Profile</div>
@@ -271,11 +271,9 @@
         const followersCount = followStatusRes.success ? (followStatusRes.followersCount || 0) : 0;
         const followingCount = followStatusRes.success ? (followStatusRes.followingCount || 0) : 0;
 
-        // Filter posts belonging to this user from cache
         const userPosts = allPostsCache.filter(post => post.user && post.user.id === userId);
 
         bodyContainer.innerHTML = `
-          <!-- Header Info -->
           <div style="padding: 16px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
               <div style="width: 82px; height: 82px; border-radius: 50%; padding: 2px; background: linear-gradient(135deg, #6366f1, #ec4899); flex-shrink: 0;">
@@ -297,7 +295,6 @@
               </div>
             </div>
 
-            <!-- Name & Bio -->
             <div style="margin-top: 12px;">
               <div style="font-weight: 800; font-size: 15px; color: #fff;">${p.displayName}</div>
               <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px; white-space: pre-wrap; line-height: 1.4;">${p.bio || "Study enthusiast & learner on TELESUPAR."}</div>
@@ -306,25 +303,22 @@
               </div>
             </div>
 
-            <!-- Action Buttons -->
             <div style="display: flex; gap: 8px; margin-top: 14px;">
               <button id="profile-follow-btn" style="flex: 1; background: ${isFollowing ? '#1e293b' : 'linear-gradient(135deg, #6366f1, #ec4899)'}; border: ${isFollowing ? '1px solid rgba(255,255,255,0.1)' : 'none'}; color: #fff; font-weight: 700; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;">
                 ${isFollowing ? 'Following ✓' : 'Follow'}
               </button>
-              <button onclick="document.getElementById('explore-user-profile-modal').remove(); window.openDirectChat && window.openDirectChat('', ${JSON.stringify(p).replace(/"/g, '&quot;')});" style="flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: #fff; font-weight: 700; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;">
+              <button id="profile-msg-btn" style="flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: #fff; font-weight: 700; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;">
                 Message
               </button>
             </div>
           </div>
 
-          <!-- Tabs (Posts / Reels Icon) -->
           <div style="display: flex; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); margin-top: 6px;">
             <div style="flex: 1; text-align: center; padding: 10px; border-bottom: 2px solid #fff; font-size: 16px; cursor: pointer;">⊞</div>
             <div style="flex: 1; text-align: center; padding: 10px; color: #94a3b8; font-size: 16px; cursor: pointer;">🎬</div>
             <div style="flex: 1; text-align: center; padding: 10px; color: #94a3b8; font-size: 16px; cursor: pointer;">👤</div>
           </div>
 
-          <!-- User Grid Feed -->
           <div class="explore-grid" style="margin-top: 2px;">
             ${userPosts.length ? userPosts.map(post => {
               const isVideo = post.mediaType === "video" || (post.mediaUrl && post.mediaUrl.match(/\.(mp4|webm|mov)$/i));
@@ -346,7 +340,7 @@
           </div>
         `;
 
-        // Follow / Unfollow Toggle Handler
+        // Follow Button Handler
         const followBtn = document.getElementById("profile-follow-btn");
         let currentlyFollowing = isFollowing;
         followBtn.onclick = async () => {
@@ -361,6 +355,24 @@
             }
           } catch (e) {
             console.error("Follow action failed", e);
+          }
+        };
+
+        // Message Button Handler (Creates/Gets Conversation via Backend API)
+        document.getElementById("profile-msg-btn").onclick = async () => {
+          try {
+            const chatRes = await window.api(`/api/conversations/${userId}`, { method: "POST" });
+            if (chatRes && chatRes.success && chatRes.conversation) {
+              modal.remove();
+              if (window.openDirectChat) {
+                window.openDirectChat(chatRes.conversation.id, p);
+              }
+            } else {
+              alert("Could not open chat with this user.");
+            }
+          } catch (err) {
+            console.error("Open chat error:", err);
+            alert("Failed to start conversation.");
           }
         };
 
