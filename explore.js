@@ -228,7 +228,7 @@
     }
   }
 
-  // Standalone profile opener to guarantee it works from explore search
+  // Instagram-style Profile Page View matching user screenshot layout
   window.openUserExploreProfile = async function(userId) {
     let existing = document.getElementById("explore-user-profile-modal");
     if (existing) existing.remove();
@@ -240,38 +240,135 @@
       display: flex; flex-direction: column; color: #fff; font-family: inherit; overflow-y: auto;
     `;
     modal.innerHTML = `
-      <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#111827; position:sticky; top:0; z-index:10;">
-        <button id="close-user-profile" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">←</button>
-        <div style="font-weight:800; font-size:17px;" id="modal-username-title">Profile</div>
+      <div style="display:flex; align-items:center; justify-content:between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#111827; position:sticky; top:0; z-index:10;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button id="close-user-profile" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">←</button>
+          <div style="font-weight:800; font-size:17px;" id="modal-username-title">Profile</div>
+        </div>
+        <div style="font-size:18px; cursor:pointer;">🔔</div>
       </div>
-      <div id="profile-modal-content" style="padding:20px; text-align:center; color:#94a3b8;">Loading profile...</div>
+      <div id="profile-modal-body" style="flex:1; padding-bottom:50px;">
+        <div style="text-align:center; padding:40px; color:#94a3b8;">Loading profile details...</div>
+      </div>
     `;
     document.body.appendChild(modal);
 
     document.getElementById("close-user-profile").onclick = () => modal.remove();
 
     try {
-      const res = await window.api(`/api/users/${userId}/profile`);
-      const content = document.getElementById("profile-modal-content");
+      const [profileRes, followStatusRes] = await Promise.all([
+        window.api(`/api/users/${userId}/profile`),
+        window.api(`/api/users/${userId}/follow-status`).catch(() => ({ success: false }))
+      ]);
 
-      if (res && res.success && res.profile) {
-        const p = res.profile;
+      const bodyContainer = document.getElementById("profile-modal-body");
+
+      if (profileRes && profileRes.success && profileRes.profile) {
+        const p = profileRes.profile;
         document.getElementById("modal-username-title").textContent = p.username || "Profile";
-        
-        content.innerHTML = `
-          <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-            <img src="${window.avatarUrl ? window.avatarUrl(p) : (p.avatar || '')}" style="width:84px; height:84px; border-radius:50%; object-fit:cover; border:2px solid #6366f1;" />
-            <div style="font-size:20px; font-weight:800; color:#fff;">${p.displayName}</div>
-            <div style="font-size:13px; color:#94a3b8; margin-top:-8px;">@${p.username}</div>
-            <div style="font-size:14px; color:#cbd5e1; max-width:400px; text-align:center; margin-top:4px;">${p.bio || "No bio added yet."}</div>
-            <button onclick="window.openDirectChat && window.openDirectChat('${p.id}', ${JSON.stringify(p).replace(/"/g, '&quot;')})" style="margin-top:14px; background:linear-gradient(135deg, #6366f1, #ec4899); border:none; color:#fff; font-weight:700; padding:10px 24px; border-radius:99px; cursor:pointer;">Send Message / Doubt</button>
+
+        const isFollowing = followStatusRes.success ? followStatusRes.following : false;
+        const followersCount = followStatusRes.success ? (followStatusRes.followersCount || 0) : 0;
+        const followingCount = followStatusRes.success ? (followStatusRes.followingCount || 0) : 0;
+
+        // Filter posts belonging to this user from cache
+        const userPosts = allPostsCache.filter(post => post.user && post.user.id === userId);
+
+        bodyContainer.innerHTML = `
+          <!-- Header Info -->
+          <div style="padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <div style="width: 82px; height: 82px; border-radius: 50%; padding: 2px; background: linear-gradient(135deg, #6366f1, #ec4899); flex-shrink: 0;">
+                <img src="${window.avatarUrl ? window.avatarUrl(p) : (p.avatar || '')}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #000;" />
+              </div>
+              <div style="display: flex; flex: 1; justify-content: space-around; text-align: center;">
+                <div>
+                  <div style="font-weight: 800; font-size: 16px;">${userPosts.length}</div>
+                  <div style="font-size: 12px; color: #94a3b8;">posts</div>
+                </div>
+                <div>
+                  <div style="font-weight: 800; font-size: 16px;" id="profile-followers-count">${followersCount}</div>
+                  <div style="font-size: 12px; color: #94a3b8;">followers</div>
+                </div>
+                <div>
+                  <div style="font-weight: 800; font-size: 16px;">${followingCount}</div>
+                  <div style="font-size: 12px; color: #94a3b8;">following</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Name & Bio -->
+            <div style="margin-top: 12px;">
+              <div style="font-weight: 800; font-size: 15px; color: #fff;">${p.displayName}</div>
+              <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px; white-space: pre-wrap; line-height: 1.4;">${p.bio || "Study enthusiast & learner on TELESUPAR."}</div>
+              <div style="display: inline-flex; align-items: center; gap: 6px; background: #1e293b; padding: 4px 10px; border-radius: 99px; font-size: 12px; color: #60a5fa; margin-top: 8px;">
+                <span>@${p.username}</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 8px; margin-top: 14px;">
+              <button id="profile-follow-btn" style="flex: 1; background: ${isFollowing ? '#1e293b' : 'linear-gradient(135deg, #6366f1, #ec4899)'}; border: ${isFollowing ? '1px solid rgba(255,255,255,0.1)' : 'none'}; color: #fff; font-weight: 700; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;">
+                ${isFollowing ? 'Following ✓' : 'Follow'}
+              </button>
+              <button onclick="document.getElementById('explore-user-profile-modal').remove(); window.openDirectChat && window.openDirectChat('', ${JSON.stringify(p).replace(/"/g, '&quot;')});" style="flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: #fff; font-weight: 700; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;">
+                Message
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabs (Posts / Reels Icon) -->
+          <div style="display: flex; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); margin-top: 6px;">
+            <div style="flex: 1; text-align: center; padding: 10px; border-bottom: 2px solid #fff; font-size: 16px; cursor: pointer;">⊞</div>
+            <div style="flex: 1; text-align: center; padding: 10px; color: #94a3b8; font-size: 16px; cursor: pointer;">🎬</div>
+            <div style="flex: 1; text-align: center; padding: 10px; color: #94a3b8; font-size: 16px; cursor: pointer;">👤</div>
+          </div>
+
+          <!-- User Grid Feed -->
+          <div class="explore-grid" style="margin-top: 2px;">
+            ${userPosts.length ? userPosts.map(post => {
+              const isVideo = post.mediaType === "video" || (post.mediaUrl && post.mediaUrl.match(/\.(mp4|webm|mov)$/i));
+              const statCount = formatCount(post.viewsCount || post.likesCount || 0);
+              let cleanText = (post.caption || "").replace(/^\[.*?\]\s*/, "");
+              return `
+                <div class="explore-tile" onclick="window.openFullscreenPostViewer('${post.id}')">
+                  ${post.mediaUrl ? (
+                    isVideo
+                      ? `<video src="${post.mediaUrl}" muted preload="metadata" playsinline></video>`
+                      : `<img src="${post.mediaUrl}" loading="lazy" />`
+                  ) : `<div class="explore-text-tile">${cleanText.slice(0, 60) || "Study Note"}</div>`}
+                  ${isVideo ? `<div class="explore-reel-icon">🎬</div>` : ""}
+                  <div class="explore-tile-overlay"></div>
+                  <div class="explore-tile-stats"><span>👁</span><span>${statCount}</span></div>
+                </div>
+              `;
+            }).join('') : `<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#64748b;">No posts uploaded by this user yet.</div>`}
           </div>
         `;
+
+        // Follow / Unfollow Toggle Handler
+        const followBtn = document.getElementById("profile-follow-btn");
+        let currentlyFollowing = isFollowing;
+        followBtn.onclick = async () => {
+          try {
+            const method = currentlyFollowing ? "DELETE" : "POST";
+            const res = await window.api(`/api/users/${userId}/follow`, { method });
+            if (res && res.success) {
+              currentlyFollowing = res.following;
+              followBtn.textContent = currentlyFollowing ? "Following ✓" : "Follow";
+              followBtn.style.background = currentlyFollowing ? "#1e293b" : "linear-gradient(135deg, #6366f1, #ec4899)";
+              document.getElementById("profile-followers-count").textContent = res.followersCount;
+            }
+          } catch (e) {
+            console.error("Follow action failed", e);
+          }
+        };
+
       } else {
-        content.innerHTML = `<p style="color:#ef4444;">Could not load profile details.</p>`;
+        bodyContainer.innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Could not load profile details.</p>`;
       }
     } catch (_) {
-      document.getElementById("profile-modal-content").innerHTML = `<p style="color:#ef4444;">Failed to connect to server.</p>`;
+      document.getElementById("profile-modal-body").innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Failed to connect to server.</p>`;
     }
   };
 
