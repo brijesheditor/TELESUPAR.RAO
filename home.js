@@ -29,8 +29,8 @@
     .post-user { display: flex; align-items: center; gap: 10px; cursor: pointer; }
     .post-user img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
     .post-media { width: 100%; max-height: 420px; object-fit: cover; display: block; background: #000; cursor: pointer; }
-    .post-caption { padding: 10px 14px; font-size: 14px; line-height: 1.45; color: #e2e8f0; cursor: pointer; }
-    .post-actions { display: flex; gap: 18px; padding: 10px 14px 14px; align-items: center; }
+    .post-caption { padding: 8px 14px 12px 14px; font-size: 14px; line-height: 1.45; color: #e2e8f0; word-break: break-word; }
+    .post-actions { display: flex; gap: 18px; padding: 12px 14px 4px 14px; align-items: center; }
     .action-chip {
       background: rgba(255,255,255,0.05); border: none; color: #e2e8f0; padding: 7px 13px;
       border-radius: 99px; display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;
@@ -72,24 +72,41 @@
       <input type="file" id="story-upload-input" accept="image/*,video/*" hidden />
     `;
 
+    // Inject Reels icon & Plus (+) button into top bar next to notification icon
     setTimeout(() => {
-      if (!document.getElementById("header-create-post-btn")) {
-        const plusBtn = document.createElement("button");
-        plusBtn.id = "header-create-post-btn";
-        plusBtn.innerHTML = "＋";
-        plusBtn.style.cssText = `
-          background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;
-          margin-right: 8px; display: grid; place-items: center; width: 36px; height: 36px; font-weight: 800;
-        `;
-        plusBtn.title = "Create Post";
-        plusBtn.onclick = () => window.openCreatePostModal();
-
-        const notificationIcon = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:last-child') || document.querySelector('div[style*="display: flex"] button:last-child');
+      if (!document.getElementById("header-reels-btn")) {
+        const headerIconsContainer = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:last-child') || document.querySelector('div[style*="display: flex"] button:last-child');
         
-        if (notificationIcon && notificationIcon.parentNode) {
-          notificationIcon.parentNode.insertBefore(plusBtn, notificationIcon);
+        if (headerIconsContainer && headerIconsContainer.parentNode) {
+          // Reels Icon Button
+          const reelsBtn = document.createElement("button");
+          reelsBtn.id = "header-reels-btn";
+          reelsBtn.innerHTML = "🎬";
+          reelsBtn.style.cssText = `
+            background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;
+            margin-right: 4px; display: grid; place-items: center; width: 36px; height: 36px;
+          `;
+          reelsBtn.title = "Reels Viewer";
+          reelsBtn.onclick = () => window.openFullscreenPostViewer();
+
+          // Plus (+) Create Post Button
+          const plusBtn = document.createElement("button");
+          plusBtn.id = "header-create-post-btn";
+          plusBtn.innerHTML = "＋";
+          plusBtn.style.cssText = `
+            background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;
+            margin-right: 8px; display: grid; place-items: center; width: 36px; height: 36px; font-weight: 800;
+          `;
+          plusBtn.title = "Create Post";
+          plusBtn.onclick = () => window.openCreatePostModal();
+
+          headerIconsContainer.parentNode.insertBefore(reelsBtn, headerIconsContainer);
+          headerIconsContainer.parentNode.insertBefore(plusBtn, headerIconsContainer);
         }
       }
+
+      // Update Bottom Navigation Badges & Profile Avatar
+      updateBottomNavBadges();
     }, 150);
 
     document.getElementById("story-upload-input").onchange = async (e) => {
@@ -104,6 +121,59 @@
     loadStories();
     loadPosts();
   };
+
+  async function updateBottomNavBadges() {
+    try {
+      // Fetch unread counts for chat and channels
+      const chatRes = await window.api("/api/conversations");
+      let totalUnreadChat = 0;
+      if (chatRes.success && chatRes.conversations) {
+        chatRes.conversations.forEach(c => { totalUnreadChat += (c.unreadCount || 0); });
+      }
+
+      const channelRes = await window.api("/api/channels");
+      let totalUnreadChannel = 0;
+      if (channelRes.success && channelRes.channels) {
+        channelRes.channels.forEach(ch => { totalUnreadChannel += (ch.unreadCount || 0); });
+      }
+
+      // Update Chat nav icon / button
+      const chatBtn = document.querySelector('button[onclick*="chat"]') || document.querySelector('nav button:nth-child(3)') || document.querySelector('[data-tab="chat"]');
+      if (chatBtn && totalUnreadChat > 0) {
+        if (!chatBtn.querySelector('.nav-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'nav-badge';
+          badge.style.cssText = `position:absolute; top:4px; right:8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:99px;`;
+          chatBtn.style.position = 'relative';
+          chatBtn.appendChild(badge);
+        }
+        chatBtn.querySelector('.nav-badge').textContent = totalUnreadChat;
+      }
+
+      // Update Channel nav icon / button
+      const channelBtn = document.querySelector('button[onclick*="channel"]') || document.querySelector('nav button:nth-child(4)') || document.querySelector('[data-tab="channel"]');
+      if (channelBtn && totalUnreadChannel > 0) {
+        if (!channelBtn.querySelector('.nav-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'nav-badge';
+          badge.style.cssText = `position:absolute; top:4px; right:8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:99px;`;
+          channelBtn.style.position = 'relative';
+          channelBtn.appendChild(badge);
+        }
+        channelBtn.querySelector('.nav-badge').textContent = totalUnreadChannel;
+      }
+
+      // Update Profile nav icon with user avatar
+      const profileBtn = document.querySelector('button[onclick*="profile"]') || document.querySelector('nav button:last-child') || document.querySelector('[data-tab="profile"]');
+      if (profileBtn && window.AppState && window.AppState.user) {
+        const me = window.AppState.user;
+        const avatarSrc = window.avatarUrl(me);
+        profileBtn.innerHTML = `<img src="${avatarSrc}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1.5px solid #fff;" />`;
+      }
+    } catch (err) {
+      console.error("Error updating nav badges:", err);
+    }
+  }
 
   window.openCreatePostModal = function() {
     const existing = document.getElementById("create-post-modal");
@@ -394,11 +464,9 @@
 
         ${post.mediaUrl ? (
           post.mediaType === "video"
-            ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" playsinline></video>`
+            ? `<video src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" playsinline muted></video>`
             : `<img src="${post.mediaUrl}" class="post-media" onclick="window.openFullscreenPostViewer('${post.id}')" />`
         ) : ""}
-
-        ${post.caption ? `<div class="post-caption" onclick="window.openFullscreenPostViewer('${post.id}')">${post.caption}</div>` : ""}
 
         <div class="post-actions">
           <button class="action-chip ${post.likedByMe ? "liked" : ""}" onclick="window.togglePostLike('${post.id}', this)">
@@ -408,6 +476,8 @@
             💬 <span id="ccount-${post.id}">${post.commentsCount}</span>
           </button>
         </div>
+
+        ${post.caption ? `<div class="post-caption" onclick="window.openFullscreenPostViewer('${post.id}')">${post.caption}</div>` : ""}
 
         <div class="comments-box hidden" id="comments-${post.id}"></div>
       </div>
@@ -462,10 +532,12 @@
     }
 
     const posts = res.posts;
-    const targetIdx = posts.findIndex(p => p.id === initialPostId);
-    if (targetIdx > 0) {
-      const item = posts.splice(targetIdx, 1)[0];
-      posts.unshift(item);
+    if (initialPostId) {
+      const targetIdx = posts.findIndex(p => p.id === initialPostId);
+      if (targetIdx > 0) {
+        const item = posts.splice(targetIdx, 1)[0];
+        posts.unshift(item);
+      }
     }
 
     slidesContainer.innerHTML = posts.map((post) => `
@@ -475,7 +547,7 @@
       ">
         ${post.mediaUrl ? (
           post.mediaType === "video"
-            ? `<video src="${post.mediaUrl}" class="reel-media" autoplay loop playsinline controls style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
+            ? `<video src="${post.mediaUrl}" class="reel-media" autoplay loop playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
             : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
         ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
