@@ -56,9 +56,13 @@
     .explore-reel-icon {
       position: absolute; top: 6px; right: 6px; font-size: 13px; color: #fff; z-index: 2;
     }
-    .explore-users-results { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #111827; }
-    .explore-user-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; cursor: pointer; }
-    .explore-user-row img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+    .explore-users-results { padding: 8px 12px; background: #111827; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .explore-user-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 8px; cursor: pointer;
+      border-radius: 8px; transition: background 0.2s;
+    }
+    .explore-user-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .explore-user-row img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
   `;
   document.head.appendChild(style);
 
@@ -132,7 +136,6 @@
   async function fetchExplorePosts() {
     const grid = document.getElementById("explore-grid");
     try {
-      // Direct call to the working server endpoint /api/posts/feed
       const res = await window.api("/api/posts/feed");
 
       if (res && res.success && Array.isArray(res.posts)) {
@@ -169,7 +172,8 @@
 
     grid.innerHTML = filtered.map(post => {
       const isVideo = post.mediaType === "video" || (post.mediaUrl && post.mediaUrl.match(/\.(mp4|webm|mov)$/i));
-      const statCount = formatCount(post.likesCount || 0);
+      // Displaying views count instead of likes
+      const statCount = formatCount(post.viewsCount || post.likesCount || 0);
       let cleanText = (post.caption || "").replace(/^\[.*?\]\s*/, "");
 
       return `
@@ -184,7 +188,7 @@
           ${isVideo ? `<div class="explore-reel-icon">🎬</div>` : ""}
           <div class="explore-tile-overlay"></div>
           <div class="explore-tile-stats">
-            <span>♥</span>
+            <span>👁</span>
             <span>${statCount}</span>
           </div>
         </div>
@@ -196,7 +200,7 @@
     const usersBox = document.getElementById("explore-users-box");
     if (!usersBox) return;
 
-    if (!query || query.length < 2) {
+    if (!query || query.length < 1) {
       usersBox.style.display = "none";
       return;
     }
@@ -209,10 +213,10 @@
           <div style="font-size:11px; font-weight:700; color:#94a3b8; margin-bottom:6px; text-transform:uppercase;">Educators & Students</div>
           ${res.users.map(u => `
             <div class="explore-user-row" onclick="window.openUserProfile('${u.id}')">
-              <img src="${window.avatarUrl(u)}" />
-              <div>
-                <div style="font-weight:700; font-size:14px; color:#fff;">${u.displayName}</div>
-                <div style="font-size:12px; color:#94a3b8;">@${u.username}</div>
+              <img src="${window.avatarUrl(u)}" alt="${u.displayName}" />
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; font-size:14px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.displayName}</div>
+                <div style="font-size:12px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@${u.username}</div>
               </div>
             </div>
           `).join("")}
