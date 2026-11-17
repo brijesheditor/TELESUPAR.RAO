@@ -1,116 +1,522 @@
-(function() {
+
+(function () {
   const style = document.createElement("style");
+
   style.textContent = `
-    .explore-search-wrap { padding: 14px; position: sticky; top: 66px; background: #090d16; z-index: 20; }
-    .explore-search-input {
-      width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1);
-      padding: 12px 16px; border-radius: 16px; color: #fff; font-size: 14px; outline: none;
+    .explore-page {
+      background: #0b0f12;
+      min-height: 100vh;
+      color: #fff;
+      padding-bottom: 15px;
     }
-    .user-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+
+    .explore-top {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: #0b0f12;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
     }
-    .user-row-left { display: flex; align-items: center; gap: 12px; }
-    .user-row-left img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
-    .online-dot {
-      width: 10px; height: 10px; background: #10b981; border-radius: 50%;
-      display: inline-block; margin-left: 5px;
+
+    .explore-search-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #252a30;
+      border-radius: 35px;
+      padding: 0 15px;
+      height: 50px;
     }
-    .follow-btn {
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: #fff;
-      padding: 7px 16px; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer;
+
+    .explore-search-box input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: white;
+      font-size: 15px;
+      min-width: 0;
     }
-    .follow-btn.following { background: #1e293b; border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; }
+
+    .explore-search-box input::placeholder {
+      color: #a5acb7;
+    }
+
+    .explore-search-icon {
+      font-size: 21px;
+      color: white;
+    }
+
+    .explore-bookmark {
+      font-size: 26px;
+      color: white;
+      padding: 5px;
+      flex-shrink: 0;
+    }
+
+    .explore-tabs {
+      display: flex;
+      gap: 9px;
+      padding: 0 14px 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .explore-tabs button {
+      border: 0;
+      border-radius: 22px;
+      padding: 9px 19px;
+      background: #20252c;
+      color: #cbd5e1;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .explore-tabs button.active {
+      background: #fff;
+      color: #111;
+    }
+
+    .explore-section-title {
+      padding: 12px 15px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .explore-users {
+      padding-bottom: 8px;
+    }
+
+    .explore-user {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 15px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+
+    .explore-user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #252a30;
+    }
+
+    .explore-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .explore-user-name {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .explore-user-handle {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 3px;
+    }
+
+    .explore-online {
+      color: #22c55e;
+      font-size: 11px;
+    }
+
+    .explore-user-actions {
+      display: flex;
+      gap: 7px;
+    }
+
+    .explore-action-btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 8px 11px;
+      color: white;
+      background: #303640;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .explore-action-btn.follow {
+      background: #2878ed;
+    }
+
     .explore-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 4px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 3px;
+      padding: 2px;
     }
-    .explore-grid-item { aspect-ratio: 1/1; background: #111827; overflow: hidden; position: relative; }
-    .explore-grid-item img, .explore-grid-item video { width: 100%; height: 100%; object-fit: cover; }
+
+    .explore-grid-item {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: #20252c;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .explore-grid-item img,
+    .explore-grid-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .explore-play {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 17px;
+      text-shadow: 0 1px 5px #000;
+    }
+
+    .explore-empty {
+      grid-column: 1 / -1;
+      padding: 40px 15px;
+      text-align: center;
+      color: #929aa6;
+      font-size: 13px;
+    }
+
+    .explore-loading {
+      text-align: center;
+      padding: 35px;
+      color: #9ca3af;
+    }
   `;
+
   document.head.appendChild(style);
 
-  window.renderExplore = async function(container) {
-    container.innerHTML = `
-      <div class="explore-search-wrap">
-        <input type="text" id="explore-search" class="explore-search-input" placeholder="Search people by name or @username..." />
-      </div>
-      <div style="padding:0 16px 8px; font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Discover People</div>
-      <div id="explore-users-list"></div>
+  let allPosts = [];
+  let allUsers = [];
+  let activeFilter = "all";
+  let searchTimer = null;
+  let currentQuery = "";
 
-      <div style="padding:18px 16px 8px; font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Explore Media</div>
-      <div class="explore-grid" id="explore-media-grid"></div>
-    `;
-
-    const searchInput = document.getElementById("explore-search");
-    let timer;
-    searchInput.oninput = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => searchUsers(searchInput.value.trim()), 300);
-    };
-
-    searchUsers("");
-    loadExploreMedia();
-  };
-
-  async function searchUsers(query) {
-    const listEl = document.getElementById("explore-users-list");
-    if (!listEl) return;
-    const data = await window.api(`/api/users?search=${encodeURIComponent(query)}`);
-    if (!data.success) return;
-
-    listEl.innerHTML = data.users.slice(0, 8).map(u => `
-      <div class="user-row">
-        <div class="user-row-left">
-          <img src="${window.avatarUrl(u)}" />
-          <div>
-            <div style="font-weight:700; font-size:14px;">
-              ${u.displayName} ${u.isOnline ? '<span class="online-dot"></span>' : ""}
-            </div>
-            <div style="font-size:12px; color:#94a3b8;">@${u.username}</div>
-          </div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="follow-btn" id="fbtn-${u.id}" onclick="window.toggleFollowUser('${u.id}')">Follow</button>
-          <button class="follow-btn following" onclick="window.openDirectChat('${u.id}')">Chat</button>
-        </div>
-      </div>
-    `).join("");
-
-    // Check follow status for listed users
-    data.users.slice(0, 8).forEach(async (u) => {
-      const st = await window.api(`/api/users/${u.id}/follow-status`);
-      const btn = document.getElementById(`fbtn-${u.id}`);
-      if (st.success && btn && st.following) {
-        btn.textContent = "Following";
-        btn.classList.add("following");
-      }
-    });
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[ch]);
   }
 
-  window.toggleFollowUser = async function(userId) {
-    const btn = document.getElementById(`fbtn-${userId}`);
-    const isFollowing = btn.classList.contains("following");
-    const res = await window.api(`/api/users/${userId}/follow`, {
-      method: isFollowing ? "DELETE" : "POST"
+  function safeMediaURL(value) {
+    try {
+      const url = new URL(value, window.location.origin);
+      return ["https:", "http:"].includes(url.protocol)
+        ? escapeHTML(url.href)
+        : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function getAvatar(user) {
+    return safeMediaURL(window.avatarUrl(user));
+  }
+
+  window.renderExplore = async function (container) {
+    container.innerHTML = `
+      <div class="explore-page">
+
+        <div class="explore-top">
+          <div class="explore-search-box">
+            <span class="explore-search-icon">⌕</span>
+            <input
+              id="explore-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Search videos, people or ID"
+            />
+            <button id="explore-clear"
+              style="display:none;background:none;border:0;color:#fff;font-size:20px">
+              ×
+            </button>
+          </div>
+          <span class="explore-bookmark" title="Saved posts feature not yet available">
+            ♧
+          </span>
+        </div>
+
+        <div class="explore-tabs">
+          <button class="active" data-filter="all">All</button>
+          <button data-filter="videos">Videos</button>
+          <button data-filter="people">People</button>
+        </div>
+
+        <div id="explore-results">
+          <div class="explore-loading">Loading Explore...</div>
+        </div>
+
+      </div>
+    `;
+
+    const input = container.querySelector("#explore-search");
+    const clearBtn = container.querySelector("#explore-clear");
+    const results = container.querySelector("#explore-results");
+
+    container.querySelectorAll("[data-filter]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeFilter = btn.dataset.filter;
+
+        container.querySelectorAll("[data-filter]").forEach(tab => {
+          tab.classList.toggle("active", tab === btn);
+        });
+
+        renderResults();
+      });
     });
-    if (res.success) {
-      btn.classList.toggle("following", res.following);
-      btn.textContent = res.following ? "Following" : "Follow";
+
+    input.addEventListener("input", () => {
+      currentQuery = input.value.trim();
+      clearBtn.style.display = currentQuery ? "block" : "none";
+
+      clearTimeout(searchTimer);
+
+      searchTimer = setTimeout(async () => {
+        await searchPeople(currentQuery);
+        renderResults();
+      }, 350);
+
+      renderResults();
+    });
+
+    clearBtn.onclick = () => {
+      input.value = "";
+      currentQuery = "";
+      clearBtn.style.display = "none";
+      searchPeople("").then(renderResults);
+    };
+
+    results.addEventListener("click", async event => {
+      const followBtn = event.target.closest("[data-follow]");
+      const chatBtn = event.target.closest("[data-chat]");
+      const postBtn = event.target.closest("[data-post]");
+
+      if (followBtn) {
+        const userId = followBtn.dataset.follow;
+        followBtn.disabled = true;
+
+        try {
+          const following = followBtn.dataset.following === "true";
+
+          const response = await window.api(
+            `/api/users/${encodeURIComponent(userId)}/follow`,
+            { method: following ? "DELETE" : "POST" }
+          );
+
+          if (!response.success) {
+            alert(response.message || "Follow action failed");
+            return;
+          }
+
+          followBtn.dataset.following = String(response.following);
+          followBtn.textContent = response.following ? "Following" : "Follow";
+          followBtn.classList.toggle("follow", !response.following);
+
+        } catch (error) {
+          alert("Network error. Please try again.");
+        } finally {
+          followBtn.disabled = false;
+        }
+      }
+
+      if (chatBtn) {
+        window.openDirectChat(chatBtn.dataset.chat);
+      }
+
+      if (postBtn) {
+        const postId = postBtn.dataset.post;
+        if (typeof window.openFullscreenPostViewer === "function") {
+          window.openFullscreenPostViewer(postId);
+        }
+      }
+    });
+
+    try {
+      const [postResponse] = await Promise.all([
+        window.api("/api/posts/feed")
+      ]);
+
+      allPosts = postResponse.success
+        ? (postResponse.posts || []).filter(post => post.mediaUrl)
+        : [];
+
+      await searchPeople("");
+
+      renderResults();
+
+    } catch (error) {
+      results.innerHTML =
+        `<div class="explore-empty">Could not load Explore. Please try again.</div>`;
     }
   };
 
-  async function loadExploreMedia() {
-    const grid = document.getElementById("explore-media-grid");
-    if (!grid) return;
-    const data = await window.api("/api/posts/feed");
-    if (!data.success) return;
-    const mediaPosts = data.posts.filter(p => p.mediaUrl);
-    grid.innerHTML = mediaPosts.map(p => `
-      <div class="explore-grid-item">
-        ${p.mediaType === "video"
-          ? `<video src="${p.mediaUrl}" muted></video>`
-          : `<img src="${p.mediaUrl}" />`}
+  async function searchPeople(query) {
+    try {
+      const response = await window.api(
+        `/api/users?search=${encodeURIComponent(query)}`
+      );
+
+      allUsers = response.success
+        ? (response.users || [])
+        : [];
+
+    } catch (error) {
+      allUsers = [];
+    }
+  }
+
+  function matchingPosts() {
+    let posts = [...allPosts];
+
+    if (activeFilter === "videos") {
+      posts = posts.filter(p => p.mediaType === "video");
+    }
+
+    if (currentQuery) {
+      const q = currentQuery.toLowerCase();
+
+      posts = posts.filter(post => {
+        const author = post.user || {};
+
+        return [
+          post.caption,
+          post.id,
+          author.username,
+          author.displayName,
+          author.id
+        ].some(value =>
+          String(value || "").toLowerCase().includes(q)
+        );
+      });
+    }
+
+    return posts;
+  }
+
+  function renderUsers() {
+    if (!allUsers.length) {
+      return `<div class="explore-empty">No accounts found.</div>`;
+    }
+
+    return `
+      <div class="explore-users">
+        ${allUsers.slice(0, 12).map(user => {
+          const id = escapeHTML(user.id);
+          const name = escapeHTML(user.displayName || user.username);
+          const username = escapeHTML(user.username);
+          const avatar = getAvatar(user);
+
+          return `
+            <div class="explore-user">
+              <img class="explore-user-avatar"
+                src="${avatar}" alt=""
+                onerror="this.style.opacity='.3'">
+
+              <div class="explore-user-info">
+                <div class="explore-user-name">${name}</div>
+                <div class="explore-user-handle">@${username}</div>
+                ${user.isOnline
+                  ? `<div class="explore-online">● Active now</div>`
+                  : ""}
+              </div>
+
+              <div class="explore-user-actions">
+                <button class="explore-action-btn follow"
+                  data-follow="${id}" data-following="false">
+                  Follow
+                </button>
+                <button class="explore-action-btn" data-chat="${id}">
+                  Chat
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("")}
       </div>
-    `).join("");
+    `;
+  }
+
+  function renderGrid(posts) {
+    if (!posts.length) {
+      return `<div class="explore-empty">No matching media found.</div>`;
+    }
+
+    return `
+      <div class="explore-grid">
+        ${posts.map(post => {
+          const url = safeMediaURL(post.mediaUrl);
+          if (!url) return "";
+
+          const video = post.mediaType === "video";
+
+          return `
+            <button class="explore-grid-item"
+              data-post="${escapeHTML(post.id)}"
+              aria-label="Open post">
+
+              ${video
+                ? `<video src="${url}" muted playsinline preload="metadata"></video>
+                   <span class="explore-play">▶</span>`
+                : `<img src="${url}" loading="lazy" alt="">`
+              }
+            </button>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function renderResults() {
+    const results = document.getElementById("explore-results");
+    if (!results) return;
+
+    const posts = matchingPosts();
+
+    if (activeFilter === "people") {
+      results.innerHTML = `
+        <div class="explore-section-title">People</div>
+        ${renderUsers()}
+      `;
+      return;
+    }
+
+    if (activeFilter === "videos") {
+      results.innerHTML = `
+        <div class="explore-section-title">Videos</div>
+        ${renderGrid(posts)}
+      `;
+      return;
+    }
+
+    if (!currentQuery) {
+      results.innerHTML = `
+        ${renderGrid(posts)}
+      `;
+      return;
+    }
+
+    results.innerHTML = `
+      <div class="explore-section-title">People</div>
+      ${renderUsers()}
+
+      <div class="explore-section-title">Videos and posts</div>
+      ${renderGrid(posts)}
+    `;
   }
 })();
