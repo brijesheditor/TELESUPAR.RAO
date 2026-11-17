@@ -72,13 +72,16 @@
       <input type="file" id="story-upload-input" accept="image/*,video/*" hidden />
     `;
 
-    // Inject Reels icon & Plus (+) button into top bar next to notification icon
+    // Ensure Top Bar elements (Reels & Plus) are ONLY visible on Home tab
     setTimeout(() => {
+      // Show top bar container if hidden previously
+      const topHeader = document.querySelector('header') || document.querySelector('.app-header');
+      if (topHeader) topHeader.style.display = "flex";
+
       if (!document.getElementById("header-reels-btn")) {
         const headerIconsContainer = document.querySelector('button[onclick*="notification"]') || document.querySelector('.fa-bell, svg')?.closest('button') || document.querySelector('header button:last-child') || document.querySelector('div[style*="display: flex"] button:last-child');
         
         if (headerIconsContainer && headerIconsContainer.parentNode) {
-          // Reels Icon Button
           const reelsBtn = document.createElement("button");
           reelsBtn.id = "header-reels-btn";
           reelsBtn.innerHTML = "🎬";
@@ -89,7 +92,6 @@
           reelsBtn.title = "Reels Viewer";
           reelsBtn.onclick = () => window.openFullscreenPostViewer();
 
-          // Plus (+) Create Post Button
           const plusBtn = document.createElement("button");
           plusBtn.id = "header-create-post-btn";
           plusBtn.innerHTML = "＋";
@@ -105,9 +107,21 @@
         }
       }
 
-      // Update Bottom Navigation Badges & Profile Avatar
       updateBottomNavBadges();
     }, 150);
+
+    // Also hook into tab switching if available to hide top header on other tabs
+    if (window.switchTab && !window._telesuparTabHooked) {
+      window._telesuparTabHooked = true;
+      const originalSwitchTab = window.switchTab;
+      window.switchTab = function(tabName) {
+        originalSwitchTab(tabName);
+        const topHeader = document.querySelector('header') || document.querySelector('.app-header');
+        if (topHeader) {
+          topHeader.style.display = (tabName === 'home') ? 'flex' : 'none';
+        }
+      };
+    }
 
     document.getElementById("story-upload-input").onchange = async (e) => {
       const file = e.target.files[0];
@@ -124,7 +138,6 @@
 
   async function updateBottomNavBadges() {
     try {
-      // Fetch unread counts for chat and channels
       const chatRes = await window.api("/api/conversations");
       let totalUnreadChat = 0;
       if (chatRes.success && chatRes.conversations) {
@@ -137,38 +150,48 @@
         channelRes.channels.forEach(ch => { totalUnreadChannel += (ch.unreadCount || 0); });
       }
 
-      // Update Chat nav icon / button
-      const chatBtn = document.querySelector('button[onclick*="chat"]') || document.querySelector('nav button:nth-child(3)') || document.querySelector('[data-tab="chat"]');
-      if (chatBtn && totalUnreadChat > 0) {
-        if (!chatBtn.querySelector('.nav-badge')) {
-          const badge = document.createElement('span');
-          badge.className = 'nav-badge';
-          badge.style.cssText = `position:absolute; top:4px; right:8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:99px;`;
-          chatBtn.style.position = 'relative';
-          chatBtn.appendChild(badge);
+      // Update Chat nav badge
+      const chatNavBtn = document.querySelector('button[onclick*="chat"]') || document.querySelector('nav button:nth-child(3)') || document.querySelector('[data-tab="chat"]');
+      if (chatNavBtn) {
+        chatNavBtn.style.position = 'relative';
+        let badge = chatNavBtn.querySelector('.nav-badge');
+        if (totalUnreadChat > 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'nav-badge';
+            badge.style.cssText = `position:absolute; top:4px; right:8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:99px;`;
+            chatNavBtn.appendChild(badge);
+          }
+          badge.textContent = totalUnreadChat;
+        } else if (badge) {
+          badge.remove();
         }
-        chatBtn.querySelector('.nav-badge').textContent = totalUnreadChat;
       }
 
-      // Update Channel nav icon / button
-      const channelBtn = document.querySelector('button[onclick*="channel"]') || document.querySelector('nav button:nth-child(4)') || document.querySelector('[data-tab="channel"]');
-      if (channelBtn && totalUnreadChannel > 0) {
-        if (!channelBtn.querySelector('.nav-badge')) {
-          const badge = document.createElement('span');
-          badge.className = 'nav-badge';
-          badge.style.cssText = `position:absolute; top:4px; right:8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:99px;`;
-          channelBtn.style.position = 'relative';
-          channelBtn.appendChild(badge);
+      // Update Channel nav badge
+      const channelNavBtn = document.querySelector('button[onclick*="channel"]') || document.querySelector('nav button:nth-child(4)') || document.querySelector('[data-tab="channel"]');
+      if (channelNavBtn) {
+        channelNavBtn.style.position = 'relative';
+        let badge = channelNavBtn.querySelector('.nav-badge');
+        if (totalUnreadChannel > 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'nav-badge';
+            badge.style.cssText = `position:absolute; top:4px; right:8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:99px;`;
+            channelNavBtn.appendChild(badge);
+          }
+          badge.textContent = totalUnreadChannel;
+        } else if (badge) {
+          badge.remove();
         }
-        channelBtn.querySelector('.nav-badge').textContent = totalUnreadChannel;
       }
 
       // Update Profile nav icon with user avatar
-      const profileBtn = document.querySelector('button[onclick*="profile"]') || document.querySelector('nav button:last-child') || document.querySelector('[data-tab="profile"]');
-      if (profileBtn && window.AppState && window.AppState.user) {
+      const profileNavBtn = document.querySelector('button[onclick*="profile"]') || document.querySelector('nav button:last-child') || document.querySelector('[data-tab="profile"]');
+      if (profileNavBtn && window.AppState && window.AppState.user) {
         const me = window.AppState.user;
         const avatarSrc = window.avatarUrl(me);
-        profileBtn.innerHTML = `<img src="${avatarSrc}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1.5px solid #fff;" />`;
+        profileNavBtn.innerHTML = `<img src="${avatarSrc}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1.5px solid #fff;" />`;
       }
     } catch (err) {
       console.error("Error updating nav badges:", err);
@@ -498,7 +521,6 @@
     `;
     document.body.appendChild(viewer);
 
-    // Fixed Glassmorphic Top Header with "Reels" Title
     const fixedTopBar = document.createElement("div");
     fixedTopBar.style.cssText = `
       position: fixed; top: 0; left: 0; right: 0; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 210;
@@ -588,7 +610,7 @@
           </button>
         </div>
 
-        <!-- Bottom Details: Left side Profile DP + Name (clickable to profile), Right side Follow/Message -->
+        <!-- Bottom Details -->
         <div style="
           position: absolute; bottom: 20px; left: 16px; right: 80px; z-index: 10;
           background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, transparent); padding: 25px 0 10px 0; display: flex; flex-direction: column; gap: 8px;
