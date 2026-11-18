@@ -1,639 +1,1128 @@
-(function() {
+
+(function () {
+  // ==========================================
+  // TELESUPAR CHAT - FRONTEND V1
+  // Backend will be connected later.
+  // ==========================================
+
   const style = document.createElement("style");
+
   style.textContent = `
-    .chat-list-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer;
-    }
-    .chat-list-item:hover { background: rgba(255,255,255,0.03); }
-    .chat-avatar-wrap { position: relative; }
-    .chat-avatar-wrap img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-    .status-indicator {
-      position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px;
-      border-radius: 50%; background: #10b981; border: 2px solid #090d16;
-    }
-    .unread-pill {
-      background: #14b8a6; color: #042f2e; font-weight: 800; font-size: 11px;
-      min-width: 20px; height: 20px; border-radius: 99px; display: grid; place-items: center; padding: 0 6px;
+    * { box-sizing: border-box; }
+
+    .ts-chat-app {
+      min-height: 100vh;
+      background: #090d12;
+      color: #f8fafc;
+      font-family: inherit;
+      padding-bottom: 80px;
     }
 
-    /* Active Conversation Room */
-    .chat-room {
-      position: fixed; inset: 0; background: #090d16; z-index: 90;
-      display: flex; flex-direction: column;
-    }
-    .chat-room-header {
-      display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;
-      background: #111827; border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 10;
-    }
-    .chat-room-user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; }
-    .messages-area {
-      flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px;
-      background: radial-gradient(circle at top right, rgba(99,102,241,0.08), transparent);
-    }
-    .msg-bubble {
-      max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; position: relative;
-    }
-    .msg-mine {
-      align-self: flex-end; background: #6366f1; color: #fff;
-      border-bottom-right-radius: 4px;
-    }
-    .msg-theirs {
-      align-self: flex-start; background: #1e293b; color: #f8fafc;
-      border-bottom-left-radius: 4px;
-    }
-    .msg-meta { font-size: 10px; opacity: 0.75; margin-top: 4px; text-align: right; }
-    .chat-input-bar {
-      display: flex; gap: 8px; padding: 10px 12px; background: #111827;
-      border-top: 1px solid rgba(255,255,255,0.08); align-items: center; z-index: 10;
-    }
-    .chat-text-input {
-      flex: 1; background: #1e293b; border: none; border-radius: 99px;
-      padding: 11px 16px; color: #fff; font-size: 14px; outline: none;
+    /* INBOX HEADER */
+
+    .ts-inbox-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:20px 18px 14px;
     }
 
-    /* Glassmorphism Popup Menu */
-    .tg-popup-menu {
-      position: fixed; top: 62px; right: 14px; width: 220px;
-      background: rgba(17, 24, 39, 0.94); backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,0.14); border-radius: 18px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.75); z-index: 200; padding: 6px 0;
+    .ts-inbox-title {
+      font-size:26px;
+      font-weight:850;
+      letter-spacing:-.5px;
     }
-    .tg-popup-item {
-      padding: 12px 16px; font-size: 13px; color: #f8fafc; cursor: pointer;
-      display: flex; align-items: center; gap: 12px; transition: 0.15s;
-    }
-    .tg-popup-item:hover { background: rgba(255,255,255,0.07); }
 
-    /* Chat Info / Vault Screen */
-    .tg-profile-view {
-      position: fixed; inset: 0; background: #090d16; z-index: 110;
-      display: flex; flex-direction: column; overflow-y: auto;
+    .ts-inbox-subtitle {
+      color:#94a3b8;
+      font-size:12px;
+      margin-top:3px;
     }
-    .tg-profile-header {
-      padding: 14px; display: flex; align-items: center; background: #111827;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .tg-profile-hero { padding: 24px 16px; text-align: center; background: #111827; margin-bottom: 12px; }
-    .tg-action-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
-    .tg-action-btn {
-      background: #1e293b; border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px; padding: 12px 6px; color: #fff; font-size: 12px; font-weight: 600;
-      display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
-    }
-    .tg-action-btn.muted-active {
-      background: rgba(239, 68, 68, 0.16); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;
-    }
-    .tg-tabs-bar { display: flex; border-bottom: 1px solid rgba(255,255,255,0.08); background: #111827; }
-    .tg-profile-tab {
-      flex: 1; text-align: center; padding: 12px; font-size: 13px; font-weight: 700; color: #94a3b8; cursor: pointer;
-      border-bottom: 2px solid transparent;
-    }
-    .tg-profile-tab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
 
-    /* Instagram-Style Public Profile View */
-    .ig-profile-modal {
-      position: fixed; inset: 0; background: #090d16; z-index: 150;
-      display: flex; flex-direction: column; overflow-y: auto;
+    .ts-header-actions {
+      display:flex;
+      gap:12px;
     }
-    .ig-top-bar {
-      position: sticky; top: 0; background: #090d16; z-index: 10;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+
+    .ts-icon-btn {
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      background:#1c232c;
+      color:white;
+      border:1px solid #303945;
+      font-size:21px;
+      cursor:pointer;
     }
-    .ig-header-stats {
-      display: flex; align-items: center; gap: 20px; padding: 18px 16px 10px;
+
+    /* SEARCH */
+
+    .ts-search-box {
+      margin:8px 16px 18px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:13px 16px;
+      border-radius:30px;
+      background:#222830;
+      color:#aab4c2;
     }
-    .ig-dp {
-      width: 82px; height: 82px; border-radius: 50%; object-fit: cover;
-      border: 2px solid #ec4899; padding: 2px;
+
+    .ts-search-box input {
+      flex:1;
+      min-width:0;
+      border:0;
+      outline:0;
+      background:transparent;
+      color:white;
+      font-size:14px;
     }
-    .ig-stats-row {
-      flex: 1; display: flex; justify-content: space-around; text-align: center;
+
+    /* NOTES / STORIES */
+
+    .ts-notes-section {
+      display:flex;
+      gap:18px;
+      overflow-x:auto;
+      padding:4px 18px 20px;
+      scrollbar-width:none;
     }
-    .ig-stat-box { cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: 0.2s; }
-    .ig-stat-box:hover { background: rgba(255,255,255,0.06); }
-    .ig-stat-val { font-size: 17px; font-weight: 800; color: #fff; }
-    .ig-stat-lbl { font-size: 12px; color: #94a3b8; }
-    .ig-bio-section { padding: 4px 16px 14px; }
-    .ig-btn-row { display: flex; gap: 8px; padding: 0 16px 16px; }
-    .ig-btn {
-      flex: 1; padding: 9px; border-radius: 10px; font-size: 13px; font-weight: 700;
-      border: none; cursor: pointer; text-align: center;
+
+    .ts-notes-section::-webkit-scrollbar {
+      display:none;
     }
-    .ig-btn-primary { background: #3b82f6; color: #fff; }
-    .ig-btn-secondary { background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-    .ig-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 6px; }
-    .ig-grid-item { aspect-ratio: 1/1; background: #111827; overflow: hidden; }
-    .ig-grid-item img, .ig-grid-item video { width: 100%; height: 100%; object-fit: cover; }
+
+    .ts-note-item {
+      min-width:68px;
+      text-align:center;
+    }
+
+    .ts-note-avatar {
+      width:62px;
+      height:62px;
+      margin:auto;
+      border-radius:50%;
+      padding:3px;
+      border:2px solid #5965ff;
+      position:relative;
+    }
+
+    .ts-note-avatar img {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:50%;
+    }
+
+    .ts-note-add {
+      position:absolute;
+      right:-2px;
+      bottom:0;
+      background:#5965ff;
+      border:2px solid #090d12;
+      color:white;
+      width:21px;
+      height:21px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:15px;
+    }
+
+    .ts-note-label {
+      font-size:11px;
+      color:#cbd5e1;
+      margin-top:7px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* FILTERS */
+
+    .ts-filter-row {
+      display:flex;
+      gap:9px;
+      padding:0 16px 18px;
+      overflow-x:auto;
+      scrollbar-width:none;
+    }
+
+    .ts-filter {
+      padding:9px 19px;
+      border-radius:25px;
+      border:1px solid #303945;
+      color:#cbd5e1;
+      background:transparent;
+      font-size:13px;
+      font-weight:700;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+
+    .ts-filter.active {
+      background:#252d39;
+      border-color:#6571ff;
+      color:white;
+    }
+
+    /* CHAT LIST */
+
+    .ts-section-heading {
+      padding:3px 18px 12px;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:1px;
+      color:#8491a3;
+    }
+
+    .ts-conversation-list {
+      display:flex;
+      flex-direction:column;
+    }
+
+    .ts-chat-item {
+      display:flex;
+      align-items:center;
+      gap:13px;
+      padding:14px 18px;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .ts-chat-item:active {
+      background:#171e27;
+    }
+
+    .ts-avatar-wrap {
+      width:57px;
+      height:57px;
+      flex-shrink:0;
+      position:relative;
+    }
+
+    .ts-avatar-wrap img {
+      width:100%;
+      height:100%;
+      border-radius:50%;
+      object-fit:cover;
+      background:#26313d;
+    }
+
+    .ts-online-dot {
+      position:absolute;
+      right:0;
+      bottom:1px;
+      width:13px;
+      height:13px;
+      border-radius:50%;
+      background:#22c55e;
+      border:2px solid #090d12;
+    }
+
+    .ts-chat-details {
+      flex:1;
+      min-width:0;
+    }
+
+    .ts-chat-name {
+      display:flex;
+      align-items:center;
+      gap:5px;
+      font-size:15px;
+      font-weight:750;
+      color:white;
+    }
+
+    .ts-last-message {
+      margin-top:5px;
+      font-size:13px;
+      color:#9ca8b8;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .ts-chat-right {
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:7px;
+    }
+
+    .ts-chat-time {
+      font-size:10px;
+      color:#8491a3;
+    }
+
+    .ts-unread-count {
+      min-width:21px;
+      height:21px;
+      padding:0 6px;
+      border-radius:20px;
+      background:#5965ff;
+      color:white;
+      display:grid;
+      place-items:center;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    /* EMPTY STATES */
+
+    .ts-empty-state {
+      text-align:center;
+      padding:55px 24px;
+      color:#94a3b8;
+    }
+
+    .ts-empty-icon {
+      font-size:43px;
+      margin-bottom:12px;
+    }
+
+    .ts-empty-state strong {
+      display:block;
+      color:white;
+      font-size:15px;
+    }
+
+    .ts-empty-state p {
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    /* CHAT ROOM */
+
+    .ts-chat-room {
+      position:fixed;
+      inset:0;
+      z-index:100;
+      display:flex;
+      flex-direction:column;
+      background:#0c1118;
+      color:white;
+    }
+
+    .ts-room-header {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 14px;
+      background:#111923;
+      border-bottom:1px solid rgba(255,255,255,.07);
+    }
+
+    .ts-back-btn {
+      background:none;
+      border:none;
+      color:white;
+      font-size:25px;
+      cursor:pointer;
+    }
+
+    .ts-room-user {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:1;
+      min-width:0;
+      cursor:pointer;
+    }
+
+    .ts-room-user img {
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      object-fit:cover;
+    }
+
+    .ts-room-user-name {
+      font-weight:800;
+      font-size:14px;
+    }
+
+    .ts-room-status {
+      font-size:11px;
+      color:#94a3b8;
+      margin-top:3px;
+    }
+
+    .ts-room-actions {
+      display:flex;
+      gap:12px;
+      font-size:20px;
+    }
+
+    .ts-room-action {
+      background:none;
+      border:none;
+      color:white;
+      font-size:20px;
+      cursor:pointer;
+    }
+
+    /* MESSAGES */
+
+    .ts-messages-area {
+      flex:1;
+      overflow-y:auto;
+      padding:18px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      background:
+        radial-gradient(circle at top right,
+        rgba(67,97,238,.08), transparent 45%);
+    }
+
+    .ts-message-row {
+      display:flex;
+      width:100%;
+    }
+
+    .ts-message-row.mine {
+      justify-content:flex-end;
+    }
+
+    .ts-message-bubble {
+      max-width:78%;
+      padding:11px 14px;
+      font-size:14px;
+      line-height:1.5;
+      border-radius:19px;
+      overflow-wrap:anywhere;
+    }
+
+    .ts-message-row.mine .ts-message-bubble {
+      background:#3478ed;
+      color:white;
+      border-bottom-right-radius:5px;
+    }
+
+    .ts-message-row.theirs .ts-message-bubble {
+      background:#252e3a;
+      color:#f8fafc;
+      border-bottom-left-radius:5px;
+    }
+
+    .ts-message-meta {
+      text-align:right;
+      margin-top:4px;
+      font-size:10px;
+      opacity:.7;
+    }
+
+    .ts-date-divider {
+      align-self:center;
+      padding:6px 13px;
+      background:#202a36;
+      color:#aab4c2;
+      border-radius:20px;
+      font-size:10px;
+      margin:8px 0;
+    }
+
+    /* MESSAGE INPUT */
+
+    .ts-input-area {
+      padding:10px 12px;
+      background:#111923;
+      border-top:1px solid rgba(255,255,255,.07);
+      display:flex;
+      align-items:center;
+      gap:9px;
+    }
+
+    .ts-attach-btn {
+      border:0;
+      background:transparent;
+      color:#b9c5d5;
+      font-size:22px;
+      cursor:pointer;
+    }
+
+    .ts-message-input {
+      flex:1;
+      min-width:0;
+      border:1px solid #303b49;
+      background:#202a36;
+      color:white;
+      outline:none;
+      border-radius:25px;
+      padding:12px 16px;
+      font-size:14px;
+    }
+
+    .ts-send-btn {
+      width:43px;
+      height:43px;
+      border:0;
+      border-radius:50%;
+      background:#3478ed;
+      color:white;
+      font-size:19px;
+      cursor:pointer;
+    }
+
+    /* CHAT INFO */
+
+    .ts-info-screen {
+      position:fixed;
+      inset:0;
+      z-index:120;
+      overflow-y:auto;
+      background:#090d12;
+      color:white;
+    }
+
+    .ts-info-header {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:15px;
+      background:#111923;
+      border-bottom:1px solid #26313d;
+      font-weight:800;
+    }
+
+    .ts-info-hero {
+      text-align:center;
+      padding:28px 16px;
+      background:#111923;
+    }
+
+    .ts-info-hero img {
+      width:95px;
+      height:95px;
+      border-radius:50%;
+      object-fit:cover;
+    }
+
+    .ts-info-hero h3 {
+      margin:12px 0 5px;
+    }
+
+    .ts-info-actions {
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      margin-top:20px;
+    }
+
+    .ts-info-action {
+      background:#202a36;
+      border:1px solid #303b49;
+      border-radius:14px;
+      padding:12px 17px;
+      color:white;
+      font-size:12px;
+      cursor:pointer;
+    }
+
+    .ts-info-tabs {
+      display:flex;
+      background:#111923;
+      border-bottom:1px solid #303b49;
+    }
+
+    .ts-info-tab {
+      flex:1;
+      padding:14px 5px;
+      text-align:center;
+      color:#94a3b8;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+      border-bottom:2px solid transparent;
+    }
+
+    .ts-info-tab.active {
+      color:#60a5fa;
+      border-bottom-color:#60a5fa;
+    }
+
+    .ts-info-content {
+      padding:16px;
+    }
+
+    /* POPUP */
+
+    .ts-popup {
+      position:fixed;
+      top:65px;
+      right:14px;
+      width:220px;
+      z-index:300;
+      background:#202a36;
+      border:1px solid #394657;
+      border-radius:15px;
+      overflow:hidden;
+      box-shadow:0 15px 40px rgba(0,0,0,.5);
+    }
+
+    .ts-popup-item {
+      padding:14px 16px;
+      font-size:13px;
+      cursor:pointer;
+      border-bottom:1px solid rgba(255,255,255,.05);
+    }
+
+    .ts-popup-item:active {
+      background:#303d4e;
+    }
+
+    .ts-popup-item.danger {
+      color:#f87171;
+    }
+
+    /* MOBILE */
+
+    @media(min-width:700px) {
+      .ts-chat-app {
+        max-width:650px;
+        margin:auto;
+        border-left:1px solid #222;
+        border-right:1px solid #222;
+      }
+    }
   `;
-  document.head.appendChild(style);
 
-  function getMutedUsers() {
-    return JSON.parse(localStorage.getItem("ts_muted_users") || "{}");
-  }
-  function isUserMuted(userId) {
-    return !!getMutedUsers()[userId];
-  }
-  function toggleUserMute(userId) {
-    const muted = getMutedUsers();
-    if (muted[userId]) {
-      delete muted[userId];
-    } else {
-      muted[userId] = true;
-    }
-    localStorage.setItem("ts_muted_users", JSON.stringify(muted));
-    return !!muted[userId];
+  if (!document.getElementById("ts-chat-style")) {
+    style.id = "ts-chat-style";
+    document.head.appendChild(style);
   }
 
-  window.renderChat = async function(container) {
-    const mainHeader = document.querySelector(".top-header");
-    const bottomNav = document.querySelector(".bottom-nav");
-    if (mainHeader) mainHeader.classList.remove("hidden");
-    if (bottomNav) bottomNav.classList.remove("hidden");
+  // ==========================================
+  // FRONTEND STATE
+  // ==========================================
 
-    if (window.AppState.activeConversation) {
-      renderConversationRoom(container, window.AppState.activeConversation);
-      return;
+  let conversations = [];
+  let activeFilter = "all";
+  let activeConversation = null;
+  let activeInfoTab = "Files";
+  let localMessages = {};
+
+  const defaultAvatar =
+    "https://ui-avatars.com/api/?name=User&background=26313d&color=fff";
+
+  function avatar(user) {
+    if (window.avatarUrl) return window.avatarUrl(user || {});
+    return (user && user.avatar) || defaultAvatar;
+  }
+
+  function escapeHTML(value) {
+    return String(value || "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
+
+  function showNotice(message) {
+    alert(message);
+  }
+
+  // ==========================================
+  // PUBLIC DATA ADAPTER
+  // Backend can fill this later.
+  // ==========================================
+
+  window.TSChat = {
+    setConversations(data) {
+      conversations = Array.isArray(data) ? data : [];
+    },
+
+    openConversation(conv) {
+      if (!conv) return;
+      activeConversation = conv;
+      const container = document.getElementById("app");
+      if (container) {
+        renderRoom(container, conv);
+      }
+    },
+
+    getConversations() {
+      return conversations;
     }
-
-    container.innerHTML = `
-      <div style="padding:14px 16px 6px; font-size:13px; font-weight:700; color:#94a3b8;">RECENT CHATS</div>
-      <div id="conversations-list"><p style="text-align:center; color:#94a3b8; padding:30px;">Loading chats...</p></div>
-    `;
-
-    const data = await window.api("/api/conversations");
-    const listEl = document.getElementById("conversations-list");
-    if (!data.success || !data.conversations.length) {
-      listEl.innerHTML = `<p style="text-align:center; color:#94a3b8; padding:40px;">No chats yet. Go to Explore to message someone!</p>`;
-      return;
-    }
-
-    listEl.innerHTML = data.conversations.map(c => {
-      const muted = isUserMuted(c.otherUser.id);
-      return `
-        <div class="chat-list-item" data-conv-id="${c.id}">
-          <div style="display:flex; gap:12px; align-items:center;">
-            <div class="chat-avatar-wrap">
-              <img src="${window.avatarUrl(c.otherUser)}" />
-              ${c.otherUser.isOnline ? '<span class="status-indicator"></span>' : ""}
-            </div>
-            <div>
-              <div style="font-weight:700; font-size:15px;">
-                ${c.otherUser.displayName} ${muted ? '<span style="font-size:12px; opacity:0.7;">🔕</span>' : ""}
-              </div>
-              <div style="font-size:12px; color:#94a3b8; max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${c.lastMessage || "Tap to start chatting"}
-              </div>
-            </div>
-          </div>
-          ${c.unreadCount > 0 ? `<span class="unread-pill" style="${muted ? 'background:#334155; color:#cbd5e1;' : ''}">${c.unreadCount}</span>` : ""}
-        </div>
-      `;
-    }).join("");
-
-    listEl.querySelectorAll(".chat-list-item").forEach((el, idx) => {
-      el.onclick = () => {
-        window.AppState.activeConversation = data.conversations[idx];
-        renderConversationRoom(container, data.conversations[idx]);
-      };
-    });
   };
 
-  async function renderConversationRoom(container, conv) {
-    const myId = window.AppState.user.id;
-    const other = conv.otherUser;
+  // ==========================================
+  // INBOX
+  // ==========================================
 
-    const mainHeader = document.querySelector(".top-header");
-    const bottomNav = document.querySelector(".bottom-nav");
-    if (mainHeader) mainHeader.classList.add("hidden");
-    if (bottomNav) bottomNav.classList.add("hidden");
+  window.renderChat = async function(container) {
+    activeConversation = null;
 
-    const muted = isUserMuted(other.id);
+    const header = document.querySelector(".top-header");
+    const nav = document.querySelector(".bottom-nav");
+
+    if (header) header.classList.remove("hidden");
+    if (nav) nav.classList.remove("hidden");
 
     container.innerHTML = `
-      <div class="chat-room" id="active-chat-room">
-        <div class="chat-room-header">
-          <div style="display:flex; align-items:center; gap:10px; flex:1;">
-            <button id="back-to-chats" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">←</button>
-            <div class="chat-room-user-info" id="open-user-vault">
-              <img src="${window.avatarUrl(other)}" style="width:38px; height:38px; border-radius:50%; object-fit:cover;" />
-              <div>
-                <div style="font-weight:700; font-size:15px;">
-                  ${other.displayName} <span id="header-mute-badge">${muted ? "🔕" : ""}</span>
-                </div>
-                <div id="chat-sub-status" style="font-size:11px; color:#14b8a6;">
-                  ${other.isOnline ? "Online" : "last seen recently"}
-                </div>
-              </div>
-            </div>
+      <div class="ts-chat-app">
+
+        <div class="ts-inbox-header">
+          <div>
+            <div class="ts-inbox-title">Messages</div>
+            <div class="ts-inbox-subtitle">Stay connected</div>
           </div>
-          <button id="btn-chat-menu" class="icon-btn" style="background:transparent; border:none; font-size:20px;">⋮</button>
+
+          <div class="ts-header-actions">
+            <button class="ts-icon-btn" id="ts-search-toggle">⌕</button>
+            <button class="ts-icon-btn" id="ts-new-message">✎</button>
+          </div>
         </div>
 
-        <div class="messages-area" id="messages-area"></div>
-
-        <div class="chat-input-bar">
-          <label style="cursor:pointer; font-size:20px; padding:0 4px;">
-            📎
-            <input type="file" id="chat-attach-input" hidden />
-          </label>
-          <input type="text" id="chat-msg-input" class="chat-text-input" placeholder="Message" />
-          <button id="chat-send-btn" class="icon-btn" style="background:#14b8a6; border:none;">➤</button>
+        <div class="ts-search-box" id="ts-search-container">
+          <span>⌕</span>
+          <input id="ts-chat-search"
+            placeholder="Search messages and people..."
+            autocomplete="off" />
         </div>
+
+        <div class="ts-notes-section">
+          <div class="ts-note-item">
+            <div class="ts-note-avatar">
+              <img src="${avatar(window.AppState?.user || {})}" />
+              <span class="ts-note-add">+</span>
+            </div>
+            <div class="ts-note-label">Your note</div>
+          </div>
+        </div>
+
+        <div class="ts-filter-row">
+          <button class="ts-filter active" data-filter="all">Primary</button>
+          <button class="ts-filter" data-filter="unread">Unread</button>
+          <button class="ts-filter" data-filter="general">General</button>
+          <button class="ts-filter" data-filter="requests">Requests</button>
+        </div>
+
+        <div class="ts-section-heading">MESSAGES</div>
+
+        <div class="ts-conversation-list" id="ts-conversation-list">
+          <div class="ts-empty-state">
+            <div class="ts-empty-icon">💬</div>
+            <strong>No conversations yet</strong>
+            <p>Your messages will appear here after the backend is connected.</p>
+          </div>
+        </div>
+
       </div>
     `;
 
-    document.getElementById("btn-chat-menu").onclick = (e) => {
-      e.stopPropagation();
-      openMorePopup(other, container);
-    };
+    const search = container.querySelector("#ts-chat-search");
+    const list = container.querySelector("#ts-conversation-list");
 
-    document.getElementById("open-user-vault").onclick = () => openChatDetailsView(other, container, conv);
+    function renderList() {
+      const query = search.value.toLowerCase().trim();
 
-    const socket = window.AppState.socket;
-    if (socket) {
-      socket.emit("joinConversation", conv.id);
-      socket.off("newMessage").on("newMessage", (msg) => {
-        if (msg.conversationId === conv.id) {
-          appendMessage(msg, myId);
-          if (msg.senderId !== myId && !isUserMuted(other.id)) {
-            playBeep();
-          }
-        }
+      const filtered = conversations.filter(c => {
+        const user = c.otherUser || {};
+
+        const name = (user.displayName || "").toLowerCase();
+        const username = (user.username || "").toLowerCase();
+        const last = (c.lastMessage || "").toLowerCase();
+
+        const matchesSearch =
+          !query ||
+          name.includes(query) ||
+          username.includes(query) ||
+          last.includes(query);
+
+        const matchesFilter =
+          activeFilter === "all" ||
+          (activeFilter === "unread" && c.unreadCount > 0) ||
+          (activeFilter === "general" && c.category === "general") ||
+          (activeFilter === "requests" && c.category === "requests");
+
+        return matchesSearch && matchesFilter;
       });
-      socket.off("typing").on("typing", (data) => {
-        if (data.conversationId === conv.id) {
-          document.getElementById("chat-sub-status").textContent = data.isTyping ? "typing..." : (other.isOnline ? "Online" : "last seen recently");
-        }
-      });
-    }
 
-    document.getElementById("back-to-chats").onclick = () => {
-      if (socket) socket.emit("leaveConversation", conv.id);
-      window.AppState.activeConversation = null;
-      if (mainHeader) mainHeader.classList.remove("hidden");
-      if (bottomNav) bottomNav.classList.remove("hidden");
-      window.renderChat(container);
-    };
-
-    await window.api(`/api/conversations/${conv.id}/read`, { method: "POST" });
-    const history = await window.api(`/api/conversations/${conv.id}/messages`);
-    const area = document.getElementById("messages-area");
-    area.innerHTML = "";
-    if (history.success) {
-      history.messages.forEach(m => appendMessage(m, myId));
-    }
-
-    const input = document.getElementById("chat-msg-input");
-    input.oninput = () => {
-      if (socket) socket.emit("typing", { conversationId: conv.id, isTyping: input.value.length > 0 });
-    };
-
-    document.getElementById("chat-send-btn").onclick = async () => {
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = "";
-      if (socket) socket.emit("typing", { conversationId: conv.id, isTyping: false });
-      await window.api(`/api/conversations/${conv.id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ text })
-      });
-    };
-
-    document.getElementById("chat-attach-input").onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const fd = new FormData();
-      fd.append("file", file);
-      await window.api(`/api/conversations/${conv.id}/attachments`, { method: "POST", body: fd });
-    };
-  }
-
-  function playBeep() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(620, ctx.currentTime);
-      osc.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } catch (e) {}
-  }
-
-  function openMorePopup(user, container) {
-    const existing = document.getElementById("active-more-popup");
-    if (existing) { existing.remove(); return; }
-
-    const popup = document.createElement("div");
-    popup.id = "active-more-popup";
-    popup.className = "tg-popup-menu";
-    popup.innerHTML = `
-      <div class="tg-popup-item" id="pop-call">📞 Call</div>
-      <div class="tg-popup-item" id="pop-video">📹 Video Call</div>
-      <div class="tg-popup-item" id="pop-search">🔍 Search in Chat</div>
-      <div class="tg-popup-item" id="pop-clear">🧹 Clear History</div>
-      <div class="tg-popup-item" id="pop-block" style="color:#f87171;">🚫 Block User</div>
-      <div class="tg-popup-item" id="pop-report" style="color:#ef4444;">⚠️ Report</div>
-    `;
-    document.body.appendChild(popup);
-
-    const closePopup = () => popup.remove();
-    setTimeout(() => document.addEventListener("click", closePopup, { once: true }), 10);
-
-    popup.querySelector("#pop-call").onclick = () => alert(`Calling ${user.displayName}...`);
-    popup.querySelector("#pop-video").onclick = () => alert(`Starting video call with ${user.displayName}...`);
-    popup.querySelector("#pop-search").onclick = () => {
-      const q = prompt("Search messages:");
-      if (q) alert(`Searching "${q}" in conversation...`);
-    };
-    popup.querySelector("#pop-clear").onclick = () => {
-      if (confirm("Clear all messages from view?")) {
-        const area = document.getElementById("messages-area");
-        if (area) area.innerHTML = "";
-      }
-    };
-    popup.querySelector("#pop-block").onclick = () => {
-      if (confirm(`Block ${user.displayName}?`)) {
-        alert(`${user.displayName} has been blocked.`);
-      }
-    };
-    popup.querySelector("#pop-report").onclick = () => {
-      const reason = prompt("Reason for reporting this user:");
-      if (reason) alert("Report submitted to TELESUPAR moderation team.");
-    };
-  }
-
-  async function openChatDetailsView(user, container, conv) {
-    const room = document.getElementById("active-chat-room");
-    if (room) room.style.display = "none";
-
-    const profileView = document.createElement("div");
-    profileView.className = "tg-profile-view";
-    container.appendChild(profileView);
-
-    let activeTab = "Files";
-
-    async function renderDetailsContent() {
-      const muted = isUserMuted(user.id);
-      const res = await window.api(`/api/users/${user.id}/private-content`);
-      const files = res.success ? (res.files || []) : [];
-      const links = res.success ? (res.links || []) : [];
-
-      profileView.innerHTML = `
-        <div class="tg-profile-header">
-          <button id="close-tg-profile" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; margin-right:16px;">←</button>
-          <div style="font-weight:700; font-size:16px;">Chat Info</div>
-        </div>
-
-        <div class="tg-profile-hero">
-          <img src="${window.avatarUrl(user)}" style="width:96px; height:96px; border-radius:50%; object-fit:cover; margin-bottom:12px;" />
-          <div style="font-weight:800; font-size:18px;">${user.displayName}</div>
-          <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
-            ${muted ? "Notifications Muted 🔕" : (user.isOnline ? "Online" : "last seen recently")}
+      if (!filtered.length) {
+        list.innerHTML = `
+          <div class="ts-empty-state">
+            <div class="ts-empty-icon">✉️</div>
+            <strong>No messages found</strong>
+            <p>There are no conversations to display.</p>
           </div>
+        `;
+        return;
+      }
 
-          <div class="tg-action-buttons">
-            <div class="tg-action-btn" id="btn-act-message">
-              <span style="font-size:18px;">💬</span> Message
+      list.innerHTML = filtered.map(c => {
+        const user = c.otherUser || {};
+
+        return `
+          <div class="ts-chat-item" data-id="${escapeHTML(c.id)}">
+            <div class="ts-avatar-wrap">
+              <img src="${avatar(user)}" />
+              ${user.isOnline ? '<span class="ts-online-dot"></span>' : ""}
             </div>
-            <div class="tg-action-btn" id="btn-act-profile">
-              <span style="font-size:18px;">👤</span> Profile
+
+            <div class="ts-chat-details">
+              <div class="ts-chat-name">
+                ${escapeHTML(user.displayName || user.username || "User")}
+                ${user.muted ? "🔕" : ""}
+              </div>
+
+              <div class="ts-last-message">
+                ${escapeHTML(c.lastMessage || "Start a conversation")}
+              </div>
             </div>
-            <div class="tg-action-btn ${muted ? "muted-active" : ""}" id="btn-act-mute">
-              <span style="font-size:18px;">${muted ? "🔕" : "🔔"}</span> ${muted ? "Unmute" : "Mute"}
-            </div>
-            <div class="tg-action-btn" id="btn-act-more">
-              <span style="font-size:18px;">⋮</span> More
+
+            <div class="ts-chat-right">
+              <span class="ts-chat-time">
+                ${escapeHTML(c.time || "")}
+              </span>
+
+              ${c.unreadCount > 0
+                ? `<span class="ts-unread-count">${c.unreadCount}</span>`
+                : ""}
             </div>
           </div>
-        </div>
+        `;
+      }).join("");
 
-        <div style="background:#111827; padding:14px 16px; margin-bottom:12px;">
-          <div style="font-weight:700; font-size:14px; color:#38bdf8;">@${user.username}</div>
-          <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; margin-top:2px;">Username</div>
-        </div>
-
-        <div class="tg-tabs-bar">
-          <div class="tg-profile-tab ${activeTab === "Files" ? "active" : ""}" data-tab="Files">Files</div>
-          <div class="tg-profile-tab ${activeTab === "Links" ? "active" : ""}" data-tab="Links">Links</div>
-          <div class="tg-profile-tab ${activeTab === "Groups" ? "active" : ""}" data-tab="Groups">Groups</div>
-        </div>
-
-        <div style="padding:16px; flex:1;">
-          ${activeTab === "Files" ? (
-            files.length ? files.map(f => `
-              <div style="background:#111827; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-                <span style="font-size:24px;">📄</span>
-                <div style="flex:1; overflow:hidden;">
-                  <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${f.fileName}</div>
-                  <div style="font-size:11px; color:#94a3b8;">${Math.round((f.size || 1024)/1024)} KB</div>
-                </div>
-              </div>
-            `).join("") : `<p style="text-align:center; color:#64748b; padding:20px;">No shared files yet</p>`
-          ) : ""}
-
-          ${activeTab === "Links" ? (
-            links.length ? links.map(l => `
-              <div style="background:#111827; padding:12px; border-radius:12px; margin-bottom:8px;">
-                <a href="${l.url}" target="_blank" style="color:#38bdf8; font-size:13px; text-decoration:none;">${l.url}</a>
-              </div>
-            `).join("") : `<p style="text-align:center; color:#64748b; padding:20px;">No shared links yet</p>`
-          ) : ""}
-
-          ${activeTab === "Groups" ? `<p style="text-align:center; color:#64748b; padding:20px;">No mutual groups in common</p>` : ""}
-        </div>
-      `;
-
-      profileView.querySelector("#close-tg-profile").onclick = () => {
-        profileView.remove();
-        if (room) room.style.display = "flex";
-      };
-
-      profileView.querySelector("#btn-act-message").onclick = () => {
-        profileView.remove();
-        if (room) room.style.display = "flex";
-      };
-
-      profileView.querySelector("#btn-act-profile").onclick = () => {
-        openInstagramUserProfile(user, () => {
-          profileView.remove();
-          if (room) room.style.display = "flex";
-        });
-      };
-
-      profileView.querySelector("#btn-act-mute").onclick = () => {
-        const nowMuted = toggleUserMute(user.id);
-        const headerBadge = document.getElementById("header-mute-badge");
-        if (headerBadge) headerBadge.textContent = nowMuted ? "🔕" : "";
-        renderDetailsContent();
-      };
-
-      profileView.querySelector("#btn-act-more").onclick = (e) => {
-        e.stopPropagation();
-        openMorePopup(user, container);
-      };
-
-      profileView.querySelectorAll(".tg-profile-tab").forEach(tab => {
-        tab.onclick = () => {
-          activeTab = tab.dataset.tab;
-          renderDetailsContent();
+      list.querySelectorAll(".ts-chat-item").forEach(item => {
+        item.onclick = () => {
+          const conv = conversations.find(
+            c => String(c.id) === item.dataset.id
+          );
+          if (conv) renderRoom(container, conv);
         };
       });
     }
 
-    renderDetailsContent();
+    search.oninput = renderList;
+
+    container.querySelectorAll(".ts-filter").forEach(btn => {
+      btn.onclick = () => {
+        container.querySelectorAll(".ts-filter").forEach(b =>
+          b.classList.remove("active")
+        );
+
+        btn.classList.add("active");
+        activeFilter = btn.dataset.filter;
+        renderList();
+      };
+    });
+
+    container.querySelector("#ts-search-toggle").onclick = () => {
+      search.focus();
+    };
+
+    container.querySelector("#ts-new-message").onclick = () => {
+      const explore = document.querySelector(
+        'button[data-tab="explore"]'
+      );
+
+      if (explore) {
+        explore.click();
+      } else {
+        showNotice("New message screen will be connected with Explore later.");
+      }
+    };
+
+    renderList();
+  };
+
+  // ==========================================
+  // CHAT ROOM
+  // ==========================================
+
+  function renderRoom(container, conv) {
+    activeConversation = conv;
+
+    const user = conv.otherUser || {};
+    const header = document.querySelector(".top-header");
+    const nav = document.querySelector(".bottom-nav");
+
+    if (header) header.classList.add("hidden");
+    if (nav) nav.classList.add("hidden");
+
+    const messages = localMessages[conv.id] || [];
+
+    container.innerHTML = `
+      <div class="ts-chat-room">
+
+        <div class="ts-room-header">
+          <button class="ts-back-btn" id="ts-back">‹</button>
+
+          <div class="ts-room-user" id="ts-open-info">
+            <img src="${avatar(user)}" />
+
+            <div>
+              <div class="ts-room-user-name">
+                ${escapeHTML(user.displayName || user.username || "User")}
+              </div>
+              <div class="ts-room-status">
+                ${user.isOnline ? "Online" : "TELESUPAR"}
+              </div>
+            </div>
+          </div>
+
+          <div class="ts-room-actions">
+            <button class="ts-room-action" id="ts-room-more">⋮</button>
+          </div>
+        </div>
+
+        <div class="ts-messages-area" id="ts-messages-area">
+          ${
+            messages.length
+              ? messages.map(m => messageHTML(m)).join("")
+              : `
+                <div class="ts-empty-state">
+                  <div class="ts-empty-icon">👋</div>
+                  <strong>Start a conversation</strong>
+                  <p>Your messages will appear here once messaging backend is connected.</p>
+                </div>
+              `
+          }
+        </div>
+
+        <div class="ts-input-area">
+          <label class="ts-attach-btn">
+            ＋
+            <input type="file" id="ts-file-input" hidden />
+          </label>
+
+          <input
+            class="ts-message-input"
+            id="ts-message-input"
+            placeholder="Message..."
+            autocomplete="off"
+          />
+
+          <button class="ts-send-btn" id="ts-send">➤</button>
+        </div>
+
+      </div>
+    `;
+
+    const area = container.querySelector("#ts-messages-area");
+
+    area.scrollTop = area.scrollHeight;
+
+    container.querySelector("#ts-back").onclick = () => {
+      activeConversation = null;
+
+      if (header) header.classList.remove("hidden");
+      if (nav) nav.classList.remove("hidden");
+
+      window.renderChat(container);
+    };
+
+    container.querySelector("#ts-open-info").onclick = () => {
+      renderChatInfo(container, user, conv);
+    };
+
+    container.querySelector("#ts-room-more").onclick = () => {
+      openRoomMenu(user);
+    };
+
+    container.querySelector("#ts-send").onclick = () => {
+      showNotice("Message sending will work after backend integration.");
+    };
+
+    container.querySelector("#ts-message-input").onkeydown = e => {
+      if (e.key === "Enter") {
+        showNotice("Message sending will work after backend integration.");
+      }
+    };
+
+    container.querySelector("#ts-file-input").onchange = e => {
+      const file = e.target.files[0];
+      if (file) {
+        showNotice(
+          "Selected file: " + file.name +
+          ". Upload will work after backend integration."
+        );
+      }
+    };
   }
 
-  async function openInstagramUserProfile(user, onMessageClick) {
-    const igModal = document.createElement("div");
-    igModal.className = "ig-profile-modal";
-    document.body.appendChild(igModal);
+  function messageHTML(msg) {
+    const mine = !!msg.mine;
 
-    igModal.innerHTML = `<p style="text-align:center; color:#94a3b8; padding:40px;">Loading profile...</p>`;
-
-    const [profileRes, followRes, feedRes] = await Promise.all([
-      window.api(`/api/users/${user.id}/profile`),
-      window.api(`/api/users/${user.id}/follow-status`),
-      window.api("/api/posts/feed")
-    ]);
-
-    const fullUser = (profileRes.success && profileRes.profile) ? profileRes.profile : user;
-    const userPosts = (feedRes.posts || []).filter(p => p.user.id === user.id);
-    let isFollowing = followRes.success ? followRes.following : false;
-    let followersCount = followRes.success ? followRes.followersCount : 0;
-    const followingCount = followRes.success ? followRes.followingCount : 0;
-
-    function renderIG() {
-      igModal.innerHTML = `
-        <div class="ig-top-bar">
-          <div style="display:flex; align-items:center; gap:14px;">
-            <button id="ig-back-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">←</button>
-            <div style="font-weight:800; font-size:17px;">${fullUser.username}</div>
+    return `
+      <div class="ts-message-row ${mine ? "mine" : "theirs"}">
+        <div class="ts-message-bubble">
+          ${escapeHTML(msg.text)}
+          <div class="ts-message-meta">
+            ${escapeHTML(msg.time || "")}
+            ${mine ? (msg.seen ? " ✓✓" : " ✓") : ""}
           </div>
-          <div style="display:flex; gap:14px; align-items:center;">
-            <span style="font-size:18px;">🔔</span>
-            <span id="ig-more-btn" style="font-size:20px; cursor:pointer;">⋮</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ==========================================
+  // CHAT INFO
+  // ==========================================
+
+  function renderChatInfo(container, user, conv) {
+    activeInfoTab = "Files";
+
+    const info = document.createElement("div");
+    info.className = "ts-info-screen";
+
+    container.appendChild(info);
+
+    function renderInfo() {
+      info.innerHTML = `
+        <div class="ts-info-header">
+          <button class="ts-back-btn" id="ts-info-back">‹</button>
+          Chat Info
+        </div>
+
+        <div class="ts-info-hero">
+          <img src="${avatar(user)}" />
+          <h3>${escapeHTML(user.displayName || "User")}</h3>
+          <div style="font-size:12px;color:#94a3b8;">
+            @${escapeHTML(user.username || "")}
+          </div>
+
+          <div class="ts-info-actions">
+            <button class="ts-info-action" id="ts-info-mute">
+              🔔 Mute
+            </button>
+
+            <button class="ts-info-action" id="ts-info-profile">
+              👤 Profile
+            </button>
           </div>
         </div>
 
-        <div class="ig-header-stats">
-          <img src="${window.avatarUrl(fullUser)}" class="ig-dp" />
-          <div class="ig-stats-row">
-            <div class="ig-stat-box">
-              <div class="ig-stat-val">${userPosts.length}</div>
-              <div class="ig-stat-lbl">posts</div>
+        <div class="ts-info-tabs">
+          ${["Files", "Links", "Media", "Groups"].map(tab => `
+            <div class="ts-info-tab ${activeInfoTab === tab ? "active" : ""}"
+              data-tab="${tab}">
+              ${tab}
             </div>
-            <div class="ig-stat-box" id="ig-followers-box">
-              <div class="ig-stat-val" id="ig-followers-num">${followersCount}</div>
-              <div class="ig-stat-lbl">followers</div>
-            </div>
-            <div class="ig-stat-box" id="ig-following-box">
-              <div class="ig-stat-val">${followingCount}</div>
-              <div class="ig-stat-lbl">following</div>
-            </div>
+          `).join("")}
+        </div>
+
+        <div class="ts-info-content">
+          <div class="ts-empty-state">
+            <div class="ts-empty-icon">📂</div>
+            <strong>No ${activeInfoTab.toLowerCase()} yet</strong>
+            <p>Shared content will appear here after backend integration.</p>
           </div>
-        </div>
-
-        <div class="ig-bio-section">
-          <div style="font-weight:700; font-size:14px; margin-bottom:3px;">${fullUser.displayName}</div>
-          <div style="font-size:13px; color:#e2e8f0; line-height:1.4; white-space:pre-line;">
-            ${fullUser.bio || "TELESUPAR Creator ✨"}
-          </div>
-          <div style="display:inline-block; background:#1e293b; padding:4px 10px; border-radius:99px; font-size:12px; color:#cbd5e1; margin-top:8px;">
-            @ ${fullUser.username}
-          </div>
-        </div>
-
-        <div class="ig-btn-row">
-          <button id="ig-follow-toggle" class="ig-btn ${isFollowing ? "ig-btn-secondary" : "ig-btn-primary"}">
-            ${isFollowing ? "Following ⌄" : "Follow"}
-          </button>
-          <button id="ig-msg-direct" class="ig-btn ig-btn-secondary">Message</button>
-        </div>
-
-        <div style="display:flex; justify-content:space-around; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08); padding:10px 0;">
-          <span style="font-size:18px; border-bottom:2px solid #fff; padding-bottom:4px;">⊞</span>
-          <span style="font-size:18px; opacity:0.5;">▶</span>
-          <span style="font-size:18px; opacity:0.5;">👤</span>
-        </div>
-
-        <div class="ig-grid">
-          ${userPosts.length ? userPosts.map(p => `
-            <div class="ig-grid-item">
-              ${p.mediaUrl
-                ? (p.mediaType === "video" ? `<video src="${p.mediaUrl}"></video>` : `<img src="${p.mediaUrl}" />`)
-                : `<div style="padding:10px; font-size:11px; color:#cbd5e1;">${p.caption}</div>`}
-            </div>
-          `).join("") : `<p style="grid-column:1/-1; text-align:center; color:#64748b; padding:40px;">No posts yet</p>`}
         </div>
       `;
 
-      igModal.querySelector("#ig-back-btn").onclick = () => igModal.remove();
-      
-      // Click on Followers count -> Open Followers list page for this user
-      igModal.querySelector("#ig-followers-box").onclick = () => {
-        if (window.openFollowersFollowingPage) {
-          window.openFollowersFollowingPage(fullUser, "followers");
-        }
+      info.querySelector("#ts-info-back").onclick = () => {
+        info.remove();
       };
 
-      // Click on Following count -> Open Following list page for this user
-      igModal.querySelector("#ig-following-box").onclick = () => {
-        if (window.openFollowersFollowingPage) {
-          window.openFollowersFollowingPage(fullUser, "following");
-        }
+      info.querySelectorAll(".ts-info-tab").forEach(tab => {
+        tab.onclick = () => {
+          activeInfoTab = tab.dataset.tab;
+          renderInfo();
+        };
+      });
+
+      info.querySelector("#ts-info-mute").onclick = () => {
+        showNotice("Mute settings will be connected with backend later.");
       };
 
-      igModal.querySelector("#ig-more-btn").onclick = (e) => {
-        e.stopPropagation();
-        openMorePopup(fullUser, document.body);
-      };
-
-      igModal.querySelector("#ig-msg-direct").onclick = () => {
-        igModal.remove();
-        if (onMessageClick) onMessageClick();
-      };
-
-      igModal.querySelector("#ig-follow-toggle").onclick = async () => {
-        const res = await window.api(`/api/users/${user.id}/follow`, {
-          method: isFollowing ? "DELETE" : "POST"
-        });
-        if (res.success) {
-          isFollowing = res.following;
-          followersCount = res.followersCount;
-          renderIG();
+      info.querySelector("#ts-info-profile").onclick = () => {
+        if (window.openUserExploreProfile && user.id) {
+          info.remove();
+          window.openUserExploreProfile(user.id);
+        } else {
+          showNotice("Profile navigation will be connected later.");
         }
       };
     }
 
-    renderIG();
+    renderInfo();
   }
 
-  function appendMessage(msg, myId) {
-    const area = document.getElementById("messages-area");
-    if (!area) return;
-    const isMine = msg.senderId === myId;
-    const ticks = isMine ? (msg.seenAt ? "✓✓" : msg.deliveredAt ? "✓✓" : "✓") : "";
+  // ==========================================
+  // ROOM MENU
+  // ==========================================
 
-    let attachmentHtml = "";
-    if (msg.attachment && msg.attachment.url) {
-      if ((msg.attachment.mimeType || "").startsWith("image/")) {
-        attachmentHtml = `<img src="${msg.attachment.url}" style="max-width:210px; border-radius:12px; display:block; margin-bottom:4px;" />`;
-      } else {
-        attachmentHtml = `<a href="${msg.attachment.url}" target="_blank" style="color:#93c5fd; font-size:12px;">📄 ${msg.attachment.fileName}</a>`;
-      }
+  function openRoomMenu(user) {
+    const old = document.getElementById("ts-room-popup");
+    if (old) {
+      old.remove();
+      return;
     }
 
-    const div = document.createElement("div");
-    div.className = `msg-bubble ${isMine ? "msg-mine" : "msg-theirs"}`;
-    div.innerHTML = `
-      ${attachmentHtml}
-      ${msg.text ? `<div>${msg.text}</div>` : ""}
-      <div class="msg-meta" style="color:${msg.seenAt ? "#38bdf8" : "inherit"}">${ticks}</div>
+    const popup = document.createElement("div");
+    popup.className = "ts-popup";
+    popup.id = "ts-room-popup";
+
+    popup.innerHTML = `
+      <div class="ts-popup-item" id="ts-menu-search">🔍 Search in chat</div>
+      <div class="ts-popup-item" id="ts-menu-mute">🔕 Mute notifications</div>
+      <div class="ts-popup-item" id="ts-menu-info">👤 Chat info</div>
+      <div class="ts-popup-item danger" id="ts-menu-report">⚠ Report user</div>
     `;
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
+
+    document.body.appendChild(popup);
+
+    popup.querySelector("#ts-menu-search").onclick = () => {
+      popup.remove();
+      showNotice("Chat search will be connected later.");
+    };
+
+    popup.querySelector("#ts-menu-mute").onclick = () => {
+      popup.remove();
+      showNotice("Mute will be connected later.");
+    };
+
+    popup.querySelector("#ts-menu-info").onclick = () => {
+      popup.remove();
+
+      if (activeConversation) {
+        const container = document.getElementById("app");
+        if (container) {
+          renderChatInfo(container, user, activeConversation);
+        }
+      }
+    };
+
+    popup.querySelector("#ts-menu-report").onclick = () => {
+      popup.remove();
+      showNotice("Report feature will be connected with backend later.");
+    };
+
+    setTimeout(() => {
+      document.addEventListener("click", function close(e) {
+        if (!popup.contains(e.target)) {
+          popup.remove();
+          document.removeEventListener("click", close);
+        }
+      });
+    }, 0);
   }
+
+  // ==========================================
+  // DIRECT CHAT ENTRY POINT
+  // ==========================================
+
+  window.openDirectChat = function(userId) {
+    const conv = conversations.find(c =>
+      String(c.otherUser?.id) === String(userId)
+    );
+
+    if (!conv) {
+      showNotice("Conversation will open after backend integration.");
+      return;
+    }
+
+    const container = document.getElementById("app");
+
+    if (container) {
+      renderRoom(container, conv);
+    }
+  };
+
 })();
