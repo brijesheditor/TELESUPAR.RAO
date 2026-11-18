@@ -358,7 +358,6 @@
           }
         };
 
-        
         // Message Button Handler
         document.getElementById("profile-msg-btn").onclick = async () => {
           try {
@@ -366,7 +365,6 @@
             msgBtn.disabled = true;
             msgBtn.textContent = "Opening...";
 
-            // Verify conversation exists or create it
             const chatRes = await window.api(
               `/api/conversations/${encodeURIComponent(userId)}`,
               { method: "POST" }
@@ -375,33 +373,39 @@
             if (chatRes && chatRes.success) {
               modal.remove();
 
-              // Open chat using USER ID
               if (typeof window.openDirectChat === "function") {
                 window.openDirectChat(userId);
               } else {
                 alert("Chat system is not available.");
               }
-
             } else {
               msgBtn.disabled = false;
               msgBtn.textContent = "Message";
               alert(chatRes?.message || "Could not open chat.");
             }
-
           } catch (err) {
             console.error("Open chat error:", err);
-
             const msgBtn = document.getElementById("profile-msg-btn");
             if (msgBtn) {
               msgBtn.disabled = false;
               msgBtn.textContent = "Message";
             }
-
             alert("Failed to start conversation.");
           }
         };
 
-      async function openSavedLessonsModal() {
+      } else {
+        bodyContainer.innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Could not load profile details.</p>`;
+      }
+    } catch (_) {
+      const bodyContainer = document.getElementById("profile-modal-body");
+      if (bodyContainer) {
+        bodyContainer.innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Failed to connect to server.</p>`;
+      }
+    }
+  };
+
+  function openSavedLessonsModal() {
     alert("Saved study posts feature coming up next!");
   }
 })();
