@@ -358,47 +358,45 @@
           }
         };
 
-        // Message Button Handler (Guaranteed Chat Opening)
+        
+        // Message Button Handler
         document.getElementById("profile-msg-btn").onclick = async () => {
           try {
-            const chatRes = await window.api(`/api/conversations/${userId}`, { method: "POST" });
-            if (chatRes && chatRes.success && chatRes.conversation) {
-              modal.remove(); // Remove profile modal
-              
-              // Check various global chat opener methods safely
+            const msgBtn = document.getElementById("profile-msg-btn");
+            msgBtn.disabled = true;
+            msgBtn.textContent = "Opening...";
+
+            // Verify conversation exists or create it
+            const chatRes = await window.api(
+              `/api/conversations/${encodeURIComponent(userId)}`,
+              { method: "POST" }
+            );
+
+            if (chatRes && chatRes.success) {
+              modal.remove();
+
+              // Open chat using USER ID
               if (typeof window.openDirectChat === "function") {
-                window.openDirectChat(chatRes.conversation.id, p);
-              } else if (typeof window.renderChat === "function") {
-                window.renderChat(document.getElementById("app") || document.body, chatRes.conversation.id);
+                window.openDirectChat(userId);
               } else {
-                // Fallback: trigger click on bottom navigation chat tab
-                const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
-                                   document.querySelector('.bottom-nav button:nth-child(3)') ||
-                                   Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Chat'));
-                if (chatTabBtn) {
-                  chatTabBtn.click();
-                } else {
-                  console.warn("No chat router found, conversation ID:", chatRes.conversation.id);
-                }
+                alert("Chat system is not available.");
               }
+
             } else {
-              alert("Could not open chat with this user.");
+              msgBtn.disabled = false;
+              msgBtn.textContent = "Message";
+              alert(chatRes?.message || "Could not open chat.");
             }
+
           } catch (err) {
             console.error("Open chat error:", err);
+
+            const msgBtn = document.getElementById("profile-msg-btn");
+            if (msgBtn) {
+              msgBtn.disabled = false;
+              msgBtn.textContent = "Message";
+            }
+
             alert("Failed to start conversation.");
           }
         };
-
-      } else {
-        bodyContainer.innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Could not load profile details.</p>`;
-      }
-    } catch (_) {
-      document.getElementById("profile-modal-body").innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Failed to connect to server.</p>`;
-    }
-  };
-
-  async function openSavedLessonsModal() {
-    alert("Saved study posts feature coming up next!");
-  }
-})();
