@@ -228,7 +228,7 @@
     }
   }
 
-  // Instagram-style Profile Page View with Robust Chat Router Trigger
+  // Instagram-style Profile Page View with Direct Conversation Opening
   window.openUserExploreProfile = async function(userId) {
     let existing = document.getElementById("explore-user-profile-modal");
     if (existing) existing.remove();
@@ -358,7 +358,7 @@
           }
         };
 
-        // Message Button Handler
+        // Message Button Handler - Opens conversation directly
         document.getElementById("profile-msg-btn").onclick = async () => {
           try {
             const msgBtn = document.getElementById("profile-msg-btn");
@@ -370,27 +370,36 @@
               { method: "POST" }
             );
 
-            if (chatRes && chatRes.success) {
-              modal.remove();
+            modal.remove();
 
-              if (typeof window.openDirectChat === "function") {
-                window.openDirectChat(userId);
-              } else {
-                alert("Chat system is not available.");
-              }
+            const convId = chatRes?.conversation?.id || chatRes?.id || userId;
+
+            // Direct opening checks
+            if (typeof window.openDirectChat === "function") {
+              window.openDirectChat(convId, p);
+            } else if (typeof window.openChat === "function") {
+              window.openChat(convId, p);
+            } else if (typeof window.renderChat === "function") {
+              window.renderChat(document.getElementById("app") || document.body, convId);
             } else {
-              msgBtn.disabled = false;
-              msgBtn.textContent = "Message";
-              alert(chatRes?.message || "Could not open chat.");
+              // Store active chat and switch tab/reload
+              localStorage.setItem("telesupar_active_chat_id", convId);
+              const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
+                                 document.querySelector('.bottom-nav button:nth-child(3)') ||
+                                 Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Chat') || b.innerHTML.includes('chat'));
+              if (chatTabBtn) {
+                chatTabBtn.click();
+              } else {
+                window.location.reload();
+              }
             }
           } catch (err) {
             console.error("Open chat error:", err);
-            const msgBtn = document.getElementById("profile-msg-btn");
-            if (msgBtn) {
-              msgBtn.disabled = false;
-              msgBtn.textContent = "Message";
-            }
-            alert("Failed to start conversation.");
+            modal.remove();
+            localStorage.setItem("telesupar_active_chat_id", userId);
+            const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
+                               document.querySelector('.bottom-nav button:nth-child(3)');
+            if (chatTabBtn) chatTabBtn.click();
           }
         };
 
