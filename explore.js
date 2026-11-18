@@ -400,3 +400,8 @@
             alert("Failed to start conversation.");
           }
         };
+
+      async function openSavedLessonsModal() {
+    alert("Saved study posts feature coming up next!");
+  }
+})();
