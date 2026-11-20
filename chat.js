@@ -596,12 +596,23 @@
   // ==========================================
   // FRONTEND STATE
   // ==========================================
+            
+  
+  // ==========================================
+  // TELESUPAR CHAT - BACKEND CONNECTED V2
+  // ==========================================
 
   let conversations = [];
   let activeFilter = "all";
   let activeConversation = null;
   let activeInfoTab = "Files";
-  let localMessages = {};
+  let currentMessages = [];
+  let users = [];
+  let userSearchTimer = null;
+  let socketHandlersReady = false;
+
+  const API = window.api;
+  const appState = window.AppState || {};
 
   const defaultAvatar =
     "https://ui-avatars.com/api/?name=User&background=26313d&color=fff";
@@ -621,31 +632,258 @@
     })[char]);
   }
 
-  function showNotice(message) {
+  function getMyId() {
+    return String(
+      appState.user?.id ||
+      appState.user?._id ||
+      ""
+    );
+  }
+
+  function getContainer() {
+    return document.getElementById("main-view") ||
+      document.getElementById("app");
+  }
+
+  function notice(message) {
     alert(message);
+  }
+
+  function getConvId(conv) {
+    return String(conv?.id || conv?._id || "");
+  }
+
+  function getOtherUser(conv) {
+    return conv?.otherUser || conv?.user || {};
+  }
+
+  function normalizeUser(user) {
+    if (!user) return {};
+    return {
+      ...user,
+      id: String(user.id || user._id || ""),
+      displayName: user.displayName || user.username || "User",
+      username: user.username || "",
+      avatar: user.avatar || ""
+    };
+  }
+
+  function normalizeConversation(conv) {
+    const user = normalizeUser(getOtherUser(conv));
+
+    return {
+      ...conv,
+      id: getConvId(conv),
+      otherUser: user,
+      user,
+      lastMessage: conv.lastMessage || "",
+      unreadCount: Number(conv.unreadCount || 0)
+    };
+  }
+
+  function formatTime(date) {
+    if (!date) return "";
+
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+
+    return d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function messageTime(message) {
+    return formatTime(message.createdAt);
+  }
+
+  async function apiRequest(path, options = {}) {
+    if (typeof API !== "function") {
+      throw new Error("API connection is not available.");
+    }
+
+    const result = await API(path, options);
+
+    if (!result || result.success === false) {
+      throw new Error(result?.message || "Request failed");
+    }
+
+    return result;
+  }
+
+  // ==========================================
+  // LOAD CONVERSATIONS
+  // ==========================================
+
+  async function loadConversations() {
+    const data = await apiRequest("/api/conversations");
+
+    conversations = (data.conversations || [])
+      .map(normalizeConversation);
+
+    return conversations;
+  }
+
+  // ==========================================
+  // SOCKET EVENTS
+  // ==========================================
+
+  function setupChatSocket() {
+    const socket = window.AppState?.socket;
+
+    if (!socket || socketHandlersReady) return;
+
+    socketHandlersReady = true;
+
+    socket.on("newMessage", message => {
+      if (!message) return;
+
+      const conversationId = String(message.conversationId || "");
+
+      if (
+        activeConversation &&
+        getConvId(activeConversation) === conversationId
+      ) {
+        const exists = currentMessages.some(
+          item => String(item.id) === String(message.id)
+        );
+
+        if (!exists) {
+          currentMessages.push(message);
+          renderMessages();
+        }
+      }
+
+      loadConversations().then(() => {
+        const container = getContainer();
+
+        if (
+          container &&
+          !activeConversation &&
+          document.getElementById("ts-conversation-list")
+        ) {
+          renderConversationList(container);
+        }
+      }).catch(() => {});
+    });
+
+    socket.on("conversationUpdated", () => {
+      loadConversations().then(() => {
+        const container = getContainer();
+
+        if (
+          container &&
+          !activeConversation &&
+          document.getElementById("ts-conversation-list")
+        ) {
+          renderConversationList(container);
+        }
+      }).catch(() => {});
+    });
+
+    socket.on("messageDelivered", data => {
+      if (!data || !activeConversation) return;
+
+      currentMessages = currentMessages.map(message => {
+        if (String(message.id) === String(data.messageId)) {
+          return {
+            ...message,
+            deliveredAt: data.deliveredAt
+          };
+        }
+        return message;
+      });
+
+      renderMessages();
+    });
+
+    socket.on("messagesSeen", data => {
+      if (!data || !activeConversation) return;
+
+      if (
+        String(data.conversationId) !==
+        getConvId(activeConversation)
+      ) return;
+
+      currentMessages = currentMessages.map(message => {
+        if (String(message.senderId) === getMyId()) {
+          return {
+            ...message,
+            seenAt: data.seenAt
+          };
+        }
+        return message;
+      });
+
+      renderMessages();
+    });
+
+    socket.on("typing", data => {
+      if (!data || !activeConversation) return;
+
+      if (
+        String(data.conversationId) !==
+        getConvId(activeConversation)
+      ) return;
+
+      const status = document.querySelector(".ts-room-status");
+
+      if (status) {
+        status.textContent = data.isTyping
+          ? "Typing..."
+          : "TELESUPAR";
+      }
+    });
+  }
+
+  function joinConversation(id) {
+    const socket = window.AppState?.socket;
+
+    if (!socket || !id) return;
+
+    socket.emit("joinConversation", String(id));
+  }
+
+  function leaveConversation(id) {
+    const socket = window.AppState?.socket;
+
+    if (!socket || !id) return;
+
+    socket.emit("leaveConversation", String(id));
   }
 
   // ==========================================
   // PUBLIC DATA ADAPTER
-  // Backend can fill this later.
   // ==========================================
 
   window.TSChat = {
     setConversations(data) {
-      conversations = Array.isArray(data) ? data : [];
+      conversations = Array.isArray(data)
+        ? data.map(normalizeConversation)
+        : [];
+    },
+
+    setUsers(data) {
+      users = Array.isArray(data)
+        ? data.map(normalizeUser)
+        : [];
     },
 
     openConversation(conv) {
       if (!conv) return;
-      activeConversation = conv;
-      const container = document.getElementById("app");
+
+      const container = getContainer();
       if (container) {
-        renderRoom(container, conv);
+        openRoom(normalizeConversation(conv), container);
       }
     },
 
     getConversations() {
       return conversations;
+    },
+
+    getUsers() {
+      return users;
     }
   };
 
@@ -661,6 +899,8 @@
 
     if (header) header.classList.remove("hidden");
     if (nav) nav.classList.remove("hidden");
+
+    setupChatSocket();
 
     container.innerHTML = `
       <div class="ts-chat-app">
@@ -680,14 +920,14 @@
         <div class="ts-search-box" id="ts-search-container">
           <span>⌕</span>
           <input id="ts-chat-search"
-            placeholder="Search messages and people..."
+            placeholder="Search messages..."
             autocomplete="off" />
         </div>
 
         <div class="ts-notes-section">
           <div class="ts-note-item">
             <div class="ts-note-avatar">
-              <img src="${avatar(window.AppState?.user || {})}" />
+              <img src="${escapeHTML(avatar(appState.user || {}))}" />
               <span class="ts-note-add">+</span>
             </div>
             <div class="ts-note-label">Your note</div>
@@ -705,9 +945,8 @@
 
         <div class="ts-conversation-list" id="ts-conversation-list">
           <div class="ts-empty-state">
-            <div class="ts-empty-icon">💬</div>
-            <strong>No conversations yet</strong>
-            <p>Your messages will appear here after the backend is connected.</p>
+            <div class="ts-empty-icon">⌛</div>
+            <strong>Loading messages...</strong>
           </div>
         </div>
 
@@ -715,136 +954,385 @@
     `;
 
     const search = container.querySelector("#ts-chat-search");
-    const list = container.querySelector("#ts-conversation-list");
 
-    function renderList() {
-      const query = search.value.toLowerCase().trim();
-
-      const filtered = conversations.filter(c => {
-        const user = c.otherUser || {};
-
-        const name = (user.displayName || "").toLowerCase();
-        const username = (user.username || "").toLowerCase();
-        const last = (c.lastMessage || "").toLowerCase();
-
-        const matchesSearch =
-          !query ||
-          name.includes(query) ||
-          username.includes(query) ||
-          last.includes(query);
-
-        const matchesFilter =
-          activeFilter === "all" ||
-          (activeFilter === "unread" && c.unreadCount > 0) ||
-          (activeFilter === "general" && c.category === "general") ||
-          (activeFilter === "requests" && c.category === "requests");
-
-        return matchesSearch && matchesFilter;
-      });
-
-      if (!filtered.length) {
-        list.innerHTML = `
-          <div class="ts-empty-state">
-            <div class="ts-empty-icon">✉️</div>
-            <strong>No messages found</strong>
-            <p>There are no conversations to display.</p>
-          </div>
-        `;
-        return;
-      }
-
-      list.innerHTML = filtered.map(c => {
-        const user = c.otherUser || {};
-
-        return `
-          <div class="ts-chat-item" data-id="${escapeHTML(c.id)}">
-            <div class="ts-avatar-wrap">
-              <img src="${avatar(user)}" />
-              ${user.isOnline ? '<span class="ts-online-dot"></span>' : ""}
-            </div>
-
-            <div class="ts-chat-details">
-              <div class="ts-chat-name">
-                ${escapeHTML(user.displayName || user.username || "User")}
-                ${user.muted ? "🔕" : ""}
-              </div>
-
-              <div class="ts-last-message">
-                ${escapeHTML(c.lastMessage || "Start a conversation")}
-              </div>
-            </div>
-
-            <div class="ts-chat-right">
-              <span class="ts-chat-time">
-                ${escapeHTML(c.time || "")}
-              </span>
-
-              ${c.unreadCount > 0
-                ? `<span class="ts-unread-count">${c.unreadCount}</span>`
-                : ""}
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      list.querySelectorAll(".ts-chat-item").forEach(item => {
-        item.onclick = () => {
-          const conv = conversations.find(
-            c => String(c.id) === item.dataset.id
-          );
-          if (conv) renderRoom(container, conv);
-        };
-      });
-    }
-
-    search.oninput = renderList;
-
-    container.querySelectorAll(".ts-filter").forEach(btn => {
-      btn.onclick = () => {
-        container.querySelectorAll(".ts-filter").forEach(b =>
-          b.classList.remove("active")
-        );
-
-        btn.classList.add("active");
-        activeFilter = btn.dataset.filter;
-        renderList();
-      };
-    });
+    search.oninput = () => {
+      renderConversationList(container);
+    };
 
     container.querySelector("#ts-search-toggle").onclick = () => {
       search.focus();
     };
 
     container.querySelector("#ts-new-message").onclick = () => {
-      const explore = document.querySelector(
-        'button[data-tab="explore"]'
-      );
-
-      if (explore) {
-        explore.click();
-      } else {
-        showNotice("New message screen will be connected with Explore later.");
-      }
+      renderNewMessageScreen(container);
     };
 
-    renderList();
+    container.querySelectorAll(".ts-filter").forEach(btn => {
+      btn.onclick = () => {
+        container.querySelectorAll(".ts-filter").forEach(item => {
+          item.classList.remove("active");
+        });
+
+        btn.classList.add("active");
+        activeFilter = btn.dataset.filter;
+
+        renderConversationList(container);
+      };
+    });
+
+    try {
+      await loadConversations();
+      renderConversationList(container);
+    } catch (error) {
+      container.querySelector("#ts-conversation-list").innerHTML = `
+        <div class="ts-empty-state">
+          <div class="ts-empty-icon">⚠️</div>
+          <strong>Could not load messages</strong>
+          <p>${escapeHTML(error.message)}</p>
+        </div>
+      `;
+    }
   };
 
   // ==========================================
-  // CHAT ROOM
+  // RENDER CONVERSATION LIST
   // ==========================================
 
-  function renderRoom(container, conv) {
-    activeConversation = conv;
+  function renderConversationList(container) {
+    const list = container.querySelector("#ts-conversation-list");
+    const search = container.querySelector("#ts-chat-search");
 
-    const user = conv.otherUser || {};
+    if (!list) return;
+
+    const query = (search?.value || "").toLowerCase().trim();
+
+    const filtered = conversations.filter(conv => {
+      const user = getOtherUser(conv);
+
+      const name = String(user.displayName || "").toLowerCase();
+      const username = String(user.username || "").toLowerCase();
+      const last = String(conv.lastMessage || "").toLowerCase();
+
+      const matchesSearch =
+        !query ||
+        name.includes(query) ||
+        username.includes(query) ||
+        last.includes(query);
+
+      const matchesFilter =
+        activeFilter === "all" ||
+        (activeFilter === "unread" && conv.unreadCount > 0) ||
+        (activeFilter === "general" && conv.category === "general") ||
+        (activeFilter === "requests" && conv.category === "requests");
+
+      return matchesSearch && matchesFilter;
+    });
+
+    if (!filtered.length) {
+      list.innerHTML = `
+        <div class="ts-empty-state">
+          <div class="ts-empty-icon">💬</div>
+          <strong>No conversations yet</strong>
+          <p>Tap the ✎ button to find a TELESUPAR user and start chatting.</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(conv => {
+      const user = getOtherUser(conv);
+
+      return `
+        <div class="ts-chat-item" data-id="${escapeHTML(getConvId(conv))}">
+          <div class="ts-avatar-wrap">
+            <img src="${escapeHTML(avatar(user))}" />
+            ${user.isOnline ? '<span class="ts-online-dot"></span>' : ""}
+          </div>
+
+          <div class="ts-chat-details">
+            <div class="ts-chat-name">
+              ${escapeHTML(user.displayName || user.username)}
+            </div>
+
+            <div class="ts-last-message">
+              ${escapeHTML(conv.lastMessage || "Start a conversation")}
+            </div>
+          </div>
+
+          <div class="ts-chat-right">
+            <span class="ts-chat-time">
+              ${escapeHTML(formatTime(conv.lastMessageAt || conv.updatedAt))}
+            </span>
+
+            ${conv.unreadCount > 0
+              ? `<span class="ts-unread-count">${conv.unreadCount}</span>`
+              : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    list.querySelectorAll(".ts-chat-item").forEach(item => {
+      item.onclick = () => {
+        const conv = conversations.find(
+          c => getConvId(c) === item.dataset.id
+        );
+
+        if (conv) openRoom(conv, container);
+      };
+    });
+  }
+
+  // ==========================================
+  // NEW MESSAGE / SEARCH USERS
+  // ==========================================
+
+  function renderNewMessageScreen(container) {
+    activeConversation = null;
+
+    container.innerHTML = `
+      <div class="ts-chat-app">
+
+        <div class="ts-inbox-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="ts-back-btn" id="ts-users-back">‹</button>
+            <div>
+              <div class="ts-inbox-title">New Message</div>
+              <div class="ts-inbox-subtitle">Find people on TELESUPAR</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ts-search-box">
+          <span>⌕</span>
+          <input id="ts-user-search"
+            placeholder="Search username or name..."
+            autocomplete="off" />
+        </div>
+
+        <div class="ts-section-heading">PEOPLE</div>
+
+        <div class="ts-conversation-list" id="ts-user-results">
+          <div class="ts-empty-state">
+            <div class="ts-empty-icon">🔎</div>
+            <strong>Search for people</strong>
+            <p>Enter a username or display name to find users.</p>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    const input = container.querySelector("#ts-user-search");
+    const results = container.querySelector("#ts-user-results");
+
+    container.querySelector("#ts-users-back").onclick = () => {
+      window.renderChat(container);
+    };
+
+    input.oninput = () => {
+      clearTimeout(userSearchTimer);
+
+      const query = input.value.trim();
+
+      if (!query) {
+        results.innerHTML = `
+          <div class="ts-empty-state">
+            <div class="ts-empty-icon">🔎</div>
+            <strong>Search for people</strong>
+            <p>Enter a username or display name.</p>
+          </div>
+        `;
+        return;
+      }
+
+      results.innerHTML = `
+        <div class="ts-empty-state">
+          <strong>Searching...</strong>
+        </div>
+      `;
+
+      userSearchTimer = setTimeout(() => {
+        searchUsers(query, results, container);
+      }, 350);
+    };
+
+    input.focus();
+  }
+
+  async function searchUsers(query, results, container) {
+    try {
+      const data = await apiRequest(
+        "/api/users?search=" + encodeURIComponent(query)
+      );
+
+      users = (data.users || []).map(normalizeUser);
+
+      if (!users.length) {
+        results.innerHTML = `
+          <div class="ts-empty-state">
+            <div class="ts-empty-icon">👤</div>
+            <strong>No users found</strong>
+            <p>Try another username or name.</p>
+          </div>
+        `;
+        return;
+      }
+
+      results.innerHTML = users.map(user => `
+        <div class="ts-chat-item" data-user-id="${escapeHTML(user.id)}">
+          <div class="ts-avatar-wrap">
+            <img src="${escapeHTML(avatar(user))}" />
+            ${user.isOnline ? '<span class="ts-online-dot"></span>' : ""}
+          </div>
+
+          <div class="ts-chat-details">
+            <div class="ts-chat-name">
+              ${escapeHTML(user.displayName)}
+            </div>
+            <div class="ts-last-message">
+              @${escapeHTML(user.username)}
+            </div>
+          </div>
+
+          <div style="color:#60a5fa;font-size:13px;font-weight:700;">
+            Message
+          </div>
+        </div>
+      `).join("");
+
+      results.querySelectorAll(".ts-chat-item").forEach(item => {
+        item.onclick = async () => {
+          const user = users.find(
+            u => u.id === item.dataset.userId
+          );
+
+          if (user) {
+            await createAndOpenConversation(user, container);
+          }
+        };
+      });
+
+    } catch (error) {
+      results.innerHTML = `
+        <div class="ts-empty-state">
+          <div class="ts-empty-icon">⚠️</div>
+          <strong>Search failed</strong>
+          <p>${escapeHTML(error.message)}</p>
+        </div>
+      `;
+    }
+  }
+
+  // ==========================================
+  // CREATE / OPEN REAL CONVERSATION
+  // ==========================================
+
+  async function createAndOpenConversation(user, container) {
+    try {
+      const data = await apiRequest(
+        "/api/conversations/" + encodeURIComponent(user.id),
+        { method: "POST" }
+      );
+
+      if (!data.conversation) {
+        throw new Error("Conversation data not received.");
+      }
+
+      const conv = normalizeConversation(data.conversation);
+
+      if (!conv.otherUser?.id) {
+        conv.otherUser = normalizeUser(user);
+        conv.user = conv.otherUser;
+      }
+
+      const existingIndex = conversations.findIndex(
+        item => getConvId(item) === getConvId(conv)
+      );
+
+      if (existingIndex >= 0) {
+        conversations[existingIndex] = conv;
+      } else {
+        conversations.unshift(conv);
+      }
+
+      openRoom(conv, container);
+
+    } catch (error) {
+      notice(error.message || "Could not open conversation.");
+    }
+  }
+
+  // ==========================================
+  // DIRECT CHAT ENTRY POINT
+  // ==========================================
+
+  window.openDirectChat = async function(userId) {
+    if (!userId) {
+      notice("User ID is missing.");
+      return;
+    }
+
+    const container = getContainer();
+
+    if (!container) {
+      notice("Chat screen is not available.");
+      return;
+    }
+
+    try {
+      const data = await apiRequest(
+        "/api/conversations/" + encodeURIComponent(userId),
+        { method: "POST" }
+      );
+
+      if (!data.conversation) {
+        throw new Error("Conversation not received.");
+      }
+
+      const conv = normalizeConversation(data.conversation);
+
+      const index = conversations.findIndex(
+        item => getConvId(item) === getConvId(conv)
+      );
+
+      if (index >= 0) {
+        conversations[index] = conv;
+      } else {
+        conversations.unshift(conv);
+      }
+
+      openRoom(conv, container);
+
+    } catch (error) {
+      notice(error.message || "Could not open chat.");
+    }
+  };
+
+  // ==========================================
+  // OPEN CHAT ROOM
+  // ==========================================
+
+  async function openRoom(conv, container) {
+    const oldId = activeConversation
+      ? getConvId(activeConversation)
+      : "";
+
+    if (oldId && oldId !== getConvId(conv)) {
+      leaveConversation(oldId);
+    }
+
+    activeConversation = normalizeConversation(conv);
+    currentMessages = [];
+
+    const user = getOtherUser(activeConversation);
+    const conversationId = getConvId(activeConversation);
+
     const header = document.querySelector(".top-header");
     const nav = document.querySelector(".bottom-nav");
 
     if (header) header.classList.add("hidden");
     if (nav) nav.classList.add("hidden");
-
-    const messages = localMessages[conv.id] || [];
 
     container.innerHTML = `
       <div class="ts-chat-room">
@@ -853,7 +1341,7 @@
           <button class="ts-back-btn" id="ts-back">‹</button>
 
           <div class="ts-room-user" id="ts-open-info">
-            <img src="${avatar(user)}" />
+            <img src="${escapeHTML(avatar(user))}" />
 
             <div>
               <div class="ts-room-user-name">
@@ -871,17 +1359,9 @@
         </div>
 
         <div class="ts-messages-area" id="ts-messages-area">
-          ${
-            messages.length
-              ? messages.map(m => messageHTML(m)).join("")
-              : `
-                <div class="ts-empty-state">
-                  <div class="ts-empty-icon">👋</div>
-                  <strong>Start a conversation</strong>
-                  <p>Your messages will appear here once messaging backend is connected.</p>
-                </div>
-              `
-          }
+          <div class="ts-empty-state">
+            <strong>Loading messages...</strong>
+          </div>
         </div>
 
         <div class="ts-input-area">
@@ -903,11 +1383,9 @@
       </div>
     `;
 
-    const area = container.querySelector("#ts-messages-area");
-
-    area.scrollTop = area.scrollHeight;
-
     container.querySelector("#ts-back").onclick = () => {
+      leaveConversation(conversationId);
+
       activeConversation = null;
 
       if (header) header.classList.remove("hidden");
@@ -917,48 +1395,237 @@
     };
 
     container.querySelector("#ts-open-info").onclick = () => {
-      renderChatInfo(container, user, conv);
+      renderChatInfo(container, user, activeConversation);
     };
 
     container.querySelector("#ts-room-more").onclick = () => {
       openRoomMenu(user);
     };
 
-    container.querySelector("#ts-send").onclick = () => {
-      showNotice("Message sending will work after backend integration.");
-    };
+    const input = container.querySelector("#ts-message-input");
 
-    container.querySelector("#ts-message-input").onkeydown = e => {
-      if (e.key === "Enter") {
-        showNotice("Message sending will work after backend integration.");
+    container.querySelector("#ts-send").onclick = sendCurrentMessage;
+
+    input.onkeydown = event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendCurrentMessage();
       }
     };
 
-    container.querySelector("#ts-file-input").onchange = e => {
-      const file = e.target.files[0];
-      if (file) {
-        showNotice(
-          "Selected file: " + file.name +
-          ". Upload will work after backend integration."
-        );
+    container.querySelector("#ts-file-input").onchange = uploadAttachment;
+
+    joinConversation(conversationId);
+
+    try {
+      const data = await apiRequest(
+        "/api/conversations/" +
+        encodeURIComponent(conversationId) +
+        "/messages"
+      );
+
+      if (
+        !activeConversation ||
+        getConvId(activeConversation) !== conversationId
+      ) return;
+
+      currentMessages = data.messages || [];
+      renderMessages();
+
+      await apiRequest(
+        "/api/conversations/" +
+        encodeURIComponent(conversationId) +
+        "/read",
+        { method: "POST" }
+      );
+
+      await loadConversations();
+
+    } catch (error) {
+      const area = container.querySelector("#ts-messages-area");
+
+      if (area) {
+        area.innerHTML = `
+          <div class="ts-empty-state">
+            <strong>Could not load messages</strong>
+            <p>${escapeHTML(error.message)}</p>
+          </div>
+        `;
       }
-    };
+    }
   }
 
-  function messageHTML(msg) {
-    const mine = !!msg.mine;
+  // ==========================================
+  // RENDER MESSAGES
+  // ==========================================
+
+  function renderMessages() {
+    const area = document.getElementById("ts-messages-area");
+
+    if (!area) return;
+
+    if (!currentMessages.length) {
+      area.innerHTML = `
+        <div class="ts-empty-state">
+          <div class="ts-empty-icon">👋</div>
+          <strong>Start a conversation</strong>
+          <p>Send your first message.</p>
+        </div>
+      `;
+      return;
+    }
+
+    area.innerHTML = currentMessages
+      .map(messageHTML)
+      .join("");
+
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function messageHTML(message) {
+    const mine =
+      String(message.senderId) === getMyId();
+
+    const seen = !!message.seenAt;
+    const delivered = !!message.deliveredAt;
+
+    let attachmentHTML = "";
+
+    if (message.attachment?.url) {
+      const attachment = message.attachment;
+      const isImage = String(attachment.mimeType || "")
+        .startsWith("image/");
+
+      attachmentHTML = isImage
+        ? `<img src="${escapeHTML(attachment.url)}"
+             style="max-width:190px;border-radius:12px;display:block;margin-bottom:6px;" />`
+        : `<a href="${escapeHTML(attachment.url)}"
+             target="_blank"
+             rel="noopener"
+             style="color:#93c5fd;display:block;margin-bottom:6px;">
+             📎 ${escapeHTML(attachment.fileName || "Open file")}
+           </a>`;
+    }
 
     return `
       <div class="ts-message-row ${mine ? "mine" : "theirs"}">
         <div class="ts-message-bubble">
-          ${escapeHTML(msg.text)}
+          ${attachmentHTML}
+          ${escapeHTML(message.text || "")}
+
           <div class="ts-message-meta">
-            ${escapeHTML(msg.time || "")}
-            ${mine ? (msg.seen ? " ✓✓" : " ✓") : ""}
+            ${escapeHTML(messageTime(message))}
+            ${mine ? (seen ? " ✓✓" : delivered ? " ✓✓" : " ✓") : ""}
           </div>
         </div>
       </div>
     `;
+  }
+
+  // ==========================================
+  // SEND MESSAGE
+  // ==========================================
+
+  async function sendCurrentMessage() {
+    if (!activeConversation) return;
+
+    const input = document.getElementById("ts-message-input");
+    const button = document.getElementById("ts-send");
+
+    if (!input) return;
+
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    const conversationId = getConvId(activeConversation);
+
+    if (!conversationId) {
+      notice("Conversation ID missing.");
+      return;
+    }
+
+    input.disabled = true;
+    if (button) button.disabled = true;
+
+    try {
+      const data = await apiRequest(
+        "/api/conversations/" +
+        encodeURIComponent(conversationId) +
+        "/messages",
+        {
+          method: "POST",
+          body: JSON.stringify({ text })
+        }
+      );
+
+      if (data.message) {
+        const exists = currentMessages.some(
+          item => String(item.id) === String(data.message.id)
+        );
+
+        if (!exists) {
+          currentMessages.push(data.message);
+        }
+      }
+
+      input.value = "";
+      renderMessages();
+
+      await loadConversations();
+
+    } catch (error) {
+      notice(error.message || "Message could not be sent.");
+    } finally {
+      input.disabled = false;
+      if (button) button.disabled = false;
+      input.focus();
+    }
+  }
+
+  // ==========================================
+  // FILE / PHOTO UPLOAD
+  // ==========================================
+
+  async function uploadAttachment(event) {
+    const file = event.target.files?.[0];
+
+    if (!file || !activeConversation) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      notice("File size must be 25 MB or less.");
+      event.target.value = "";
+      return;
+    }
+
+    const conversationId = getConvId(activeConversation);
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    try {
+      const data = await apiRequest(
+        "/api/conversations/" +
+        encodeURIComponent(conversationId) +
+        "/attachments",
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+      if (data.message) {
+        currentMessages.push(data.message);
+        renderMessages();
+      }
+
+      await loadConversations();
+
+    } catch (error) {
+      notice(error.message || "File upload failed.");
+    }
+
+    event.target.value = "";
   }
 
   // ==========================================
@@ -981,8 +1648,9 @@
         </div>
 
         <div class="ts-info-hero">
-          <img src="${avatar(user)}" />
+          <img src="${escapeHTML(avatar(user))}" />
           <h3>${escapeHTML(user.displayName || "User")}</h3>
+
           <div style="font-size:12px;color:#94a3b8;">
             @${escapeHTML(user.username || "")}
           </div>
@@ -1011,7 +1679,7 @@
           <div class="ts-empty-state">
             <div class="ts-empty-icon">📂</div>
             <strong>No ${activeInfoTab.toLowerCase()} yet</strong>
-            <p>Shared content will appear here after backend integration.</p>
+            <p>Shared content will appear here.</p>
           </div>
         </div>
       `;
@@ -1028,7 +1696,7 @@
       });
 
       info.querySelector("#ts-info-mute").onclick = () => {
-        showNotice("Mute settings will be connected with backend later.");
+        notice("Mute settings are not available yet.");
       };
 
       info.querySelector("#ts-info-profile").onclick = () => {
@@ -1036,7 +1704,7 @@
           info.remove();
           window.openUserExploreProfile(user.id);
         } else {
-          showNotice("Profile navigation will be connected later.");
+          notice("Profile navigation is not available.");
         }
       };
     }
@@ -1050,6 +1718,7 @@
 
   function openRoomMenu(user) {
     const old = document.getElementById("ts-room-popup");
+
     if (old) {
       old.remove();
       return;
@@ -1070,59 +1739,37 @@
 
     popup.querySelector("#ts-menu-search").onclick = () => {
       popup.remove();
-      showNotice("Chat search will be connected later.");
+      notice("Chat search is not available yet.");
     };
 
     popup.querySelector("#ts-menu-mute").onclick = () => {
       popup.remove();
-      showNotice("Mute will be connected later.");
+      notice("Mute settings are not available yet.");
     };
 
     popup.querySelector("#ts-menu-info").onclick = () => {
       popup.remove();
 
-      if (activeConversation) {
-        const container = document.getElementById("app");
-        if (container) {
-          renderChatInfo(container, user, activeConversation);
-        }
+      const container = getContainer();
+
+      if (container && activeConversation) {
+        renderChatInfo(container, user, activeConversation);
       }
     };
 
     popup.querySelector("#ts-menu-report").onclick = () => {
       popup.remove();
-      showNotice("Report feature will be connected with backend later.");
+      notice("Report feature is not available yet.");
     };
 
     setTimeout(() => {
-      document.addEventListener("click", function close(e) {
-        if (!popup.contains(e.target)) {
+      document.addEventListener("click", function close(event) {
+        if (!popup.contains(event.target)) {
           popup.remove();
           document.removeEventListener("click", close);
         }
       });
     }, 0);
   }
-
-  // ==========================================
-  // DIRECT CHAT ENTRY POINT
-  // ==========================================
-
-  window.openDirectChat = function(userId) {
-    const conv = conversations.find(c =>
-      String(c.otherUser?.id) === String(userId)
-    );
-
-    if (!conv) {
-      showNotice("Conversation will open after backend integration.");
-      return;
-    }
-
-    const container = document.getElementById("app");
-
-    if (container) {
-      renderRoom(container, conv);
-    }
-  };
 
 })();
