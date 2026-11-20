@@ -576,6 +576,214 @@
       color:#f87171;
     }
 
+
+/* ==========================================
+   TELESUPAR GLASSMORPHISM CHAT HEADER
+========================================== */
+
+.ts-room-header {
+  padding: 12px 14px;
+  gap: 10px;
+  background: rgba(17, 25, 35, .88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.ts-back-btn {
+  min-width: 76px;
+  height: 46px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 30px;
+  color: #fff;
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.13);
+  box-shadow: 0 5px 18px rgba(0,0,0,.15);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ts-room-user {
+  padding: 6px 12px 6px 7px;
+  border-radius: 35px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 5px 18px rgba(0,0,0,.14);
+}
+
+.ts-room-user img {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+.ts-room-user-name {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ts-room-actions {
+  gap: 0;
+}
+
+.ts-room-action {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.13);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 5px 18px rgba(0,0,0,.15);
+}
+
+/* PROFILE SCREEN */
+
+.ts-info-screen {
+  z-index: 220;
+  background: #151f29;
+  padding-bottom: 35px;
+}
+
+.ts-info-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 16px;
+  background: rgba(21,31,41,.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 0;
+}
+
+.ts-info-header .ts-back-btn {
+  min-width: 85px;
+}
+
+.ts-info-hero {
+  padding: 25px 18px 22px;
+  background: transparent;
+}
+
+.ts-info-hero img {
+  width: 145px;
+  height: 145px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,.14);
+  box-shadow: 0 12px 35px rgba(0,0,0,.28);
+}
+
+.ts-info-hero h3 {
+  margin: 18px 0 5px;
+  font-size: 25px;
+  font-weight: 850;
+}
+
+.ts-info-username {
+  color: #aab8c6;
+  font-size: 14px;
+}
+
+.ts-info-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 27px 0 0;
+}
+
+.ts-info-action {
+  min-height: 82px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 24px;
+  background: #263443;
+  color: white;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.ts-info-details {
+  margin: 10px 16px;
+  padding: 20px;
+  border-radius: 25px;
+  background: #1d2935;
+  border: 1px solid rgba(255,255,255,.035);
+}
+
+.ts-info-bio {
+  font-size: 17px;
+  line-height: 1.5;
+  color: #f1f5f9;
+  overflow-wrap: anywhere;
+}
+
+.ts-info-label {
+  margin-top: 8px;
+  color: #8493a1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ts-info-username-value {
+  margin-top: 24px;
+  font-size: 19px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.ts-info-posts {
+  margin: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  background: #1d2935;
+  text-align: center;
+}
+
+.ts-info-posts button {
+  margin-top: 12px;
+  padding: 12px 20px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 25px;
+  background: rgba(255,255,255,.08);
+  color: white;
+  font-weight: 750;
+}
+
+/* GLASS POPUP */
+
+.ts-popup {
+  position: fixed;
+  top: 75px;
+  right: 14px;
+  width: 235px;
+  z-index: 300;
+  padding: 7px;
+  border-radius: 22px;
+  background: rgba(30,43,57,.91);
+  border: 1px solid rgba(255,255,255,.15);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.45);
+}
+
+.ts-popup-item {
+  padding: 15px 14px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 14px;
+}
+
+.ts-popup-item:active {
+  background: rgba(255,255,255,.12);
+}
+
+
     /* MOBILE */
 
     @media(min-width:700px) {
