@@ -1546,7 +1546,7 @@
       <div class="ts-chat-room">
 
         <div class="ts-room-header">
-          <button class="ts-back-btn" id="ts-back">‹</button>
+          <button class="ts-back-btn" id="ts-back">← Back</button>
 
           <div class="ts-room-user" id="ts-open-info">
             <img src="${escapeHTML(avatar(user))}" />
@@ -1840,85 +1840,109 @@
   // CHAT INFO
   // ==========================================
 
-  function renderChatInfo(container, user, conv) {
-    activeInfoTab = "Files";
+  
+// ==========================================
+// CHAT INFO - TELEGRAM STYLE PROFILE
+// ==========================================
 
-    const info = document.createElement("div");
-    info.className = "ts-info-screen";
+function renderChatInfo(container, user, conv) {
+  activeInfoTab = "Files";
 
-    container.appendChild(info);
+  const info = document.createElement("div");
+  info.className = "ts-info-screen";
 
-    function renderInfo() {
-      info.innerHTML = `
-        <div class="ts-info-header">
-          <button class="ts-back-btn" id="ts-info-back">‹</button>
-          Chat Info
-        </div>
+  const username = String(user.username || "").replace(/^@/, "");
+  const bio = user.bio || user.about || "No bio available";
 
-        <div class="ts-info-hero">
-          <img src="${escapeHTML(avatar(user))}" />
-          <h3>${escapeHTML(user.displayName || "User")}</h3>
+  info.innerHTML = `
+    <div class="ts-info-header">
+      <button class="ts-back-btn" id="ts-info-back">
+        ← Back
+      </button>
+      <span>Profile</span>
+    </div>
 
-          <div style="font-size:12px;color:#94a3b8;">
-            @${escapeHTML(user.username || "")}
-          </div>
+    <div class="ts-info-hero">
+      <img
+        src="${escapeHTML(avatar(user))}"
+        alt="Profile picture"
+      />
 
-          <div class="ts-info-actions">
-            <button class="ts-info-action" id="ts-info-mute">
-              🔔 Mute
-            </button>
+      <h3>${escapeHTML(user.displayName || "TELESUPAR User")}</h3>
 
-            <button class="ts-info-action" id="ts-info-profile">
-              👤 Profile
-            </button>
-          </div>
-        </div>
+      <div class="ts-info-username">
+        ${username ? "@" + escapeHTML(username) : "TELESUPAR User"}
+      </div>
 
-        <div class="ts-info-tabs">
-          ${["Files", "Links", "Media", "Groups"].map(tab => `
-            <div class="ts-info-tab ${activeInfoTab === tab ? "active" : ""}"
-              data-tab="${tab}">
-              ${tab}
-            </div>
-          `).join("")}
-        </div>
+      <div class="ts-info-actions">
+        <button class="ts-info-action" id="ts-profile-message">
+          <div style="font-size:23px;margin-bottom:5px;">●</div>
+          Message
+        </button>
 
-        <div class="ts-info-content">
-          <div class="ts-empty-state">
-            <div class="ts-empty-icon">📂</div>
-            <strong>No ${activeInfoTab.toLowerCase()} yet</strong>
-            <p>Shared content will appear here.</p>
-          </div>
-        </div>
-      `;
+        <button class="ts-info-action" id="ts-info-mute">
+          <div style="font-size:23px;margin-bottom:5px;">🔔</div>
+          Mute
+        </button>
+      </div>
+    </div>
 
-      info.querySelector("#ts-info-back").onclick = () => {
-        info.remove();
-      };
+    <div class="ts-info-details">
+      <div class="ts-info-bio">
+        ${escapeHTML(bio)}
+      </div>
+      <div class="ts-info-label">Bio</div>
 
-      info.querySelectorAll(".ts-info-tab").forEach(tab => {
-        tab.onclick = () => {
-          activeInfoTab = tab.dataset.tab;
-          renderInfo();
-        };
-      });
+      <div class="ts-info-username-value">
+        ${username ? "@" + escapeHTML(username) : "Not available"}
+      </div>
+      <div class="ts-info-label">Username</div>
+    </div>
 
-      info.querySelector("#ts-info-mute").onclick = () => {
-        notice("Mute settings are not available yet.");
-      };
+    <div class="ts-info-posts">
+      <div style="font-size:18px;font-weight:850;">
+        User Posts
+      </div>
 
-      info.querySelector("#ts-info-profile").onclick = () => {
-        if (window.openUserExploreProfile && user.id) {
-          info.remove();
-          window.openUserExploreProfile(user.id);
-        } else {
-          notice("Profile navigation is not available.");
-        }
-      };
+      <p style="font-size:13px;color:#94a3b8;">
+        View this user's posts and profile.
+      </p>
+
+      <button id="ts-view-user-profile">
+        View Full Profile →
+      </button>
+    </div>
+
+    <div class="ts-info-details">
+      <div style="font-size:13px;color:#94a3b8;">
+        TELESUPAR Member
+      </div>
+    </div>
+  `;
+
+  container.appendChild(info);
+
+  info.querySelector("#ts-info-back").onclick = () => {
+    info.remove();
+  };
+
+  info.querySelector("#ts-profile-message").onclick = () => {
+    info.remove();
+  };
+
+  info.querySelector("#ts-info-mute").onclick = () => {
+    notice("Mute settings are not available yet.");
+  };
+
+  info.querySelector("#ts-view-user-profile").onclick = () => {
+    if (window.openUserExploreProfile && user.id) {
+      info.remove();
+      window.openUserExploreProfile(user.id);
+    } else {
+      notice("Profile navigation is not available.");
     }
-
-    renderInfo();
-  }
+  };
+}
 
   // ==========================================
   // ROOM MENU
