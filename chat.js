@@ -1303,7 +1303,7 @@
 
         <div class="ts-inbox-header">
           <div style="display:flex;align-items:center;gap:12px;">
-            <button class="ts-back-btn" id="ts-users-back">‹</button>
+            <button class="ts-back-btn" id="ts-users-back">‹Back</button>
             <div>
               <div class="ts-inbox-title">New Message</div>
               <div class="ts-inbox-subtitle">Find people on TELESUPAR</div>
