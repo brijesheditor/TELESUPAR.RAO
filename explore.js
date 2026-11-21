@@ -920,8 +920,8 @@
 
       // Posts currently available in Explore feed cache
       const userPosts = allPostsCache.filter(post =>
-        getPostUserId(post) === String(userId)
-      );
+  String(post.user?.id || post.userId || "") === String(userId)
+);
 
       bodyContainer.innerHTML = `
         <div style="padding:16px;">
