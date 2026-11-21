@@ -719,7 +719,7 @@
         ">
           ${post.mediaUrl ? (
             post.mediaType === "video"
-              ? `<video src="${post.mediaUrl}" class="reel-media" autoplay loop playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
+              ? `<video src="${post.mediaUrl}" class="reel-media" loop playsinline preload="metadata" style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`
               : `<img src="${post.mediaUrl}" class="reel-media" style="width:100%; height:100%; object-fit:contain; background:#000;" />`
           ) : `<div style="background:#1e293b; width:100%; height:100%; display:grid; place-items:center; padding:20px; text-align:center;">No Media</div>`}
 
@@ -755,6 +755,30 @@
         </div>
       `;
     }).join("");
+
+    // Play only the video visible on screen
+const reelVideos = slidesContainer.querySelectorAll("video.reel-media");
+
+const reelObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const video = entry.target;
+
+    if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
+      video.play().catch(err => {
+        console.log("Video playback:", err);
+      });
+    } else {
+      video.pause();
+    }
+  });
+}, {
+  root: slidesContainer,
+  threshold: [0, 0.65, 1]
+});
+
+reelVideos.forEach(video => {
+  reelObserver.observe(video);
+});
 
     slidesContainer.querySelectorAll(".reel-like-btn").forEach(btn => {
       btn.onclick = async () => {
