@@ -1129,14 +1129,16 @@
       ================================================= */
 
       bodyContainer.querySelectorAll("[data-profile-post]").forEach(tile => {
-        tile.onclick = () => {
-          const postId = tile.dataset.profilePost;
+  tile.onclick = () => {
+    const postId = tile.dataset.profilePost;
 
-          if (typeof window.openFullscreenPostViewer === "function") {
-            window.openFullscreenPostViewer(postId);
-          }
-        };
-      });
+    if (typeof window.openFullscreenPostViewer === "function") {
+      document.getElementById("explore-user-profile-modal")?.remove();
+
+      window.openFullscreenPostViewer(postId);
+    }
+  };
+});
 
       /* =================================================
          FOLLOW / UNFOLLOW
