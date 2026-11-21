@@ -1218,73 +1218,30 @@
       ================================================= */
 
       bodyContainer.querySelector("#profile-msg-btn").onclick =
-        async () => {
-          const msgBtn = bodyContainer.querySelector("#profile-msg-btn");
+  async () => {
+    const msgBtn = bodyContainer.querySelector("#profile-msg-btn");
 
-          try {
-            msgBtn.disabled = true;
-            msgBtn.textContent = "Opening...";
+    try {
+      msgBtn.disabled = true;
+      msgBtn.textContent = "Opening...";
 
-            const chatRes = await window.api(
-              `/api/conversations/${encodedId}`,
-              { method: "POST" }
-            );
+      if (typeof window.openDirectChat !== "function") {
+        throw new Error("Chat system is not ready.");
+      }
 
-            if (!chatRes || chatRes.success === false) {
-              throw new Error(
-                chatRes?.message || "Could not open conversation."
-              );
-            }
+      modal.remove();
 
-            modal.remove();
+      await window.openDirectChat(String(userId));
 
-            const convId =
-              chatRes?.conversation?.id ||
-              chatRes?.id ||
-              userId;
+    } catch (error) {
+      console.error("Open chat error:", error);
 
-            if (typeof window.openDirectChat === "function") {
-              window.openDirectChat(convId, p);
+      msgBtn.disabled = false;
+      msgBtn.textContent = "Message";
 
-            } else if (typeof window.openChat === "function") {
-              window.openChat(convId, p);
-
-            } else if (typeof window.renderChat === "function") {
-              window.renderChat(
-                document.getElementById("app") || document.body,
-                convId
-              );
-
-            } else {
-              localStorage.setItem(
-                "telesupar_active_chat_id",
-                convId
-              );
-
-              const chatTabBtn =
-                document.querySelector('button[data-tab="chat"]') ||
-                document.querySelector(".bottom-nav button:nth-child(3)") ||
-                Array.from(document.querySelectorAll("button")).find(btn =>
-                  btn.textContent.includes("Chat") ||
-                  btn.innerHTML.includes("chat")
-                );
-
-              if (chatTabBtn) {
-                chatTabBtn.click();
-              } else {
-                window.location.reload();
-              }
-            }
-
-          } catch (error) {
-            console.error("Open chat error:", error);
-
-            msgBtn.disabled = false;
-            msgBtn.textContent = "Message";
-
-            alert(error.message || "Could not open chat.");
-          }
-        };
+      alert(error.message || "Could not open chat.");
+    }
+  };
 
     } catch (error) {
       console.error("Explore profile error:", error);
