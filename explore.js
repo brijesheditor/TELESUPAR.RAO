@@ -291,6 +291,77 @@
         grid-template-columns:repeat(3,minmax(0,1fr));
       }
     }
+
+/* TELESUPAR Explore Glass UI */
+.explore-top-bar {
+  background: rgba(9, 13, 22, 0.78) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.explore-search-box {
+  background: rgba(30, 41, 59, 0.58) !important;
+  border: 1px solid rgba(255,255,255,0.13);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.explore-saved-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.explore-cat-pill {
+  background: rgba(30,41,59,0.65);
+  backdrop-filter: blur(10px);
+}
+
+.explore-user-row {
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.06);
+  margin: 5px 0;
+  border-radius: 14px;
+}
+
+.explore-users-results {
+  background: rgba(17,24,39,0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.explore-tile {
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.explore-tile:active {
+  transform: scale(.97);
+  filter: brightness(.85);
+}
+
+#explore-user-profile-modal {
+  background: rgba(9,13,22,.97) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+#explore-user-profile-modal button {
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+#explore-user-profile-modal button:active {
+  transform: scale(.96);
+  opacity: .85;
+}
+
+#profile-follow-btn,
+#profile-msg-btn {
+  min-height: 42px;
+  border-radius: 12px !important;
+  box-shadow: 0 5px 18px rgba(0,0,0,.20);
+}
+    
   `;
 
   document.head.appendChild(style);
