@@ -1155,7 +1155,7 @@
           id="close-user-profile"
           class="explore-modal-back"
         >
-          ← Back
+          Back
         </button>
 
         <div
