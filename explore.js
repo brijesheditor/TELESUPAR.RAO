@@ -1,545 +1,612 @@
 
+/* =========================================================
+   TELESUPAR - EXPLORE V3
+   Next-Generation User Discovery + Study Feed
+
+   STRUCTURE:
+   01. Configuration & State
+   02. Styles
+   03. Helper Functions
+   04. Explore Renderer
+   05. Feed API
+   06. Post Filtering & Grid
+   07. User Search
+   08. Public Profile Modal
+   09. Followers / Following
+   10. Follow / Unfollow
+   11. Direct Message
+   12. Saved Lessons
+========================================================= */
+
 (function () {
   "use strict";
 
-  if (window.__TS_EXPLORE_V2__) return;
-  window.__TS_EXPLORE_V2__ = true;
-
   /* =====================================================
-     TELESUPAR EXPLORE V2
-     Shared user data: TSUser
-     Existing features preserved
+     01. CONFIGURATION & STATE
   ===================================================== */
 
-  const style = document.createElement("style");
-
-  style.textContent = `
-    .explore-container {
-      background:#090d16;
-      min-height:100vh;
-      color:#fff;
-      font-family:inherit;
-      padding-bottom:70px;
-    }
-
-    .explore-top-bar {
-      position:sticky;
-      top:0;
-      z-index:50;
-      background:rgba(9,13,22,.92);
-      backdrop-filter:blur(12px);
-      padding:10px 12px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-    }
-
-    .explore-search-box {
-      flex:1;
-      display:flex;
-      align-items:center;
-      background:#1e293b;
-      border-radius:99px;
-      padding:8px 14px;
-      gap:8px;
-      border:1px solid rgba(255,255,255,.08);
-    }
-
-    .explore-search-box input {
-      flex:1;
-      min-width:0;
-      background:transparent;
-      border:none;
-      color:#fff;
-      font-size:14px;
-      outline:none;
-    }
-
-    .explore-search-box input::placeholder {
-      color:#94a3b8;
-    }
-
-    .explore-saved-btn {
-      background:none;
-      border:none;
-      color:#fff;
-      font-size:20px;
-      cursor:pointer;
-      width:36px;
-      height:36px;
-      display:grid;
-      place-items:center;
-      border-radius:50%;
-    }
-
-    .explore-cats {
-      display:flex;
-      gap:8px;
-      padding:8px 12px;
-      overflow-x:auto;
-      scrollbar-width:none;
-      background:#090d16;
-    }
-
-    .explore-cats::-webkit-scrollbar {
-      display:none;
-    }
-
-    .explore-cat-pill {
-      background:#111827;
-      color:#cbd5e1;
-      border:1px solid rgba(255,255,255,.08);
-      padding:6px 14px;
-      border-radius:99px;
-      font-size:12px;
-      font-weight:600;
-      white-space:nowrap;
-      cursor:pointer;
-    }
-
-    .explore-cat-pill.active {
-      background:linear-gradient(135deg,#6366f1,#ec4899);
-      color:#fff;
-      border-color:transparent;
-    }
-
-    .explore-grid {
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:2px;
-      background:#090d16;
-    }
-
-    .explore-tile {
-      position:relative;
-      aspect-ratio:3/4;
-      background:#111827;
-      overflow:hidden;
-      cursor:pointer;
-    }
-
-    .explore-tile img,
-    .explore-tile video {
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-
-    .explore-text-tile {
-      width:100%;
-      height:100%;
-      padding:10px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      text-align:center;
-      background:linear-gradient(135deg,#1e1b4b,#0f172a);
-      font-size:11px;
-      color:#e2e8f0;
-      font-weight:600;
-      overflow:hidden;
-    }
-
-    .explore-tile-overlay {
-      position:absolute;
-      inset:0;
-      background:linear-gradient(
-        to top,
-        rgba(0,0,0,.75) 0%,
-        transparent 45%
-      );
-      pointer-events:none;
-    }
-
-    .explore-tile-stats {
-      position:absolute;
-      bottom:6px;
-      left:6px;
-      display:flex;
-      align-items:center;
-      gap:4px;
-      font-size:11px;
-      font-weight:700;
-      color:#fff;
-      text-shadow:0 1px 4px rgba(0,0,0,.8);
-      z-index:2;
-    }
-
-    .explore-reel-icon {
-      position:absolute;
-      top:6px;
-      right:6px;
-      font-size:13px;
-      color:#fff;
-      z-index:2;
-    }
-
-    .explore-users-results {
-      padding:8px 12px;
-      background:#111827;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-
-    .explore-user-row {
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:10px 8px;
-      cursor:pointer;
-      border-radius:8px;
-      transition:background .2s;
-    }
-
-    .explore-user-row:hover {
-      background:rgba(255,255,255,.05);
-    }
-
-    .explore-user-row img {
-      width:44px;
-      height:44px;
-      border-radius:50%;
-      object-fit:cover;
-      flex-shrink:0;
-      background:#1e293b;
-    }
-
-    .explore-profile-modal {
-      position:fixed;
-      inset:0;
-      background:#090d16;
-      z-index:400;
-      display:flex;
-      flex-direction:column;
-      color:#fff;
-      font-family:inherit;
-      overflow-y:auto;
-    }
-
-    .explore-modal-header {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:12px 16px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      background:#111827;
-      position:sticky;
-      top:0;
-      z-index:10;
-    }
-
-    .explore-modal-header-left {
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-
-    .explore-modal-back {
-      background:none;
-      border:none;
-      color:#fff;
-      font-size:22px;
-      cursor:pointer;
-    }
-
-    .explore-profile-action {
-      flex:1;
-      background:#1e293b;
-      border:1px solid rgba(255,255,255,.1);
-      color:#fff;
-      font-weight:700;
-      padding:10px 8px;
-      border-radius:10px;
-      font-size:13px;
-      cursor:pointer;
-    }
-
-    .explore-profile-action.primary {
-      background:linear-gradient(135deg,#6366f1,#ec4899);
-      border:0;
-    }
-
-    .explore-profile-action:disabled {
-      opacity:.55;
-      cursor:wait;
-    }
-
-    .explore-profile-post-tabs {
-      display:flex;
-      border-top:1px solid rgba(255,255,255,.08);
-      border-bottom:1px solid rgba(255,255,255,.08);
-      margin-top:6px;
-    }
-
-    .explore-profile-post-tabs div {
-      flex:1;
-      text-align:center;
-      padding:10px;
-      font-size:16px;
-    }
-
-    .explore-profile-loading {
-      text-align:center;
-      padding:40px;
-      color:#94a3b8;
-    }
-
-    @media(max-width:360px) {
-      .explore-grid {
-        grid-template-columns:repeat(3,minmax(0,1fr));
-      }
-    }
-
-
-/* =====================================
-   TELESUPAR PREMIUM EXPLORE UI V2
-===================================== */
-
-/* Main top bar */
-.explore-top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(9, 13, 22, 0.78) !important;
-  border-bottom: 1px solid rgba(255,255,255,.09);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  padding: 12px;
-}
-
-/* Search box */
-.explore-search-box {
-  background: rgba(30, 41, 59, .52) !important;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 16px;
-  padding: 11px 14px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05),
-              0 8px 25px rgba(0,0,0,.18);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  transition: border-color .2s, box-shadow .2s;
-}
-
-.explore-search-box:focus-within {
-  border-color: rgba(99,102,241,.7);
-  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
-}
-
-.explore-search-box input {
-  font-size: 14px;
-  letter-spacing: .2px;
-}
-
-.explore-search-box input::placeholder {
-  color: #94a3b8;
-}
-
-/* Saved button */
-.explore-saved-btn {
-  background: rgba(255,255,255,.07) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  border-radius: 14px !important;
-  transition: .2s ease;
-}
-
-.explore-saved-btn:active {
-  transform: scale(.92);
-  background: rgba(99,102,241,.2) !important;
-}
-
-/* Category bar */
-.explore-cats {
-  background: rgba(9,13,22,.92);
-  padding: 12px;
-  gap: 9px;
-}
-
-.explore-cat-pill {
-  background: rgba(30,41,59,.65) !important;
-  border: 1px solid rgba(255,255,255,.09);
-  color: #cbd5e1;
-  padding: 8px 15px;
-  border-radius: 99px;
-  font-size: 12px;
-  transition: .2s ease;
-  backdrop-filter: blur(12px);
-}
-
-.explore-cat-pill.active {
-  background: linear-gradient(120deg,#6366f1,#a855f7,#ec4899) !important;
-  border-color: transparent;
-  box-shadow: 0 4px 16px rgba(99,102,241,.28);
-  color: #fff;
-}
-
-.explore-cat-pill:active {
-  transform: scale(.94);
-}
-
-/* User search results */
-.explore-users-results {
-  background: rgba(17,24,39,.88) !important;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 17px;
-  margin: 8px 10px;
-  padding: 12px;
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  box-shadow: 0 12px 30px rgba(0,0,0,.25);
-}
-
-.explore-user-row {
-  background: rgba(255,255,255,.035);
-  border: 1px solid rgba(255,255,255,.055);
-  border-radius: 13px;
-  padding: 11px;
-  margin: 5px 0;
-  transition: background .2s, transform .2s;
-}
-
-.explore-user-row:active {
-  background: rgba(99,102,241,.13);
-  transform: scale(.985);
-}
-
-.explore-user-row img {
-  border: 2px solid rgba(255,255,255,.12);
-}
-
-/* Explore post grid */
-.explore-grid {
-  gap: 3px !important;
-  background: #090d16;
-}
-
-.explore-tile {
-  border-radius: 7px;
-  overflow: hidden;
-  background: #111827;
-  transition: transform .2s ease, filter .2s ease;
-}
-
-.explore-tile:active {
-  transform: scale(.97);
-  filter: brightness(.82);
-}
-
-.explore-tile img,
-.explore-tile video {
-  transition: transform .3s ease;
-}
-
-.explore-text-tile {
-  background: linear-gradient(145deg,#25205a,#111827,#172554);
-}
-
-/* Profile modal */
-#explore-user-profile-modal {
-  background: rgba(7,11,20,.97) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-
-.explore-modal-header {
-  background: rgba(17,24,39,.84) !important;
-  border-bottom: 1px solid rgba(255,255,255,.09);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 14px 16px;
-}
-
-.explore-modal-back {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.08);
-}
-
-/* Profile information card */
-#profile-modal-body > div:first-child {
-  background: linear-gradient(
-    145deg,
-    rgba(30,41,59,.62),
-    rgba(15,23,42,.75)
-  );
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 22px;
-  margin: 12px;
-  padding: 18px !important;
-  box-shadow: 0 12px 32px rgba(0,0,0,.20);
-}
-
-/* Follow and Message */
-#profile-follow-btn,
-#profile-msg-btn {
-  min-height: 44px;
-  border-radius: 13px !important;
-  font-size: 13px;
-  font-weight: 750;
-  letter-spacing: .2px;
-  transition: transform .18s, filter .18s;
-}
-
-#profile-follow-btn.primary {
-  background: linear-gradient(120deg,#6366f1,#a855f7) !important;
-  border: none !important;
-  box-shadow: 0 5px 18px rgba(99,102,241,.25);
-}
-
-#profile-msg-btn {
-  background: rgba(255,255,255,.08) !important;
-  border: 1px solid rgba(255,255,255,.13) !important;
-}
-
-#explore-user-profile-modal button:active {
-  transform: scale(.96);
-  filter: brightness(.9);
-}
-
-#explore-user-profile-modal button:disabled {
-  opacity: .55;
-}
-
-/* Profile tabs */
-.explore-profile-post-tabs {
-  background: rgba(17,24,39,.65);
-  border-color: rgba(255,255,255,.09);
-}
-
-.explore-profile-post-tabs div {
-  padding: 13px;
-}
-
-/* Small screen spacing */
-@media(max-width:360px) {
-  .explore-top-bar {
-    padding: 9px;
-  }
-
-  .explore-search-box {
-    padding: 9px 11px;
-  }
-
-  #profile-modal-body > div:first-child {
-    margin: 8px;
-    padding: 13px !important;
-  }
-}
-
-    
-  `;
-
-  document.head.appendChild(style);
+  if (window.__TS_EXPLORE_V3__) return;
+  window.__TS_EXPLORE_V3__ = true;
+
+  const CONFIG = {
+    categories: [
+      "All",
+      "Mathematics",
+      "Physics",
+      "Chemistry",
+      "Biology",
+      "Programming",
+      "General Studies",
+      "English"
+    ],
+
+    searchMinLength: 1,
+    defaultAvatar: ""
+  };
 
   let allPostsCache = [];
   let activeCategory = "All";
   let searchRequestNumber = 0;
+  let activeExploreContainer = null;
 
   /* =====================================================
-     HELPERS
+     02. STYLES
+  ===================================================== */
+
+  const style = document.createElement("style");
+
+  style.id = "ts-explore-v3-styles";
+
+  style.textContent = `
+
+    /* =========================================
+       MAIN CONTAINER
+    ========================================= */
+
+    .explore-container {
+      min-height: 100vh;
+      padding-bottom: 75px;
+      color: #fff;
+      background: #090d16;
+      font-family: inherit;
+    }
+
+    /* =========================================
+       TOP BAR
+    ========================================= */
+
+    .explore-top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: rgba(9,13,22,.80);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
+    .explore-search-box {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      gap: 9px;
+      padding: 11px 14px;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 16px;
+      background: rgba(30,41,59,.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+      transition: .2s ease;
+    }
+
+    .explore-search-box:focus-within {
+      border-color: rgba(99,102,241,.75);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+    }
+
+    .explore-search-icon {
+      color: #818cf8;
+      font-size: 16px;
+    }
+
+    .explore-search-box input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .explore-search-box input::placeholder {
+      color: #94a3b8;
+    }
+
+    .explore-clear-btn {
+      display: none;
+      width: 25px;
+      height: 25px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+
+    .explore-saved-btn {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      font-size: 19px;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .explore-saved-btn:active {
+      transform: scale(.93);
+      background: rgba(99,102,241,.2);
+    }
+
+    /* =========================================
+       CATEGORY FILTERS
+    ========================================= */
+
+    .explore-cats {
+      display: flex;
+      gap: 9px;
+      padding: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      background: rgba(9,13,22,.95);
+    }
+
+    .explore-cats::-webkit-scrollbar {
+      display: none;
+    }
+
+    .explore-cat-pill {
+      flex-shrink: 0;
+      padding: 8px 15px;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 99px;
+      background: rgba(30,41,59,.65);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .explore-cat-pill.active {
+      border-color: transparent;
+      background: linear-gradient(120deg,#6366f1,#a855f7,#ec4899);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(99,102,241,.25);
+    }
+
+    .explore-cat-pill:active {
+      transform: scale(.95);
+    }
+
+    /* =========================================
+       POST GRID
+    ========================================= */
+
+    .explore-grid {
+      display: grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap: 3px;
+      background: #090d16;
+    }
+
+    .explore-tile {
+      position: relative;
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      background: #111827;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: transform .2s ease;
+    }
+
+    .explore-tile:active {
+      transform: scale(.97);
+    }
+
+    .explore-tile img,
+    .explore-tile video {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .explore-text-tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      overflow: hidden;
+      background: linear-gradient(145deg,#25205a,#111827,#172554);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 650;
+      text-align: center;
+    }
+
+    .explore-tile-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to top,
+        rgba(0,0,0,.76),
+        transparent 48%
+      );
+    }
+
+    .explore-tile-stats {
+      position: absolute;
+      bottom: 7px;
+      left: 7px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 750;
+      text-shadow: 0 1px 4px #000;
+    }
+
+    .explore-reel-icon {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      z-index: 2;
+      font-size: 14px;
+    }
+
+    /* =========================================
+       SEARCH RESULTS
+    ========================================= */
+
+    .explore-users-results {
+      margin: 9px 10px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 17px;
+      background: rgba(17,24,39,.88);
+      box-shadow: 0 12px 30px rgba(0,0,0,.2);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .explore-results-heading {
+      margin-bottom: 9px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+    }
+
+    .explore-user-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 5px 0;
+      padding: 11px;
+      border: 1px solid rgba(255,255,255,.055);
+      border-radius: 13px;
+      background: rgba(255,255,255,.035);
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .explore-user-row:active {
+      transform: scale(.985);
+      background: rgba(99,102,241,.13);
+    }
+
+    .explore-user-row img {
+      width: 45px;
+      height: 45px;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,.12);
+      border-radius: 50%;
+      background: #1e293b;
+      object-fit: cover;
+    }
+
+    .explore-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .explore-user-name {
+      overflow: hidden;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 750;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .explore-user-username {
+      margin-top: 3px;
+      overflow: hidden;
+      color: #94a3b8;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* =========================================
+       EMPTY / LOADING STATES
+    ========================================= */
+
+    .explore-state {
+      grid-column: 1/-1;
+      padding: 45px 20px;
+      color: #94a3b8;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .explore-state.error {
+      color: #f87171;
+    }
+
+    /* =========================================
+       PUBLIC PROFILE MODAL
+    ========================================= */
+
+    .explore-profile-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: rgba(7,11,20,.98);
+      color: #fff;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .explore-modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      border-bottom: 1px solid rgba(255,255,255,.09);
+      background: rgba(17,24,39,.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .explore-modal-back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 82px;
+      height: 39px;
+      padding: 0 11px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .explore-modal-title {
+      overflow: hidden;
+      font-size: 16px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .explore-profile-loading {
+      padding: 45px 20px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* =========================================
+       PROFILE INFORMATION
+    ========================================= */
+
+    #profile-modal-body {
+      flex: 1;
+      padding-bottom: 45px;
+    }
+
+    .explore-profile-info-card {
+      margin: 12px;
+      padding: 17px;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 22px;
+      background: linear-gradient(
+        145deg,
+        rgba(30,41,59,.68),
+        rgba(15,23,42,.82)
+      );
+      box-shadow: 0 12px 32px rgba(0,0,0,.2);
+    }
+
+    .explore-profile-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 13px;
+    }
+
+    .explore-profile-avatar {
+      width: 82px;
+      height: 82px;
+      flex-shrink: 0;
+      padding: 2px;
+      border-radius: 50%;
+      background: linear-gradient(135deg,#6366f1,#ec4899);
+    }
+
+    .explore-profile-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #111827;
+      object-fit: cover;
+    }
+
+    .explore-profile-stats {
+      display: flex;
+      flex: 1;
+      justify-content: space-around;
+      gap: 4px;
+      text-align: center;
+    }
+
+    .explore-profile-stat {
+      padding: 5px;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .explore-profile-stat strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .explore-profile-stat span {
+      color: #94a3b8;
+      font-size: 11px;
+    }
+
+    .explore-profile-name {
+      margin-top: 13px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .explore-profile-bio {
+      margin-top: 5px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .explore-profile-username {
+      display: inline-flex;
+      margin-top: 9px;
+      padding: 5px 11px;
+      border-radius: 99px;
+      background: rgba(99,102,241,.14);
+      color: #a5b4fc;
+      font-size: 12px;
+    }
+
+    /* =========================================
+       PROFILE ACTION BUTTONS
+    ========================================= */
+
+    .explore-profile-actions {
+      display: flex;
+      gap: 9px;
+      margin-top: 15px;
+    }
+
+    .explore-profile-action {
+      flex: 1;
+      min-height: 44px;
+      padding: 10px 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 13px;
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .explore-profile-action.primary {
+      border: 0;
+      background: linear-gradient(120deg,#6366f1,#a855f7);
+      box-shadow: 0 5px 18px rgba(99,102,241,.22);
+    }
+
+    .explore-profile-action:active {
+      transform: scale(.96);
+    }
+
+    .explore-profile-action:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    /* =========================================
+       RESPONSIVE
+    ========================================= */
+
+    @media(max-width:360px) {
+      .explore-top-bar {
+        padding: 9px;
+      }
+
+      .explore-search-box {
+        padding: 9px 11px;
+      }
+
+      .explore-profile-info-card {
+        margin: 8px;
+        padding: 13px;
+      }
+
+      .explore-profile-avatar {
+        width: 70px;
+        height: 70px;
+      }
+
+      .explore-profile-stat strong {
+        font-size: 14px;
+      }
+    }
+
+  `;
+
+  if (!document.getElementById(style.id)) {
+    document.head.appendChild(style);
+  }
+
+  /* =====================================================
+     03. HELPER FUNCTIONS
   ===================================================== */
 
   function escapeHTML(value) {
@@ -553,52 +620,119 @@
   }
 
   function getUserId(user) {
-    return String(user?.id || user?._id || "");
+    return String(
+      user?.id ||
+      user?._id ||
+      ""
+    );
   }
 
   function getPostId(post) {
-    return String(post?.id || post?._id || "");
+    return String(
+      post?.id ||
+      post?._id ||
+      ""
+    );
   }
 
   function getPostUserId(post) {
-    return String(post?.user?.id || post?.user?._id || post?.userId || "");
+    return String(
+      post?.user?.id ||
+      post?.user?._id ||
+      post?.userId ||
+      post?.authorId ||
+      post?.author?._id ||
+      post?.author?.id ||
+      ""
+    );
   }
 
   function getAvatar(user) {
     if (window.TSUser?.avatar) {
-      return window.TSUser.avatar(user);
+      return window.TSUser.avatar(user) || "";
     }
 
     if (window.avatarUrl) {
-      return window.avatarUrl(user);
+      return window.avatarUrl(user) || "";
     }
 
-    return user?.avatar || "";
+    return user?.avatar || user?.avatarUrl || CONFIG.defaultAvatar;
   }
 
   function formatCount(num) {
-    if (!num) return "0";
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-    return String(num);
+    const value = Number(num) || 0;
+
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + "M";
+    }
+
+    if (value >= 1000) {
+      return (value / 1000).toFixed(1) + "K";
+    }
+
+    return String(value);
   }
 
   function cacheUser(user) {
     if (!user) return null;
 
-    if (window.TSUser) {
-      return window.TSUser.save(user);
+    if (window.TSUser?.save) {
+      return window.TSUser.save(user) || user;
     }
 
     return user;
   }
 
+  function getPostCaption(post) {
+    return String(post?.caption || "");
+  }
+
+  function isVideoPost(post) {
+    return (
+      post?.mediaType === "video" ||
+      (
+        post?.mediaUrl &&
+        /\.(mp4|webm|mov)(\?.*)?$/i.test(post.mediaUrl)
+      )
+    );
+  }
+
+  function getCleanCaption(post, maxLength = 75) {
+    return getPostCaption(post)
+      .replace(/^\[.*?\]\s*/, "")
+      .slice(0, maxLength);
+  }
+
+  function getPostStat(post) {
+    return formatCount(
+      post?.viewsCount ||
+      post?.likesCount ||
+      0
+    );
+  }
+
+  function getApiErrorMessage(error, fallback) {
+    return error?.message || fallback;
+  }
+
+  function renderState(message, type = "") {
+    return `
+      <div class="explore-state ${type}">
+        ${escapeHTML(message)}
+      </div>
+    `;
+  }
+
   /* =====================================================
-     MAIN EXPLORE RENDER
+     04. EXPLORE MAIN RENDERER
   ===================================================== */
 
   window.renderExplore = async function (container) {
     if (!container) return;
+
+    activeExploreContainer = container;
+    activeCategory = "All";
+    searchRequestNumber++;
 
     container.innerHTML = `
       <div class="explore-container">
@@ -606,51 +740,41 @@
         <div class="explore-top-bar">
 
           <div class="explore-search-box">
-            <span style="color:#60a5fa;font-size:15px;">🔍</span>
+            <span class="explore-search-icon">⌕</span>
 
             <input
               type="text"
               id="explore-search-input"
-              placeholder="Search notes, educators, topics..."
+              placeholder="Search people, notes, topics..."
               autocomplete="off"
             />
 
             <button
+              class="explore-clear-btn"
               id="explore-clear-search"
-              style="
-                display:none;
-                background:none;
-                border:none;
-                color:#94a3b8;
-                font-size:14px;
-                cursor:pointer;
-              "
+              type="button"
+              aria-label="Clear search"
             >✕</button>
           </div>
 
           <button
             class="explore-saved-btn"
             id="explore-saved-btn"
+            type="button"
             title="Saved Lessons"
           >🔖</button>
 
         </div>
 
         <div class="explore-cats" id="explore-cats-bar">
-          ${[
-            "All",
-            "Mathematics",
-            "Physics",
-            "Chemistry",
-            "Biology",
-            "Programming",
-            "General Studies",
-            "English"
-          ].map(cat => `
+          ${CONFIG.categories.map(category => `
             <button
-              class="explore-cat-pill ${cat === "All" ? "active" : ""}"
-              data-cat="${escapeHTML(cat)}"
-            >${escapeHTML(cat)}</button>
+              type="button"
+              class="explore-cat-pill ${category === "All" ? "active" : ""}"
+              data-cat="${escapeHTML(category)}"
+            >
+              ${escapeHTML(category)}
+            </button>
           `).join("")}
         </div>
 
@@ -661,29 +785,32 @@
         ></div>
 
         <div class="explore-grid" id="explore-grid">
-          <div style="
-            grid-column:1/-1;
-            text-align:center;
-            padding:40px;
-            color:#94a3b8;
-          ">
-            Loading trending lessons...
-          </div>
+          ${renderState("Loading Explore posts...")}
         </div>
 
       </div>
     `;
 
-    const searchInput = container.querySelector("#explore-search-input");
-    const clearBtn = container.querySelector("#explore-clear-search");
+    const searchInput = container.querySelector(
+      "#explore-search-input"
+    );
 
-    container.querySelectorAll(".explore-cat-pill").forEach(btn => {
-      btn.onclick = () => {
+    const clearBtn = container.querySelector(
+      "#explore-clear-search"
+    );
+
+    const usersBox = container.querySelector(
+      "#explore-users-box"
+    );
+
+    container.querySelectorAll(".explore-cat-pill").forEach(button => {
+      button.onclick = () => {
         container.querySelectorAll(".explore-cat-pill")
-          .forEach(b => b.classList.remove("active"));
+          .forEach(item => item.classList.remove("active"));
 
-        btn.classList.add("active");
-        activeCategory = btn.dataset.cat;
+        button.classList.add("active");
+
+        activeCategory = button.dataset.cat || "All";
 
         renderGridFiltered();
       };
@@ -695,99 +822,104 @@
       clearBtn.style.display = query ? "block" : "none";
 
       renderGridFiltered();
-      searchUsersFromServer(query);
+      searchUsersFromServer(query, usersBox);
     };
 
     clearBtn.onclick = () => {
       searchInput.value = "";
       clearBtn.style.display = "none";
 
-      const usersBox = container.querySelector("#explore-users-box");
+      searchRequestNumber++;
       usersBox.style.display = "none";
+      usersBox.innerHTML = "";
 
       renderGridFiltered();
       searchInput.focus();
     };
 
-    container.querySelector("#explore-saved-btn").onclick =
-      () => openSavedLessonsModal();
+    container.querySelector("#explore-saved-btn").onclick = () => {
+      openSavedLessonsModal();
+    };
 
-    await fetchExplorePosts();
+    await fetchExplorePosts(container);
   };
 
   /* =====================================================
-     FETCH EXPLORE POSTS
+     05. FEED API
   ===================================================== */
 
-  async function fetchExplorePosts() {
-    const grid = document.getElementById("explore-grid");
+  async function fetchExplorePosts(container) {
+    const grid = container?.querySelector("#explore-grid");
+
     if (!grid) return;
 
     try {
-      const res = window.TSUser
+      const response = window.TSUser?.getFeedPosts
         ? await window.TSUser.getFeedPosts()
         : await window.api("/api/posts/feed");
 
-      if (res && res.success && Array.isArray(res.posts)) {
-        allPostsCache = res.posts;
+      if (activeExploreContainer !== container) return;
 
-        // Save post authors in shared user cache
-        if (window.TSUser) {
-          allPostsCache.forEach(post => {
-            if (post.user) {
-              post.user = cacheUser(post.user);
-            }
-          });
-        }
+      if (
+        response?.success &&
+        Array.isArray(response.posts)
+      ) {
+        allPostsCache = response.posts.map(post => {
+          if (post?.user) {
+            return {
+              ...post,
+              user: cacheUser(post.user)
+            };
+          }
+
+          return post;
+        });
 
         renderGridFiltered();
-      } else {
-        grid.innerHTML = `
-          <div style="
-            grid-column:1/-1;
-            text-align:center;
-            padding:40px;
-            color:#94a3b8;
-          ">
-            No lessons found.
-          </div>
-        `;
+        return;
       }
 
-    } catch (err) {
-      console.error("Explore feed error:", err);
+      allPostsCache = [];
 
-      grid.innerHTML = `
-        <div style="
-          grid-column:1/-1;
-          text-align:center;
-          padding:40px;
-          color:#ef4444;
-        ">
-          Failed to load explore feed.
-        </div>
-      `;
+      grid.innerHTML = renderState(
+        "No posts found yet."
+      );
+
+    } catch (error) {
+      console.error("Explore feed error:", error);
+
+      if (activeExploreContainer !== container) return;
+
+      grid.innerHTML = renderState(
+        "Failed to load Explore posts. Please try again.",
+        "error"
+      );
     }
   }
 
   /* =====================================================
-     FILTER AND RENDER POSTS
+     06. POST FILTERING & GRID
   ===================================================== */
 
   function renderGridFiltered() {
-    const grid = document.getElementById("explore-grid");
+    const container = activeExploreContainer;
+
+    if (!container) return;
+
+    const grid = container.querySelector("#explore-grid");
+
     if (!grid) return;
 
     const query = (
-      document.getElementById("explore-search-input")?.value || ""
+      container.querySelector("#explore-search-input")?.value || ""
     ).toLowerCase().trim();
 
-    const filtered = allPostsCache.filter(post => {
-      const caption = (post.caption || "").toLowerCase();
+    const filteredPosts = allPostsCache.filter(post => {
+      const caption = getPostCaption(post).toLowerCase();
 
       const author = (
-        post.user?.displayName ||
-        post.user?.username ||
+        post?.user?.displayName ||
+        post?.user?.username ||
         ""
       ).toLowerCase();
 
@@ -795,231 +927,247 @@
         activeCategory === "All" ||
         caption.includes(`[${activeCategory.toLowerCase()}]`);
 
-      const matchesQuery =
+      const matchesSearch =
         !query ||
         caption.includes(query) ||
         author.includes(query);
 
-      return matchesCategory && matchesQuery;
+      return matchesCategory && matchesSearch;
     });
 
-    if (!filtered.length) {
-      grid.innerHTML = `
-        <div style="
-          grid-column:1/-1;
-          text-align:center;
-          padding:40px;
-          color:#64748b;
-        ">
-          No matching lessons or reels found.
-        </div>
-      `;
+    if (!filteredPosts.length) {
+      grid.innerHTML = renderState(
+        "No matching posts found."
+      );
       return;
     }
 
-    grid.innerHTML = filtered.map(post => {
+    grid.innerHTML = filteredPosts.map(post => {
       const postId = getPostId(post);
-
-      const isVideo =
-        post.mediaType === "video" ||
-        (post.mediaUrl && /\.(mp4|webm|mov)$/i.test(post.mediaUrl));
-
-      const statCount = formatCount(
-        post.viewsCount || post.likesCount || 0
-      );
-
-      const cleanText = (post.caption || "")
-        .replace(/^\[.*?\]\s*/, "");
+      const video = isVideoPost(post);
+      const caption = getCleanCaption(post, 75);
 
       return `
         <div
           class="explore-tile"
           data-open-post="${escapeHTML(postId)}"
         >
+
           ${
             post.mediaUrl
               ? (
-                  isVideo
-                    ? `<video
-                         src="${escapeHTML(post.mediaUrl)}"
-                         muted
-                         preload="metadata"
-                         playsinline
-                       ></video>`
-                    : `<img
-                         src="${escapeHTML(post.mediaUrl)}"
-                         loading="lazy"
-                         alt="Explore post"
-                       />`
+                  video
+                    ? `
+                      <video
+                        src="${escapeHTML(post.mediaUrl)}"
+                        muted
+                        preload="metadata"
+                        playsinline
+                      ></video>
+                    `
+                    : `
+                      <img
+                        src="${escapeHTML(post.mediaUrl)}"
+                        loading="lazy"
+                        alt="Explore post"
+                      />
+                    `
                 )
               : `
                 <div class="explore-text-tile">
-                  ${escapeHTML(cleanText.slice(0, 75) || "Study Note")}
+                  ${escapeHTML(caption || "Study Note")}
                 </div>
               `
           }
 
-          ${isVideo ? `<div class="explore-reel-icon">🎬</div>` : ""}
+          ${video ? `
+            <div class="explore-reel-icon">🎬</div>
+          ` : ""}
 
           <div class="explore-tile-overlay"></div>
 
           <div class="explore-tile-stats">
             <span>👁</span>
-            <span>${statCount}</span>
+            <span>${getPostStat(post)}</span>
           </div>
+
         </div>
       `;
     }).join("");
 
     grid.querySelectorAll("[data-open-post]").forEach(tile => {
       tile.onclick = () => {
-        if (typeof window.openFullscreenPostViewer === "function") {
-          window.openFullscreenPostViewer(tile.dataset.openPost);
+        const postId = tile.dataset.openPost;
+
+        if (
+          postId &&
+          typeof window.openFullscreenPostViewer === "function"
+        ) {
+          window.openFullscreenPostViewer(postId);
         }
       };
     });
   }
 
   /* =====================================================
-     USER SEARCH
+     07. USER SEARCH
   ===================================================== */
 
-  async function searchUsersFromServer(query) {
-    const usersBox = document.getElementById("explore-users-box");
+  async function searchUsersFromServer(query, usersBox) {
     if (!usersBox) return;
 
     const requestNumber = ++searchRequestNumber;
 
-    if (!query || query.length < 1) {
+    if (query.length < CONFIG.searchMinLength) {
       usersBox.style.display = "none";
+      usersBox.innerHTML = "";
       return;
     }
 
+    usersBox.style.display = "block";
+    usersBox.innerHTML = `
+      <div class="explore-results-heading">
+        Searching people...
+      </div>
+    `;
+
     try {
-      const res = window.TSUser
+      const response = window.TSUser?.searchUsers
         ? await window.TSUser.searchUsers(query)
         : await window.api(
             `/api/users?search=${encodeURIComponent(query)}`
           );
 
-      // Ignore older search results
       if (requestNumber !== searchRequestNumber) return;
 
-      if (res && res.success && res.users && res.users.length) {
-        const users = res.users
-          .map(cacheUser)
-          .filter(Boolean);
-
-        usersBox.style.display = "block";
-
+      if (
+        !response?.success ||
+        !Array.isArray(response.users) ||
+        !response.users.length
+      ) {
         usersBox.innerHTML = `
-          <div style="
-            font-size:11px;
-            font-weight:700;
-            color:#94a3b8;
-            margin-bottom:6px;
-            text-transform:uppercase;
-          ">
-            Educators & Students
+          <div class="explore-results-heading">
+            People
           </div>
+          <div style="
+            padding:14px 5px;
+            color:#94a3b8;
+            font-size:13px;
+            text-align:center;
+          ">
+            No users found.
+          </div>
+        `;
+        return;
+      }
 
-          ${users.map(user => `
-            <div
-              class="explore-user-row"
-              data-explore-user="${escapeHTML(getUserId(user))}"
-            >
-              <img
-                src="${escapeHTML(getAvatar(user))}"
-                alt="${escapeHTML(user.displayName || user.username)}"
-              />
+      const users = response.users
+        .map(cacheUser)
+        .filter(user => getUserId(user));
 
-              <div style="flex:1;min-width:0;">
-                <div style="
-                  font-weight:700;
-                  font-size:14px;
-                  color:#fff;
-                  white-space:nowrap;
-                  overflow:hidden;
-                  text-overflow:ellipsis;
-                ">
-                  ${escapeHTML(user.displayName || user.username)}
-                </div>
+      if (!users.length) {
+        usersBox.style.display = "none";
+        return;
+      }
 
-                <div style="
-                  font-size:12px;
-                  color:#94a3b8;
-                  white-space:nowrap;
-                  overflow:hidden;
-                  text-overflow:ellipsis;
-                ">
-                  @${escapeHTML(user.username)}
-                </div>
+      usersBox.innerHTML = `
+        <div class="explore-results-heading">
+          People
+        </div>
+
+        ${users.map(user => `
+          <div
+            class="explore-user-row"
+            data-explore-user="${escapeHTML(getUserId(user))}"
+          >
+
+            <img
+              src="${escapeHTML(getAvatar(user))}"
+              alt="User avatar"
+              loading="lazy"
+            />
+
+            <div class="explore-user-info">
+              <div class="explore-user-name">
+                ${escapeHTML(user.displayName || user.username || "User")}
+              </div>
+
+              <div class="explore-user-username">
+                @${escapeHTML(user.username || "user")}
               </div>
             </div>
-          `).join("")}
-        `;
 
-        usersBox.querySelectorAll("[data-explore-user]").forEach(row => {
-          row.onclick = () => {
-            window.openUserExploreProfile(row.dataset.exploreUser);
-          };
-        });
+            <span style="color:#818cf8;font-size:18px;">›</span>
 
-      } else {
-        usersBox.style.display = "none";
-      }
+          </div>
+        `).join("")}
+      `;
+
+      usersBox.querySelectorAll("[data-explore-user]").forEach(row => {
+        row.onclick = () => {
+          window.openUserExploreProfile(
+            row.dataset.exploreUser
+          );
+        };
+      });
 
     } catch (error) {
       console.error("Explore user search error:", error);
 
       if (requestNumber === searchRequestNumber) {
-        usersBox.style.display = "none";
+        usersBox.innerHTML = `
+          <div style="
+            padding:12px;
+            color:#f87171;
+            font-size:13px;
+            text-align:center;
+          ">
+            Could not search users.
+          </div>
+        `;
       }
     }
   }
 
   /* =====================================================
-     PUBLIC USER PROFILE MODAL
+     08. PUBLIC PROFILE MODAL
   ===================================================== */
 
   window.openUserExploreProfile = async function (userId) {
     if (!userId) return;
 
-    const existing = document.getElementById(
-      "explore-user-profile-modal"
-    );
+    const encodedId = encodeURIComponent(userId);
 
-    if (existing) existing.remove();
+    document.getElementById(
+      "explore-user-profile-modal"
+    )?.remove();
 
     const modal = document.createElement("div");
+
     modal.id = "explore-user-profile-modal";
     modal.className = "explore-profile-modal";
 
     modal.innerHTML = `
       <div class="explore-modal-header">
 
-        <div class="explore-modal-header-left">
-          <button
-            id="close-user-profile"
-            class="explore-modal-back"
-          >←</button>
+        <button
+          type="button"
+          id="close-user-profile"
+          class="explore-modal-back"
+        >
+          ← Back
+        </button>
 
-          <div
-            style="font-weight:800;font-size:17px;"
-            id="modal-username-title"
-          >
-            Profile
-          </div>
+        <div
+          class="explore-modal-title"
+          id="modal-username-title"
+        >
+          Profile
         </div>
-
-        <div style="font-size:18px;">🔔</div>
 
       </div>
 
-      <div
-        id="profile-modal-body"
-        style="flex:1;padding-bottom:50px;"
-      >
+      <div id="profile-modal-body">
         <div class="explore-profile-loading">
           Loading profile details...
         </div>
@@ -1033,14 +1181,12 @@
     };
 
     try {
-      const encodedId = encodeURIComponent(userId);
-
-      const [profileRes, followStatusRes] = await Promise.all([
-        window.TSUser
+      const [profileResponse, followResponse] = await Promise.all([
+        window.TSUser?.getUserProfile
           ? window.TSUser.getUserProfile(userId)
           : window.api(`/api/users/${encodedId}/profile`),
 
-        window.TSUser
+        window.TSUser?.getFollowStatus
           ? window.TSUser.getFollowStatus(userId, true)
           : window.api(`/api/users/${encodedId}/follow-status`)
               .catch(() => ({ success: false }))
@@ -1048,179 +1194,101 @@
 
       if (!modal.isConnected) return;
 
-      const bodyContainer = modal.querySelector("#profile-modal-body");
+      const body = modal.querySelector("#profile-modal-body");
 
       if (
-        !profileRes ||
-        !profileRes.success ||
-        !profileRes.profile
+        !profileResponse?.success ||
+        !profileResponse.profile
       ) {
-        bodyContainer.innerHTML = `
-          <p style="
-            text-align:center;
-            color:#ef4444;
-            padding:40px;
-          ">
+        body.innerHTML = `
+          <div class="explore-state error">
             Could not load profile details.
-          </p>
+          </div>
         `;
         return;
       }
 
-      const p = cacheUser(profileRes.profile);
+      const profile = cacheUser(profileResponse.profile);
 
       modal.querySelector("#modal-username-title").textContent =
-        p.username || "Profile";
+        profile.username || "Profile";
 
       const isFollowing = Boolean(
-        followStatusRes?.success && followStatusRes.following
+        followResponse?.success &&
+        followResponse.following
       );
 
-      const followersCount =
-        followStatusRes?.success
-          ? (followStatusRes.followersCount || 0)
-          : 0;
+      const followersCount = Number(
+        followResponse?.followersCount || 0
+      );
 
-      const followingCount =
-        followStatusRes?.success
-          ? (followStatusRes.followingCount || 0)
-          : 0;
+      const followingCount = Number(
+        followResponse?.followingCount || 0
+      );
 
-      // Posts currently available in Explore feed cache
-      const userPosts = allPostsCache.filter(post =>
-  String(post.user?.id || post.userId || "") === String(userId)
-);
+      const profilePosts = allPostsCache.filter(post => {
+        return getPostUserId(post) === String(userId);
+      });
 
-      bodyContainer.innerHTML = `
-        <div style="padding:16px;">
+      body.innerHTML = `
+        <div class="explore-profile-info-card">
 
-          <div style="
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:16px;
-          ">
+          <div class="explore-profile-top">
 
-            <div style="
-              width:82px;
-              height:82px;
-              border-radius:50%;
-              padding:2px;
-              background:linear-gradient(135deg,#6366f1,#ec4899);
-              flex-shrink:0;
-            ">
+            <div class="explore-profile-avatar">
               <img
-                src="${escapeHTML(getAvatar(p))}"
+                src="${escapeHTML(getAvatar(profile))}"
                 alt="Profile photo"
-                style="
-                  width:100%;
-                  height:100%;
-                  border-radius:50%;
-                  object-fit:cover;
-                  background:#000;
-                "
               />
             </div>
 
-            <div style="
-              display:flex;
-              flex:1;
-              justify-content:space-around;
-              text-align:center;
-            ">
+            <div class="explore-profile-stats">
 
-              <div>
-                <div style="font-weight:800;font-size:16px;">
-                  ${userPosts.length}
-                </div>
-                <div style="font-size:12px;color:#94a3b8;">
-                  posts
-                </div>
+              <div class="explore-profile-stat">
+                <strong>${formatCount(profilePosts.length)}</strong>
+                <span>Posts</span>
               </div>
 
-             
               <button
                 type="button"
+                class="explore-profile-stat"
                 id="profile-followers-btn"
-                style="
-                  background:transparent;
-                  border:0;
-                  color:inherit;
-                  padding:5px;
-                  cursor:pointer;
-                  text-align:center;
-                "
               >
-                <div
-                  id="profile-followers-count"
-                  style="font-weight:800;font-size:16px;"
-                >
-                  ${followersCount}
-                </div>
-                <div style="font-size:12px;color:#94a3b8;">
-                  followers
-                </div>
+                <strong id="profile-followers-count">
+                  ${formatCount(followersCount)}
+                </strong>
+                <span>Followers</span>
               </button>
 
               <button
                 type="button"
+                class="explore-profile-stat"
                 id="profile-following-btn"
-                style="
-                  background:transparent;
-                  border:0;
-                  color:inherit;
-                  padding:5px;
-                  cursor:pointer;
-                  text-align:center;
-                "
               >
-                <div style="font-weight:800;font-size:16px;">
-                  ${followingCount}
-                </div>
-                <div style="font-size:12px;color:#94a3b8;">
-                  following
-                </div>
+                <strong>${formatCount(followingCount)}</strong>
+                <span>Following</span>
               </button>
 
-
-            </div>
-          </div>
-
-          <div style="margin-top:12px;">
-
-            <div style="font-weight:800;font-size:15px;color:#fff;">
-              ${escapeHTML(p.displayName || p.username)}
-            </div>
-
-            <div style="
-              font-size:13px;
-              color:#cbd5e1;
-              margin-top:4px;
-              white-space:pre-wrap;
-              line-height:1.4;
-            ">
-              ${escapeHTML(p.bio || "Study enthusiast & learner on TELESUPAR.")}
-            </div>
-
-            <div style="
-              display:inline-flex;
-              align-items:center;
-              gap:6px;
-              background:#1e293b;
-              padding:4px 10px;
-              border-radius:99px;
-              font-size:12px;
-              color:#60a5fa;
-              margin-top:8px;
-            ">
-              @${escapeHTML(p.username)}
             </div>
 
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:14px;">
+          <div class="explore-profile-name">
+            ${escapeHTML(profile.displayName || profile.username || "User")}
+          </div>
+
+          <div class="explore-profile-bio">
+            ${escapeHTML(profile.bio || "Study enthusiast on TELESUPAR.")}
+          </div>
+
+          <div class="explore-profile-username">
+            @${escapeHTML(profile.username || "user")}
+          </div>
+
+          <div class="explore-profile-actions">
 
             <button
+              type="button"
               id="profile-follow-btn"
               class="explore-profile-action ${isFollowing ? "" : "primary"}"
             >
@@ -1228,6 +1296,7 @@
             </button>
 
             <button
+              type="button"
               id="profile-msg-btn"
               class="explore-profile-action"
             >
@@ -1239,75 +1308,25 @@
         </div>
 
         <div class="explore-profile-post-tabs">
-          <div style="border-bottom:2px solid #fff;">⊞</div>
-          <div style="color:#94a3b8;">🎬</div>
-          <div style="color:#94a3b8;">👤</div>
+          <div style="
+            padding:13px;
+            border-bottom:2px solid #818cf8;
+            color:#fff;
+            text-align:center;
+          ">
+            ▦
+          </div>
         </div>
 
-        <div class="explore-grid" style="margin-top:2px;">
+        <div class="explore-grid" id="explore-profile-post-grid">
 
           ${
-            userPosts.length
-              ? userPosts.map(post => {
-                  const isVideo =
-                    post.mediaType === "video" ||
-                    (post.mediaUrl && /\.(mp4|webm|mov)$/i.test(post.mediaUrl));
-
-                  const statCount = formatCount(
-                    post.viewsCount || post.likesCount || 0
-                  );
-
-                  const cleanText = (post.caption || "")
-                    .replace(/^\[.*?\]\s*/, "");
-
-                  return `
-                    <div
-                      class="explore-tile"
-                      data-profile-post="${escapeHTML(getPostId(post))}"
-                    >
-
-                      ${
-                        post.mediaUrl
-                          ? (
-                              isVideo
-                                ? `<video
-                                     src="${escapeHTML(post.mediaUrl)}"
-                                     muted
-                                     preload="metadata"
-                                     playsinline
-                                   ></video>`
-                                : `<img
-                                     src="${escapeHTML(post.mediaUrl)}"
-                                     loading="lazy"
-                                     alt="Post"
-                                   />`
-                            )
-                          : `
-                            <div class="explore-text-tile">
-                              ${escapeHTML(cleanText.slice(0,60) || "Study Note")}
-                            </div>
-                          `
-                      }
-
-                      ${isVideo ? `<div class="explore-reel-icon">🎬</div>` : ""}
-
-                      <div class="explore-tile-overlay"></div>
-
-                      <div class="explore-tile-stats">
-                        <span>👁</span>
-                        <span>${statCount}</span>
-                      </div>
-
-                    </div>
-                  `;
+            profilePosts.length
+              ? profilePosts.map(post => {
+                  return createProfilePostHTML(post);
                 }).join("")
               : `
-                <div style="
-                  grid-column:1/-1;
-                  text-align:center;
-                  padding:40px;
-                  color:#64748b;
-                ">
+                <div class="explore-state">
                   No posts uploaded by this user yet.
                 </div>
               `
@@ -1316,200 +1335,326 @@
         </div>
       `;
 
-      
-      /* =================================================
-         EXPLORE PROFILE - FOLLOWERS / FOLLOWING
-      ================================================= */
-
-      const followersBtn = bodyContainer.querySelector(
-  "#profile-followers-btn"
-);
-
-const followingBtn = bodyContainer.querySelector(
-  "#profile-following-btn"
-);
-
-if (followersBtn) {
-  followersBtn.onclick = () => {
-    if (typeof window.openFollowersFollowingPage !== "function") {
-      alert("Connections page is not ready.");
-      return;
-    }
-
-    // Close Explore profile first
-    document
-      .getElementById("explore-user-profile-modal")
-      ?.remove();
-
-    window.openFollowersFollowingPage(p, "followers");
-  };
-}
-
-if (followingBtn) {
-  followingBtn.onclick = () => {
-    if (typeof window.openFollowersFollowingPage !== "function") {
-      alert("Connections page is not ready.");
-      return;
-    }
-
-    // Close Explore profile first
-    document
-      .getElementById("explore-user-profile-modal")
-      ?.remove();
-
-    window.openFollowersFollowingPage(p, "following");
-  };
-}
-
-      /* =================================================
-         PROFILE POSTS CLICK
-      ================================================= */
-
-      bodyContainer.querySelectorAll("[data-profile-post]").forEach(tile => {
-  tile.onclick = () => {
-    const postId = tile.dataset.profilePost;
-
-    if (typeof window.openFullscreenPostViewer === "function") {
-      document.getElementById("explore-user-profile-modal")?.remove();
-
-      window.openFullscreenPostViewer(postId);
-    }
-  };
-});
-
-      /* =================================================
-         FOLLOW / UNFOLLOW
-      ================================================= */
-
-      const followBtn = bodyContainer.querySelector(
-        "#profile-follow-btn"
+      setupProfileConnections(
+        body,
+        profile
       );
 
-      let currentlyFollowing = isFollowing;
+      setupFollowButton(
+        body,
+        userId,
+        encodedId,
+        isFollowing
+      );
 
-      followBtn.onclick = async () => {
-        if (followBtn.disabled) return;
+      setupMessageButton(
+        body,
+        userId,
+        modal
+      );
 
-        followBtn.disabled = true;
-        followBtn.textContent = "Please wait...";
-
-        try {
-          const result = window.TSUser
-            ? (
-                currentlyFollowing
-                  ? await window.TSUser.unfollow(userId)
-                  : await window.TSUser.follow(userId)
-              )
-            : await window.api(
-                `/api/users/${encodedId}/follow`,
-                {
-                  method: currentlyFollowing ? "DELETE" : "POST"
-                }
-              );
-
-          if (!result || !result.success) {
-            throw new Error(
-              result?.message || "Follow action failed."
-            );
-          }
-
-          currentlyFollowing =
-            typeof result.following === "boolean"
-              ? result.following
-              : !currentlyFollowing;
-
-          followBtn.textContent = currentlyFollowing
-            ? "Following ✓"
-            : "Follow";
-
-          followBtn.classList.toggle(
-            "primary",
-            !currentlyFollowing
-          );
-
-          if (typeof result.followersCount !== "undefined") {
-            const countElement = bodyContainer.querySelector(
-              "#profile-followers-count"
-            );
-
-            if (countElement) {
-              countElement.textContent = result.followersCount;
-            }
-          }
-
-        } catch (error) {
-          console.error("Follow action failed:", error);
-          alert(error.message || "Could not update follow status.");
-
-          followBtn.textContent = currentlyFollowing
-            ? "Following ✓"
-            : "Follow";
-
-        } finally {
-          followBtn.disabled = false;
-        }
-      };
-
-      /* =================================================
-         MESSAGE BUTTON
-      ================================================= */
-
-      bodyContainer.querySelector("#profile-msg-btn").onclick =
-  async () => {
-    const msgBtn = bodyContainer.querySelector("#profile-msg-btn");
-
-    try {
-      msgBtn.disabled = true;
-      msgBtn.textContent = "Opening...";
-
-      if (typeof window.openDirectChat !== "function") {
-        throw new Error("Chat system is not ready.");
-      }
-
-      modal.remove();
-
-      await window.openDirectChat(String(userId));
-
-    } catch (error) {
-      console.error("Open chat error:", error);
-
-      msgBtn.disabled = false;
-      msgBtn.textContent = "Message";
-
-      alert(error.message || "Could not open chat.");
-    }
-  };
+      setupProfilePostClicks(
+        body,
+        modal
+      );
 
     } catch (error) {
       console.error("Explore profile error:", error);
 
-      const bodyContainer = modal.querySelector(
-        "#profile-modal-body"
-      );
+      if (!modal.isConnected) return;
 
-      if (bodyContainer) {
-        bodyContainer.innerHTML = `
-          <p style="
-            text-align:center;
-            color:#ef4444;
-            padding:40px;
-          ">
+      const body = modal.querySelector("#profile-modal-body");
+
+      if (body) {
+        body.innerHTML = `
+          <div class="explore-state error">
             Failed to connect to server.
-          </p>
+          </div>
         `;
       }
     }
   };
 
   /* =====================================================
-     SAVED LESSONS
-     Existing placeholder preserved
+     PROFILE POST HTML
+  ===================================================== */
+
+  function createProfilePostHTML(post) {
+    const video = isVideoPost(post);
+    const caption = getCleanCaption(post, 60);
+
+    return `
+      <div
+        class="explore-tile"
+        data-profile-post="${escapeHTML(getPostId(post))}"
+      >
+
+        ${
+          post.mediaUrl
+            ? (
+                video
+                  ? `
+                    <video
+                      src="${escapeHTML(post.mediaUrl)}"
+                      muted
+                      preload="metadata"
+                      playsinline
+                    ></video>
+                  `
+                  : `
+                    <img
+                      src="${escapeHTML(post.mediaUrl)}"
+                      loading="lazy"
+                      alt="Post"
+                    />
+                  `
+              )
+            : `
+              <div class="explore-text-tile">
+                ${escapeHTML(caption || "Study Note")}
+              </div>
+            `
+        }
+
+        ${video ? `
+          <div class="explore-reel-icon">🎬</div>
+        ` : ""}
+
+        <div class="explore-tile-overlay"></div>
+
+        <div class="explore-tile-stats">
+          <span>👁</span>
+          <span>${getPostStat(post)}</span>
+        </div>
+
+      </div>
+    `;
+  }
+
+  /* =====================================================
+     09. FOLLOWERS / FOLLOWING
+  ===================================================== */
+
+  function setupProfileConnections(body, profile) {
+    const followersButton = body.querySelector(
+      "#profile-followers-btn"
+    );
+
+    const followingButton = body.querySelector(
+      "#profile-following-btn"
+    );
+
+    if (followersButton) {
+      followersButton.onclick = () => {
+        if (
+          typeof window.openFollowersFollowingPage !== "function"
+        ) {
+          alert("Connections page is not ready.");
+          return;
+        }
+
+        document.getElementById(
+          "explore-user-profile-modal"
+        )?.remove();
+
+        window.openFollowersFollowingPage(
+          profile,
+          "followers"
+        );
+      };
+    }
+
+    if (followingButton) {
+      followingButton.onclick = () => {
+        if (
+          typeof window.openFollowersFollowingPage !== "function"
+        ) {
+          alert("Connections page is not ready.");
+          return;
+        }
+
+        document.getElementById(
+          "explore-user-profile-modal"
+        )?.remove();
+
+        window.openFollowersFollowingPage(
+          profile,
+          "following"
+        );
+      };
+    }
+  }
+
+  /* =====================================================
+     10. FOLLOW / UNFOLLOW
+  ===================================================== */
+
+  function setupFollowButton(
+    body,
+    userId,
+    encodedId,
+    initialFollowing
+  ) {
+    const button = body.querySelector(
+      "#profile-follow-btn"
+    );
+
+    if (!button) return;
+
+    let currentlyFollowing = initialFollowing;
+
+    button.onclick = async () => {
+      if (button.disabled) return;
+
+      button.disabled = true;
+      button.textContent = "Please wait...";
+
+      try {
+        const response = window.TSUser
+          ? (
+              currentlyFollowing
+                ? await window.TSUser.unfollow(userId)
+                : await window.TSUser.follow(userId)
+            )
+          : await window.api(
+              `/api/users/${encodedId}/follow`,
+              {
+                method: currentlyFollowing ? "DELETE" : "POST"
+              }
+            );
+
+        if (!response?.success) {
+          throw new Error(
+            response?.message || "Follow action failed."
+          );
+        }
+
+        currentlyFollowing =
+          typeof response.following === "boolean"
+            ? response.following
+            : !currentlyFollowing;
+
+        button.textContent = currentlyFollowing
+          ? "Following ✓"
+          : "Follow";
+
+        button.classList.toggle(
+          "primary",
+          !currentlyFollowing
+        );
+
+        const countElement = body.querySelector(
+          "#profile-followers-count"
+        );
+
+        if (
+          countElement &&
+          typeof response.followersCount !== "undefined"
+        ) {
+          countElement.textContent = formatCount(
+            response.followersCount
+          );
+        }
+
+      } catch (error) {
+        console.error("Follow action failed:", error);
+
+        alert(
+          getApiErrorMessage(
+            error,
+            "Could not update follow status."
+          )
+        );
+
+        button.textContent = currentlyFollowing
+          ? "Following ✓"
+          : "Follow";
+
+      } finally {
+        button.disabled = false;
+      }
+    };
+  }
+
+  /* =====================================================
+     11. DIRECT MESSAGE
+  ===================================================== */
+
+  function setupMessageButton(body, userId, modal) {
+    const button = body.querySelector(
+      "#profile-msg-btn"
+    );
+
+    if (!button) return;
+
+    button.onclick = async () => {
+      if (button.disabled) return;
+
+      button.disabled = true;
+      button.textContent = "Opening...";
+
+      try {
+        if (typeof window.openDirectChat !== "function") {
+          throw new Error("Chat system is not ready.");
+        }
+
+        modal.remove();
+
+        await window.openDirectChat(String(userId));
+
+      } catch (error) {
+        console.error("Open chat error:", error);
+
+        button.disabled = false;
+        button.textContent = "Message";
+
+        alert(
+          getApiErrorMessage(
+            error,
+            "Could not open chat."
+          )
+        );
+      }
+    };
+  }
+
+  /* =====================================================
+     PROFILE POST CLICK
+  ===================================================== */
+
+  function setupProfilePostClicks(body, modal) {
+    body.querySelectorAll("[data-profile-post]").forEach(tile => {
+      tile.onclick = () => {
+        const postId = tile.dataset.profilePost;
+
+        if (
+          !postId ||
+          typeof window.openFullscreenPostViewer !== "function"
+        ) {
+          return;
+        }
+
+        modal.remove();
+
+        window.openFullscreenPostViewer(postId);
+      };
+    });
+  }
+
+  /* =====================================================
+     12. SAVED LESSONS
   ===================================================== */
 
   function openSavedLessonsModal() {
-    alert("Saved study posts feature coming up next!");
+    alert(
+      "Saved study posts feature coming up next!"
+    );
   }
 
-  console.log("TELESUPAR Explore V2 loaded");
+  /* =====================================================
+     INITIALIZATION
+  ===================================================== */
+
+  console.log("TELESUPAR Explore V3 loaded successfully.");
 
 })();
