@@ -405,7 +405,7 @@
     .tsp-ff-screen {
       position:fixed;
       inset:0;
-      z-index:140;
+      z-index:500;
       background:#090d16;
       overflow-y:auto;
       color:white;
