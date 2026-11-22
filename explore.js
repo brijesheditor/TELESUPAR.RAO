@@ -1138,26 +1138,50 @@
                 </div>
               </div>
 
-              <div>
+             
+              <button
+                type="button"
+                id="profile-followers-btn"
+                style="
+                  background:transparent;
+                  border:0;
+                  color:inherit;
+                  padding:5px;
+                  cursor:pointer;
+                  text-align:center;
+                "
+              >
                 <div
-                  style="font-weight:800;font-size:16px;"
                   id="profile-followers-count"
+                  style="font-weight:800;font-size:16px;"
                 >
                   ${followersCount}
                 </div>
                 <div style="font-size:12px;color:#94a3b8;">
                   followers
                 </div>
-              </div>
+              </button>
 
-              <div>
+              <button
+                type="button"
+                id="profile-following-btn"
+                style="
+                  background:transparent;
+                  border:0;
+                  color:inherit;
+                  padding:5px;
+                  cursor:pointer;
+                  text-align:center;
+                "
+              >
                 <div style="font-weight:800;font-size:16px;">
                   ${followingCount}
                 </div>
                 <div style="font-size:12px;color:#94a3b8;">
                   following
                 </div>
-              </div>
+              </button>
+
 
             </div>
           </div>
@@ -1291,6 +1315,42 @@
 
         </div>
       `;
+
+      
+      /* =================================================
+         EXPLORE PROFILE - FOLLOWERS / FOLLOWING
+      ================================================= */
+
+      const followersBtn = bodyContainer.querySelector(
+        "#profile-followers-btn"
+      );
+
+      const followingBtn = bodyContainer.querySelector(
+        "#profile-following-btn"
+      );
+
+      if (followersBtn) {
+        followersBtn.onclick = () => {
+          if (typeof window.openFollowersFollowingPage !== "function") {
+            alert("Connections page is not ready.");
+            return;
+          }
+
+          window.openFollowersFollowingPage(p, "followers");
+        };
+      }
+
+      if (followingBtn) {
+        followingBtn.onclick = () => {
+          if (typeof window.openFollowersFollowingPage !== "function") {
+            alert("Connections page is not ready.");
+            return;
+          }
+
+          window.openFollowersFollowingPage(p, "following");
+        };
+      }
+
 
       /* =================================================
          PROFILE POSTS CLICK
