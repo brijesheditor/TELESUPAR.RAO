@@ -292,75 +292,243 @@
       }
     }
 
-/* TELESUPAR Explore Glass UI */
+
+/* =====================================
+   TELESUPAR PREMIUM EXPLORE UI V2
+===================================== */
+
+/* Main top bar */
 .explore-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   background: rgba(9, 13, 22, 0.78) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.10);
+  border-bottom: 1px solid rgba(255,255,255,.09);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  padding: 12px;
 }
 
+/* Search box */
 .explore-search-box {
-  background: rgba(30, 41, 59, 0.58) !important;
-  border: 1px solid rgba(255,255,255,0.13);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(30, 41, 59, .52) !important;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 11px 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05),
+              0 8px 25px rgba(0,0,0,.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: border-color .2s, box-shadow .2s;
 }
 
+.explore-search-box:focus-within {
+  border-color: rgba(99,102,241,.7);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+
+.explore-search-box input {
+  font-size: 14px;
+  letter-spacing: .2px;
+}
+
+.explore-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+/* Saved button */
 .explore-saved-btn {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,.07) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 14px !important;
+  transition: .2s ease;
+}
+
+.explore-saved-btn:active {
+  transform: scale(.92);
+  background: rgba(99,102,241,.2) !important;
+}
+
+/* Category bar */
+.explore-cats {
+  background: rgba(9,13,22,.92);
+  padding: 12px;
+  gap: 9px;
 }
 
 .explore-cat-pill {
-  background: rgba(30,41,59,0.65);
-  backdrop-filter: blur(10px);
+  background: rgba(30,41,59,.65) !important;
+  border: 1px solid rgba(255,255,255,.09);
+  color: #cbd5e1;
+  padding: 8px 15px;
+  border-radius: 99px;
+  font-size: 12px;
+  transition: .2s ease;
+  backdrop-filter: blur(12px);
+}
+
+.explore-cat-pill.active {
+  background: linear-gradient(120deg,#6366f1,#a855f7,#ec4899) !important;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(99,102,241,.28);
+  color: #fff;
+}
+
+.explore-cat-pill:active {
+  transform: scale(.94);
+}
+
+/* User search results */
+.explore-users-results {
+  background: rgba(17,24,39,.88) !important;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 17px;
+  margin: 8px 10px;
+  padding: 12px;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
 }
 
 .explore-user-row {
-  background: rgba(255,255,255,0.035);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 13px;
+  padding: 11px;
   margin: 5px 0;
-  border-radius: 14px;
+  transition: background .2s, transform .2s;
 }
 
-.explore-users-results {
-  background: rgba(17,24,39,0.88);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+.explore-user-row:active {
+  background: rgba(99,102,241,.13);
+  transform: scale(.985);
+}
+
+.explore-user-row img {
+  border: 2px solid rgba(255,255,255,.12);
+}
+
+/* Explore post grid */
+.explore-grid {
+  gap: 3px !important;
+  background: #090d16;
 }
 
 .explore-tile {
-  transition: transform .18s ease, filter .18s ease;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #111827;
+  transition: transform .2s ease, filter .2s ease;
 }
 
 .explore-tile:active {
   transform: scale(.97);
-  filter: brightness(.85);
+  filter: brightness(.82);
 }
 
+.explore-tile img,
+.explore-tile video {
+  transition: transform .3s ease;
+}
+
+.explore-text-tile {
+  background: linear-gradient(145deg,#25205a,#111827,#172554);
+}
+
+/* Profile modal */
 #explore-user-profile-modal {
-  background: rgba(9,13,22,.97) !important;
+  background: rgba(7,11,20,.97) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.explore-modal-header {
+  background: rgba(17,24,39,.84) !important;
+  border-bottom: 1px solid rgba(255,255,255,.09);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  padding: 14px 16px;
 }
 
-#explore-user-profile-modal button {
-  transition: transform .18s ease, opacity .18s ease;
+.explore-modal-back {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Profile information card */
+#profile-modal-body > div:first-child {
+  background: linear-gradient(
+    145deg,
+    rgba(30,41,59,.62),
+    rgba(15,23,42,.75)
+  );
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 22px;
+  margin: 12px;
+  padding: 18px !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,.20);
+}
+
+/* Follow and Message */
+#profile-follow-btn,
+#profile-msg-btn {
+  min-height: 44px;
+  border-radius: 13px !important;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: .2px;
+  transition: transform .18s, filter .18s;
+}
+
+#profile-follow-btn.primary {
+  background: linear-gradient(120deg,#6366f1,#a855f7) !important;
+  border: none !important;
+  box-shadow: 0 5px 18px rgba(99,102,241,.25);
+}
+
+#profile-msg-btn {
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
 }
 
 #explore-user-profile-modal button:active {
   transform: scale(.96);
-  opacity: .85;
+  filter: brightness(.9);
 }
 
-#profile-follow-btn,
-#profile-msg-btn {
-  min-height: 42px;
-  border-radius: 12px !important;
-  box-shadow: 0 5px 18px rgba(0,0,0,.20);
+#explore-user-profile-modal button:disabled {
+  opacity: .55;
 }
+
+/* Profile tabs */
+.explore-profile-post-tabs {
+  background: rgba(17,24,39,.65);
+  border-color: rgba(255,255,255,.09);
+}
+
+.explore-profile-post-tabs div {
+  padding: 13px;
+}
+
+/* Small screen spacing */
+@media(max-width:360px) {
+  .explore-top-bar {
+    padding: 9px;
+  }
+
+  .explore-search-box {
+    padding: 9px 11px;
+  }
+
+  #profile-modal-body > div:first-child {
+    margin: 8px;
+    padding: 13px !important;
+  }
+}
+
     
   `;
 
