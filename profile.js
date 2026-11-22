@@ -156,18 +156,433 @@
      FOLLOWERS / FOLLOWING
   ===================================================== */
 
-  window.openFollowersFollowingPage=async function(user,initialTab,onClose){
-    const screen=document.createElement("div");screen.className="tsp-ff-screen";document.body.appendChild(screen);screen.innerHTML=`<div class="tsp-loading">Loading connections...</div>`;
-    let followersList=[],followingList=[],activeTab=initialTab==="following"?"following":"followers",searchQuery="",filterNotBack=false,filterMutual=false,sortMode="Default";const userId=getUserId(user);
-    try{const [followersRes,followingRes]=await Promise.all([window.TSUser?window.TSUser.getFollowers(userId):window.api(`/api/users/${userId}/followers`),window.TSUser?window.TSUser.getFollowing(userId):window.api(`/api/users/${userId}/following`)]);followersList=followersRes?.success?followersRes.users||[]:[];followingList=followingRes?.success?followingRes.users||[]:[];}catch(error){console.error("CONNECTIONS ERROR:",error);screen.innerHTML=`<div class="tsp-loading">Could not load connections.<br><br><button class="tsp-ff-action" id="tsp-ff-close">Go Back</button></div>`;screen.querySelector("#tsp-ff-close").onclick=()=>{screen.remove();if(onClose)onClose();};return;}
-    function closeScreen(){screen.remove();if(onClose)onClose();}
-    function renderScreen(){const followingIds=new Set(followingList.map(getUserId)),followersIds=new Set(followersList.map(getUserId));const notFollowingBack=followersList.filter(p=>!followingIds.has(getUserId(p))),mutuals=followingList.filter(p=>followersIds.has(getUserId(p)));let displayList=activeTab==="followers"?[...followersList]:[...followingList];if(activeTab==="followers"&&filterNotBack)displayList=[...notFollowingBack];if(activeTab==="following"&&filterMutual)displayList=[...mutuals];if(searchQuery){const q=searchQuery.toLowerCase();displayList=displayList.filter(p=>(p.username||"").toLowerCase().includes(q)||(p.displayName||"").toLowerCase().includes(q));}if(sortMode==="A-Z")displayList.sort((a,b)=>(a.username||"").localeCompare(b.username||""));
-      screen.innerHTML=`<div class="tsp-ff-header"><button class="tsp-ff-back" id="tsp-ff-back">‹</button><div class="tsp-ff-title">@${esc(user.username||"")} connections</div></div><div class="tsp-ff-tabs"><div class="tsp-ff-tab ${activeTab==="followers"?"active":""}" data-tab="followers">${followersList.length} Followers</div><div class="tsp-ff-tab ${activeTab==="following"?"active":""}" data-tab="following">${followingList.length} Following</div></div><div class="tsp-ff-search"><input id="tsp-ff-search" placeholder="Search connections..." value="${esc(searchQuery)}"/></div>${activeTab==="followers"?`<div class="tsp-ff-category" id="tsp-not-back"><div class="tsp-ff-category-icon">👥</div><div><strong>People you don't follow back</strong><small>${notFollowingBack.length} people</small></div></div>`:`<div class="tsp-ff-category" id="tsp-mutual"><div class="tsp-ff-category-icon">🤝</div><div><strong>Mutual connections</strong><small>${mutuals.length} people follow you back</small></div></div>`}<div class="tsp-ff-sort"><span>${filterNotBack?"People you don't follow back":filterMutual?"Mutual connections":"All connections"}</span><button class="tsp-ff-action" id="tsp-ff-sort">${sortMode==="Default"?"Sort A–Z":"Default"}</button></div><div id="tsp-ff-list">${displayList.length?displayList.map(person=>{const pid=getUserId(person),iFollow=followingIds.has(pid);return `<div class="tsp-ff-user"><img class="tsp-ff-avatar" src="${esc(getAvatar(person))}" alt=""/><div class="tsp-ff-info"><strong>${esc(person.displayName||person.username||"User")}</strong><small>@${esc(person.username||"")}</small></div><div class="tsp-ff-actions">${activeTab==="followers"&&!iFollow?`<button class="tsp-ff-action follow" data-follow="${esc(pid)}">Follow back</button>`:`<button class="tsp-ff-action" data-message="${esc(pid)}">Message</button>`}${activeTab==="following"?`<button class="tsp-ff-action" data-unfollow="${esc(pid)}">Unfollow</button>`:""}</div></div>`;}).join(""):`<div class="tsp-empty"><div class="tsp-empty-icon">👤</div><strong>No users found</strong><span>Try another search.</span></div>`}</div>`;
-      screen.querySelector("#tsp-ff-back").onclick=closeScreen;screen.querySelectorAll(".tsp-ff-tab").forEach(tab=>tab.onclick=()=>{activeTab=tab.dataset.tab;filterNotBack=false;filterMutual=false;renderScreen();});const search=screen.querySelector("#tsp-ff-search");search.oninput=()=>{searchQuery=search.value;const pos=search.selectionStart;renderScreen();const next=screen.querySelector("#tsp-ff-search");next.focus();next.setSelectionRange(pos,pos);};const notBack=screen.querySelector("#tsp-not-back");if(notBack)notBack.onclick=()=>{filterNotBack=!filterNotBack;filterMutual=false;renderScreen();};const mutual=screen.querySelector("#tsp-mutual");if(mutual)mutual.onclick=()=>{filterMutual=!filterMutual;filterNotBack=false;renderScreen();};screen.querySelector("#tsp-ff-sort").onclick=()=>{sortMode=sortMode==="Default"?"A-Z":"Default";renderScreen();};
-      screen.querySelectorAll("[data-message]").forEach(button=>button.onclick=()=>{const targetId=button.dataset.message;closeScreen();if(typeof window.openDirectChat==="function")window.openDirectChat(targetId);else showMessage("Chat is not available right now.");});
-      screen.querySelectorAll("[data-follow]").forEach(button=>button.onclick=async()=>{const targetId=button.dataset.follow;button.disabled=true;button.textContent="...";try{const result=window.TSUser?await window.TSUser.follow(targetId):await window.api(`/api/users/${targetId}/follow`,{method:"POST"});if(!result?.success)throw new Error(result?.message||"Follow failed");const added=followersList.find(p=>getUserId(p)===targetId);if(added)followingList.unshift(added);renderScreen();}catch(error){showMessage(error.message||"Follow failed.");button.disabled=false;button.textContent="Follow back";}});
-      screen.querySelectorAll("[data-unfollow]").forEach(button=>button.onclick=async()=>{const targetId=button.dataset.unfollow;if(!confirm("Unfollow this user?"))return;button.disabled=true;try{const result=window.TSUser?await window.TSUser.unfollow(targetId):await window.api(`/api/users/${targetId}/follow`,{method:"DELETE"});if(!result?.success)throw new Error(result?.message||"Unfollow failed");followingList=followingList.filter(p=>getUserId(p)!==targetId);renderScreen();}catch(error){showMessage(error.message||"Unfollow failed.");button.disabled=false;}});
+  
+  /* =====================================================
+     FOLLOWERS / FOLLOWING - V4
+     Own profile: Unfollow available
+     Other profile: No Unfollow button
+  ===================================================== */
+
+  window.openFollowersFollowingPage = async function(user, initialTab, onClose) {
+    const screen = document.createElement("div");
+    screen.className = "tsp-ff-screen";
+    document.body.appendChild(screen);
+
+    screen.innerHTML = `<div class="tsp-loading">Loading connections...</div>`;
+
+    let followersList = [];
+    let followingList = [];
+    let activeTab = initialTab === "following" ? "following" : "followers";
+    let searchQuery = "";
+    let filterNotBack = false;
+    let filterMutual = false;
+    let sortMode = "Default";
+
+    const userId = getUserId(user);
+
+    // Find the currently logged-in user
+    let currentUser = window.AppState?.user || null;
+
+    if (window.TSUser?.getMe) {
+      try {
+        const meRes = await window.TSUser.getMe();
+        if (meRes?.user) currentUser = meRes.user;
+      } catch (error) {
+        console.warn("Could not refresh current user:", error);
+      }
     }
+
+    if (!currentUser) {
+      try {
+        currentUser = JSON.parse(
+          localStorage.getItem("ts_user") || "null"
+        );
+      } catch (error) {
+        currentUser = null;
+      }
+    }
+
+    const currentUserId = getUserId(currentUser);
+
+    // Unfollow is allowed only on the logged-in user's own connections page
+    const isOwnProfile = Boolean(
+      currentUserId &&
+      userId &&
+      currentUserId === userId
+    );
+
+    try {
+      const [followersRes, followingRes] = await Promise.all([
+        window.TSUser
+          ? window.TSUser.getFollowers(userId)
+          : window.api(`/api/users/${userId}/followers`),
+
+        window.TSUser
+          ? window.TSUser.getFollowing(userId)
+          : window.api(`/api/users/${userId}/following`)
+      ]);
+
+      followersList = followersRes?.success
+        ? followersRes.users || []
+        : [];
+
+      followingList = followingRes?.success
+        ? followingRes.users || []
+        : [];
+
+    } catch (error) {
+      console.error("CONNECTIONS ERROR:", error);
+
+      screen.innerHTML = `
+        <div class="tsp-loading">
+          Could not load connections.
+          <br><br>
+          <button class="tsp-ff-action" id="tsp-ff-close">
+            Back
+          </button>
+        </div>
+      `;
+
+      screen.querySelector("#tsp-ff-close").onclick = () => {
+        screen.remove();
+        if (onClose) onClose();
+      };
+
+      return;
+    }
+
+    function closeScreen() {
+      screen.remove();
+      if (onClose) onClose();
+    }
+
+    function renderScreen() {
+      const followingIds = new Set(followingList.map(getUserId));
+      const followersIds = new Set(followersList.map(getUserId));
+
+      const notFollowingBack = followersList.filter(
+        person => !followingIds.has(getUserId(person))
+      );
+
+      const mutuals = followingList.filter(
+        person => followersIds.has(getUserId(person))
+      );
+
+      let displayList = activeTab === "followers"
+        ? [...followersList]
+        : [...followingList];
+
+      if (activeTab === "followers" && filterNotBack) {
+        displayList = [...notFollowingBack];
+      }
+
+      if (activeTab === "following" && filterMutual) {
+        displayList = [...mutuals];
+      }
+
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+
+        displayList = displayList.filter(person =>
+          (person.username || "").toLowerCase().includes(query) ||
+          (person.displayName || "").toLowerCase().includes(query)
+        );
+      }
+
+      if (sortMode === "A-Z") {
+        displayList.sort((a, b) =>
+          (a.username || "").localeCompare(b.username || "")
+        );
+      }
+
+      screen.innerHTML = `
+        <div class="tsp-ff-header">
+          <button class="tsp-ff-back" id="tsp-ff-back">
+            Back
+          </button>
+
+          <div class="tsp-ff-title">
+            @${esc(user.username || "")} connections
+          </div>
+        </div>
+
+        <div class="tsp-ff-tabs">
+          <div class="tsp-ff-tab ${activeTab === "followers" ? "active" : ""}"
+               data-tab="followers">
+            ${followersList.length} Followers
+          </div>
+
+          <div class="tsp-ff-tab ${activeTab === "following" ? "active" : ""}"
+               data-tab="following">
+            ${followingList.length} Following
+          </div>
+        </div>
+
+        <div class="tsp-ff-search">
+          <input
+            id="tsp-ff-search"
+            placeholder="Search connections..."
+            value="${esc(searchQuery)}"
+          />
+        </div>
+
+        ${
+          activeTab === "followers"
+            ? `
+              <div class="tsp-ff-category" id="tsp-not-back">
+                <div class="tsp-ff-category-icon">👥</div>
+                <div>
+                  <strong>People you don't follow back</strong>
+                  <small>${notFollowingBack.length} people</small>
+                </div>
+              </div>
+            `
+            : `
+              <div class="tsp-ff-category" id="tsp-mutual">
+                <div class="tsp-ff-category-icon">🤝</div>
+                <div>
+                  <strong>Mutual connections</strong>
+                  <small>${mutuals.length} people follow you back</small>
+                </div>
+              </div>
+            `
+        }
+
+        <div class="tsp-ff-sort">
+          <span>
+            ${
+              filterNotBack
+                ? "People you don't follow back"
+                : filterMutual
+                  ? "Mutual connections"
+                  : "All connections"
+            }
+          </span>
+
+          <button class="tsp-ff-action" id="tsp-ff-sort">
+            ${sortMode === "Default" ? "Sort A–Z" : "Default"}
+          </button>
+        </div>
+
+        <div id="tsp-ff-list">
+          ${
+            displayList.length
+              ? displayList.map(person => {
+                  const pid = getUserId(person);
+                  const iFollow = followingIds.has(pid);
+
+                  return `
+                    <div class="tsp-ff-user">
+                      <img
+                        class="tsp-ff-avatar"
+                        src="${esc(getAvatar(person))}"
+                        alt=""
+                      />
+
+                      <div class="tsp-ff-info">
+                        <strong>
+                          ${esc(person.displayName || person.username || "User")}
+                        </strong>
+
+                        <small>
+                          @${esc(person.username || "")}
+                        </small>
+                      </div>
+
+                      <div class="tsp-ff-actions">
+
+                        ${
+                          activeTab === "followers" && !iFollow
+                            ? `
+                              <button
+                                class="tsp-ff-action follow"
+                                data-follow="${esc(pid)}"
+                              >
+                                Follow back
+                              </button>
+                            `
+                            : `
+                              <button
+                                class="tsp-ff-action"
+                                data-message="${esc(pid)}"
+                              >
+                                Message
+                              </button>
+                            `
+                        }
+
+                        ${
+                          activeTab === "following" && isOwnProfile
+                            ? `
+                              <button
+                                class="tsp-ff-action"
+                                data-unfollow="${esc(pid)}"
+                              >
+                                Unfollow
+                              </button>
+                            `
+                            : ""
+                        }
+
+                      </div>
+                    </div>
+                  `;
+                }).join("")
+              : `
+                <div class="tsp-empty">
+                  <div class="tsp-empty-icon">👤</div>
+                  <strong>No users found</strong>
+                  <span>Try another search.</span>
+                </div>
+              `
+          }
+        </div>
+      `;
+
+      // Back
+      screen.querySelector("#tsp-ff-back").onclick = closeScreen;
+
+      // Followers / Following tabs
+      screen.querySelectorAll(".tsp-ff-tab").forEach(tab => {
+        tab.onclick = () => {
+          activeTab = tab.dataset.tab;
+          filterNotBack = false;
+          filterMutual = false;
+          renderScreen();
+        };
+      });
+
+      // Search
+      const search = screen.querySelector("#tsp-ff-search");
+
+      search.oninput = () => {
+        searchQuery = search.value;
+        const pos = search.selectionStart;
+
+        renderScreen();
+
+        const next = screen.querySelector("#tsp-ff-search");
+        next.focus();
+        next.setSelectionRange(pos, pos);
+      };
+
+      // Not following back filter
+      const notBack = screen.querySelector("#tsp-not-back");
+
+      if (notBack) {
+        notBack.onclick = () => {
+          filterNotBack = !filterNotBack;
+          filterMutual = false;
+          renderScreen();
+        };
+      }
+
+      // Mutual connections filter
+      const mutual = screen.querySelector("#tsp-mutual");
+
+      if (mutual) {
+        mutual.onclick = () => {
+          filterMutual = !filterMutual;
+          filterNotBack = false;
+          renderScreen();
+        };
+      }
+
+      // Sort
+      screen.querySelector("#tsp-ff-sort").onclick = () => {
+        sortMode = sortMode === "Default" ? "A-Z" : "Default";
+        renderScreen();
+      };
+
+      // Message
+      screen.querySelectorAll("[data-message]").forEach(button => {
+        button.onclick = () => {
+          const targetId = button.dataset.message;
+          closeScreen();
+
+          if (typeof window.openDirectChat === "function") {
+            window.openDirectChat(targetId);
+          } else {
+            showMessage("Chat is not available right now.");
+          }
+        };
+      });
+
+      // Follow back
+      screen.querySelectorAll("[data-follow]").forEach(button => {
+        button.onclick = async () => {
+          const targetId = button.dataset.follow;
+
+          button.disabled = true;
+          button.textContent = "...";
+
+          try {
+            const result = window.TSUser
+              ? await window.TSUser.follow(targetId)
+              : await window.api(`/api/users/${targetId}/follow`, {
+                  method: "POST"
+                });
+
+            if (!result?.success) {
+              throw new Error(result?.message || "Follow failed");
+            }
+
+            const added = followersList.find(
+              person => getUserId(person) === targetId
+            );
+
+            if (added) followingList.unshift(added);
+
+            renderScreen();
+
+          } catch (error) {
+            showMessage(error.message || "Follow failed.");
+            button.disabled = false;
+            button.textContent = "Follow back";
+          }
+        };
+      });
+
+      // Unfollow - only own profile
+      screen.querySelectorAll("[data-unfollow]").forEach(button => {
+        button.onclick = async () => {
+
+          // Extra safety check
+          if (!isOwnProfile) return;
+
+          const targetId = button.dataset.unfollow;
+
+          if (!confirm("Unfollow this user?")) return;
+
+          button.disabled = true;
+          button.textContent = "...";
+
+          try {
+            const result = window.TSUser
+              ? await window.TSUser.unfollow(targetId)
+              : await window.api(`/api/users/${targetId}/follow`, {
+                  method: "DELETE"
+                });
+
+            if (!result?.success) {
+              throw new Error(result?.message || "Unfollow failed");
+            }
+
+            followingList = followingList.filter(
+              person => getUserId(person) !== targetId
+            );
+
+            renderScreen();
+
+          } catch (error) {
+            showMessage(error.message || "Unfollow failed.");
+            button.disabled = false;
+            button.textContent = "Unfollow";
+          }
+        };
+      });
+    }
+
     renderScreen();
   };
 
