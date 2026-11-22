@@ -1322,35 +1322,44 @@
       ================================================= */
 
       const followersBtn = bodyContainer.querySelector(
-        "#profile-followers-btn"
-      );
+  "#profile-followers-btn"
+);
 
-      const followingBtn = bodyContainer.querySelector(
-        "#profile-following-btn"
-      );
+const followingBtn = bodyContainer.querySelector(
+  "#profile-following-btn"
+);
 
-      if (followersBtn) {
-        followersBtn.onclick = () => {
-          if (typeof window.openFollowersFollowingPage !== "function") {
-            alert("Connections page is not ready.");
-            return;
-          }
+if (followersBtn) {
+  followersBtn.onclick = () => {
+    if (typeof window.openFollowersFollowingPage !== "function") {
+      alert("Connections page is not ready.");
+      return;
+    }
 
-          window.openFollowersFollowingPage(p, "followers");
-        };
-      }
+    // Close Explore profile first
+    document
+      .getElementById("explore-user-profile-modal")
+      ?.remove();
 
-      if (followingBtn) {
-        followingBtn.onclick = () => {
-          if (typeof window.openFollowersFollowingPage !== "function") {
-            alert("Connections page is not ready.");
-            return;
-          }
+    window.openFollowersFollowingPage(p, "followers");
+  };
+}
 
-          window.openFollowersFollowingPage(p, "following");
-        };
-      }
+if (followingBtn) {
+  followingBtn.onclick = () => {
+    if (typeof window.openFollowersFollowingPage !== "function") {
+      alert("Connections page is not ready.");
+      return;
+    }
 
+    // Close Explore profile first
+    document
+      .getElementById("explore-user-profile-modal")
+      ?.remove();
+
+    window.openFollowersFollowingPage(p, "following");
+  };
+}
 
       /* =================================================
          PROFILE POSTS CLICK
