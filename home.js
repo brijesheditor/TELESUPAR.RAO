@@ -1521,3 +1521,917 @@
 
 })();
 
+
+
+
+
+
+
+/* =====================================================
+   TELESUPAR HOME V3 - PART 1/3
+   Comments • Edit • Delete • Reply • Profile links
+===================================================== */
+
+(() => {
+  "use strict";
+
+  if (window.__TS_HOME_V3__) return;
+  window.__TS_HOME_V3__ = true;
+
+  const escV3 = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[ch]));
+
+  const avatarV3 = user =>
+    window.avatarUrl
+      ? window.avatarUrl(user || {})
+      : "";
+
+  const openProfileV3 = userId => {
+    if (userId && window.openUserProfile) {
+      window.openUserProfile(String(userId));
+    }
+  };
+
+  const commentCSS = document.createElement("style");
+  commentCSS.id = "ts-home-v3-css";
+  commentCSS.textContent = `
+    .tsv3-comment {
+      display:flex;
+      gap:10px;
+      padding:12px 0;
+      border-bottom:1px solid rgba(255,255,255,.07);
+    }
+    .tsv3-avatar {
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      object-fit:cover;
+      flex-shrink:0;
+      cursor:pointer;
+    }
+    .tsv3-comment-body {
+      flex:1;
+      min-width:0;
+    }
+    .tsv3-comment-name {
+      color:#f8fafc;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      background:none;
+      border:0;
+      padding:0;
+    }
+    .tsv3-comment-text {
+      color:#dbe4f0;
+      font-size:13px;
+      line-height:1.5;
+      overflow-wrap:anywhere;
+      margin-top:4px;
+    }
+    .tsv3-comment-actions {
+      display:flex;
+      gap:13px;
+      flex-wrap:wrap;
+      margin-top:7px;
+    }
+    .tsv3-comment-actions button {
+      border:0;
+      background:none;
+      color:#a5b4fc;
+      font-size:11px;
+      font-weight:700;
+      padding:2px 0;
+      cursor:pointer;
+    }
+    .tsv3-replies {
+      margin:10px 0 0 13px;
+      padding-left:12px;
+      border-left:2px solid rgba(139,92,246,.35);
+    }
+    .tsv3-composer {
+      display:flex;
+      gap:8px;
+      padding:12px 0 3px;
+    }
+    .tsv3-composer input {
+      flex:1;
+      min-width:0;
+      background:#1e293b;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:24px;
+      padding:11px 14px;
+      color:white;
+      outline:none;
+    }
+    .tsv3-send {
+      border:0;
+      border-radius:22px;
+      padding:0 17px;
+      background:linear-gradient(135deg,#6366f1,#9333ea);
+      color:white;
+      font-weight:800;
+    }
+    .tsv3-empty {
+      color:#94a3b8;
+      text-align:center;
+      padding:22px 8px;
+      font-size:13px;
+    }
+  `;
+  document.head.appendChild(commentCSS);
+
+  async function loadCommentsV3(postId, container) {
+    container.innerHTML =
+      `<p class="tsv3-empty">Loading comments...</p>`;
+
+    const result = await window.api(
+      `/api/posts/${encodeURIComponent(postId)}/comments`
+    );
+
+    if (!result.success) {
+      container.innerHTML =
+        `<p class="tsv3-empty">Could not load comments.</p>`;
+      return;
+    }
+
+    const comments = result.comments || [];
+
+    const renderOne = (comment, isReply = false) => {
+      const user = comment.user || {};
+      const userId = user.id || "";
+      const actions = [];
+
+      if (!isReply) {
+        actions.push(
+          `<button data-v3-action="reply"
+            data-id="${escV3(comment.id)}">Reply</button>`
+        );
+      }
+
+      if (comment.isMine) {
+        actions.push(
+          `<button data-v3-action="edit"
+            data-id="${escV3(comment.id)}">Edit</button>`
+        );
+        actions.push(
+          `<button data-v3-action="delete"
+            data-id="${escV3(comment.id)}">Delete</button>`
+        );
+      }
+
+      return `
+        <div class="tsv3-comment">
+          <img class="tsv3-avatar"
+            data-v3-profile="${escV3(userId)}"
+            src="${escV3(avatarV3(user))}">
+          <div class="tsv3-comment-body">
+            <button class="tsv3-comment-name"
+              data-v3-profile="${escV3(userId)}">
+              ${escV3(user.displayName || user.username || "User")}
+            </button>
+
+            <div class="tsv3-comment-text">
+              ${escV3(comment.text)}
+            </div>
+
+            <div class="tsv3-comment-actions">
+              ${actions.join("")}
+            </div>
+          </div>
+        </div>`;
+    };
+
+    container.innerHTML = comments.length
+      ? comments.map(comment => `
+          <div class="tsv3-parent"
+            data-parent-id="${escV3(comment.id)}">
+            ${renderOne(comment)}
+            <div class="tsv3-replies">
+              ${(comment.replies || [])
+                .map(reply => renderOne(reply, true))
+                .join("")}
+            </div>
+          </div>
+        `).join("")
+      : `<p class="tsv3-empty">No comments yet. Start the discussion!</p>`;
+  }
+
+  function bindCommentActionsV3(postId, container, refresh) {
+    container.onclick = async event => {
+      const profile = event.target.closest("[data-v3-profile]");
+
+      if (profile) {
+        openProfileV3(profile.dataset.v3Profile);
+        return;
+      }
+
+      const button = event.target.closest("[data-v3-action]");
+      if (!button) return;
+
+      const action = button.dataset.v3Action;
+      const commentId = button.dataset.id;
+
+      if (!commentId) return;
+
+      if (action === "reply") {
+        const text = prompt("Write your reply:");
+        if (!text || !text.trim()) return;
+
+        const result = await window.api(
+          `/api/posts/${postId}/comments/${commentId}/replies`,
+          {
+            method:"POST",
+            body:JSON.stringify({ text:text.trim() })
+          }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Reply failed");
+      }
+
+      if (action === "edit") {
+        const current = button
+          .closest(".tsv3-comment")
+          ?.querySelector(".tsv3-comment-text")
+          ?.textContent || "";
+
+        const text = prompt("Edit your comment:", current);
+        if (text === null || !text.trim()) return;
+
+        const result = await window.api(
+          `/api/posts/${postId}/comments/${commentId}`,
+          {
+            method:"PATCH",
+            body:JSON.stringify({ text:text.trim() })
+          }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Edit failed");
+      }
+
+      if (action === "delete") {
+        if (!confirm("Delete this comment?")) return;
+
+        const result = await window.api(
+          `/api/posts/${postId}/comments/${commentId}`,
+          { method:"DELETE" }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Delete failed");
+      }
+    };
+  }
+
+  function setupCommentBoxV3(postId, container) {
+    const refresh = () => loadCommentsV3(postId, container);
+
+    container.innerHTML = `
+      <div id="tsv3-list-${escV3(postId)}"></div>
+      <div class="tsv3-composer">
+        <input id="tsv3-input-${escV3(postId)}"
+          maxlength="500"
+          placeholder="Write a comment...">
+        <button class="tsv3-send">Send</button>
+      </div>`;
+
+    const list = container.querySelector(
+      `#tsv3-list-${CSS.escape(String(postId))}`
+    );
+
+    bindCommentActionsV3(postId, list, refresh);
+
+    const send = async () => {
+      const input = container.querySelector(
+        `#tsv3-input-${CSS.escape(String(postId))}`
+      );
+      const text = input?.value.trim();
+      if (!text) return;
+
+      const result = await window.api(
+        `/api/posts/${postId}/comments`,
+        {
+          method:"POST",
+          body:JSON.stringify({ text })
+        }
+      );
+
+      if (result.success) {
+        input.value = "";
+        await refresh();
+      } else {
+        alert(result.message || "Comment failed");
+      }
+    };
+
+    container.querySelector(".tsv3-send").onclick = send;
+    container.querySelector("input").onkeydown = event => {
+      if (event.key === "Enter") send();
+    };
+
+    refresh();
+  }
+
+  window.toggleComments = function(postId) {
+    const box = document.getElementById(`comments-${postId}`);
+    if (!box) return;
+
+    box.classList.toggle("hidden");
+    if (box.classList.contains("hidden")) return;
+
+    setupCommentBoxV3(postId, box);
+  };
+
+  // PART 2 continues with Reel comments, Story Viewers/Likes,
+  // notifications, Share icon and fullscreen Message fix.
+
+
+   /* =====================================================
+     PART 2/3
+     Reel Comments • Story Viewers • Story Likes
+  ===================================================== */
+
+  window.openReelCommentsModal = async function(postId) {
+    document.getElementById("reel-comments-modal")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "reel-comments-modal";
+    modal.className = "ts-modal";
+
+    modal.innerHTML = `
+      <div class="ts-modal-panel"
+        style="height:78vh;display:flex;flex-direction:column;padding:15px">
+
+        <div style="display:flex;justify-content:space-between;
+          align-items:center;padding-bottom:13px;
+          border-bottom:1px solid rgba(255,255,255,.1)">
+          <b>Comments & Replies</b>
+          <button id="v3-close-comments"
+            style="background:none;border:0;color:white;font-size:22px">
+            ✕
+          </button>
+        </div>
+
+        <div id="v3-reel-comment-content"
+          style="flex:1;overflow:auto;padding:10px 0"></div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector("#v3-close-comments").onclick =
+      () => modal.remove();
+
+    modal.onclick = event => {
+      if (event.target === modal) modal.remove();
+    };
+
+    setupCommentBoxV3(
+      postId,
+      modal.querySelector("#v3-reel-comment-content")
+    );
+  };
+
+
+  /* =========================================
+     STORY VIEWERS / LIKES POPUP
+  ========================================= */
+
+  function openStoryPeopleModalV3(title, people, count, emptyText) {
+    document.getElementById("tsv3-story-people")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "tsv3-story-people";
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:rgba(0,0,0,.75);
+      display:flex;align-items:flex-end;justify-content:center;
+      padding:12px;
+    `;
+
+    const list = (people || []).map(item => {
+      const user = item.user || item;
+      const id = user.id || "";
+      const name = user.displayName || user.username || "User";
+
+      return `
+        <button data-v3-person="${escV3(id)}"
+          style="width:100%;display:flex;align-items:center;
+          gap:12px;padding:12px;background:transparent;
+          border:0;border-bottom:1px solid rgba(255,255,255,.07);
+          color:white;text-align:left">
+
+          <img src="${escV3(avatarV3(user))}"
+            style="width:42px;height:42px;border-radius:50%;
+            object-fit:cover">
+
+          <span style="flex:1;min-width:0">
+            <b style="font-size:13px">${escV3(name)}</b>
+            <small style="display:block;color:#94a3b8;margin-top:3px">
+              ${escV3(user.username ? "@" + user.username : "")}
+            </small>
+          </span>
+
+          <span style="color:#a5b4fc">›</span>
+        </button>`;
+    }).join("");
+
+    modal.innerHTML = `
+      <div style="width:100%;max-width:480px;max-height:70vh;
+        overflow:hidden;background:#111827;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:22px;padding:17px">
+
+        <div style="display:flex;align-items:center;
+          justify-content:space-between;margin-bottom:12px">
+          <b style="font-size:16px">${escV3(title)} (${Number(count || 0)})</b>
+          <button id="v3-close-people"
+            style="background:none;border:0;color:white;font-size:22px">
+            ✕
+          </button>
+        </div>
+
+        <div style="overflow:auto;max-height:55vh">
+          ${list || `<p class="tsv3-empty">${escV3(emptyText)}</p>`}
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector("#v3-close-people").onclick =
+      () => modal.remove();
+
+    modal.onclick = event => {
+      if (event.target === modal) modal.remove();
+    };
+
+    modal.querySelectorAll("[data-v3-person]").forEach(button => {
+      button.onclick = () => {
+        const id = button.dataset.v3Person;
+        modal.remove();
+        openProfileV3(id);
+      };
+    });
+  }
+
+
+  async function showStoryPeopleV3(storyId, type) {
+    if (!storyId) return;
+
+    const endpoint = type === "views"
+      ? `/api/stories/${storyId}/viewers`
+      : `/api/stories/${storyId}/likes`;
+
+    const result = await window.api(endpoint);
+
+    if (!result.success) {
+      alert(result.message || "Could not load story activity");
+      return;
+    }
+
+    if (type === "views") {
+      openStoryPeopleModalV3(
+        "Story Viewers",
+        result.viewers || [],
+        result.viewsCount,
+        "No viewers yet."
+      );
+    } else {
+      openStoryPeopleModalV3(
+        "Story Likes",
+        result.likes || [],
+        result.likesCount,
+        "No likes yet."
+      );
+    }
+  }
+
+
+  async function attachStoryStatsV3(viewer) {
+    const bottom = viewer.querySelector(".story-viewer-bottom");
+    const media = viewer.querySelector(".story-viewer-media");
+
+    if (!bottom || !media || bottom.dataset.v3Stats === "1") return;
+
+    // Only show activity lists on the current user's own story.
+    const feed = await window.api("/api/stories/feed");
+    if (!feed.success) return;
+
+    const mediaUrl = media.getAttribute("src") || media.src || "";
+
+    const mine = feed.myStories || [];
+    const story = mine.find(item =>
+      String(item.mediaUrl || "") === String(mediaUrl)
+    );
+
+    if (!story) return;
+
+    bottom.dataset.v3Stats = "1";
+
+    const buttons = document.createElement("div");
+    buttons.style.cssText = `
+      display:flex;gap:7px;align-items:center;
+      flex-wrap:wrap;margin-right:auto;
+    `;
+
+    buttons.innerHTML = `
+      <button class="btn-pill" data-v3-story-views>
+        👁 ${Number(story.viewsCount || 0)} Views
+      </button>
+      <button class="btn-pill" data-v3-story-likes>
+        ♥ ${Number(story.likesCount || 0)} Likes
+      </button>
+    `;
+
+    bottom.insertBefore(buttons, bottom.firstChild);
+
+    buttons.querySelector("[data-v3-story-views]").onclick =
+      () => showStoryPeopleV3(story.id, "views");
+
+    buttons.querySelector("[data-v3-story-likes]").onclick =
+      () => showStoryPeopleV3(story.id, "likes");
+  }
+
+
+  // Detect every story slide, including Next.
+  const storyObserverV3 = new MutationObserver(() => {
+    document.querySelectorAll(".story-viewer").forEach(viewer => {
+      attachStoryStatsV3(viewer).catch(error =>
+        console.error("Story stats:", error)
+      );
+    });
+  });
+
+  storyObserverV3.observe(document.body, {
+    childList:true,
+    subtree:true
+  });
+
+
+  // PART 3 continues with notifications, Share UI,
+  // premium Reel icon and fullscreen Message fix.
+
+
+   /* =====================================================
+     PART 3/3
+     Notifications • Follow Back • Share • Reel Message
+  ===================================================== */
+
+  function sharePostV3(postId) {
+    const url =
+      `${location.origin}${location.pathname}#post-${encodeURIComponent(postId)}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title:"TELESUPAR",
+        text:"Check out this post on TELESUPAR",
+        url
+      }).catch(error => {
+        if (error.name !== "AbortError") console.error(error);
+      });
+    } else if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => alert("Post link copied!"))
+        .catch(() => prompt("Copy post link:", url));
+    } else {
+      prompt("Copy post link:", url);
+    }
+  }
+
+
+  /* =========================================
+     NOTIFICATION UI
+  ========================================= */
+
+  async function renderNotificationsV3(modal) {
+    const box = modal.querySelector("#notif-list-container");
+    if (!box) return;
+
+    box.innerHTML =
+      `<p class="tsv3-empty">Loading notifications...</p>`;
+
+    const result = await window.api("/api/notifications");
+
+    if (!modal.isConnected) return;
+
+    if (!result.success || !result.notifications?.length) {
+      box.innerHTML =
+        `<p class="tsv3-empty">No recent notifications.</p>`;
+      return;
+    }
+
+    const notifications = result.notifications;
+
+    box.innerHTML = notifications.map(n => {
+      const actor = n.actor || {};
+      const post = n.post || {};
+      const story = n.story || {};
+      const type = String(n.type || "").toLowerCase();
+
+      let action = "interacted with you";
+      if (type === "post_like") action = "liked your post";
+      if (type === "story_like") action = "liked your story";
+      if (type === "post_comment") {
+        action = `commented: ${n.commentText || ""}`;
+      }
+      if (type === "post_comment_reply") {
+        action = `replied: ${n.commentText || ""}`;
+      }
+      if (type === "new_follow") action = "started following you";
+
+      const media = story.mediaUrl || post.mediaUrl || "";
+      const actorId = actor.id || "";
+
+      return `
+        <div class="tsv3-notification"
+          data-v3-actor="${escV3(actorId)}"
+          data-v3-post="${escV3(post.id || "")}"
+          data-v3-type="${escV3(type)}"
+          style="display:flex;align-items:center;gap:11px;
+          padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+
+          <img data-v3-actor="${escV3(actorId)}"
+            src="${escV3(avatarV3(actor))}"
+            style="width:43px;height:43px;border-radius:50%;
+            object-fit:cover;cursor:pointer">
+
+          <div style="flex:1;min-width:0;font-size:13px;line-height:1.5">
+            <b data-v3-actor="${escV3(actorId)}"
+              style="cursor:pointer">
+              ${escV3(actor.displayName || actor.username || "Someone")}
+            </b>
+            ${escV3(action)}
+
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px">
+              ${escV3(window.timeAgo
+                ? window.timeAgo(n.createdAt)
+                : "")}
+            </div>
+
+            ${type === "new_follow"
+              ? `<button class="tsv3-follow-back"
+                  data-userid="${escV3(actorId)}"
+                  style="margin-top:8px;border:0;border-radius:18px;
+                  padding:7px 14px;background:#6366f1;
+                  color:white;font-weight:800;font-size:11px">
+                  Follow Back
+                </button>`
+              : ""}
+          </div>
+
+          ${media
+            ? `<img data-v3-thumb="${escV3(post.id || "")}"
+                src="${escV3(media)}"
+                style="width:48px;height:48px;border-radius:10px;
+                object-fit:cover;cursor:pointer">`
+            : ""}
+        </div>`;
+    }).join("");
+
+
+    // Profile navigation and post thumbnail navigation.
+    box.querySelectorAll("[data-v3-actor]").forEach(el => {
+      el.addEventListener("click", event => {
+        event.stopPropagation();
+        openProfileV3(el.dataset.v3Actor);
+      });
+    });
+
+    box.querySelectorAll("[data-v3-thumb]").forEach(el => {
+      el.onclick = () => {
+        const postId = el.dataset.v3Thumb;
+        if (!postId) return;
+
+        modal.remove();
+        window.openFullscreenPostViewer?.(postId);
+      };
+    });
+
+
+    // Follow Back button.
+    box.querySelectorAll(".tsv3-follow-back").forEach(async button => {
+      const userId = button.dataset.userid;
+      if (!userId) {
+        button.remove();
+        return;
+      }
+
+      const status = await window.api(
+        `/api/users/${userId}/follow-status`
+      );
+
+      if (!button.isConnected) return;
+
+      if (status.success && status.following) {
+        button.textContent = "Following";
+        button.disabled = true;
+        button.style.background = "#334155";
+      }
+
+      button.onclick = async event => {
+        event.stopPropagation();
+        if (button.disabled) return;
+
+        button.disabled = true;
+        button.textContent = "Following...";
+
+        const response = await window.api(
+          `/api/users/${userId}/follow`,
+          { method:"POST" }
+        );
+
+        if (response.success) {
+          button.textContent = "Following";
+          button.style.background = "#334155";
+        } else {
+          button.disabled = false;
+          button.textContent = "Follow Back";
+          alert(response.message || "Could not follow user");
+        }
+      };
+    });
+
+    await window.api("/api/notifications/read", {
+      method:"PATCH"
+    });
+  }
+
+
+  // The existing Home notification modal is created by home.js.
+  // Observe it and replace its old list with the API-connected UI.
+  const notificationObserverV3 = new MutationObserver(() => {
+    const modal = document.getElementById("custom-notifications-modal");
+
+    if (!modal || modal.dataset.v3Ready === "1") return;
+
+    modal.dataset.v3Ready = "1";
+
+    setTimeout(() => {
+      if (modal.isConnected) {
+        renderNotificationsV3(modal).catch(error =>
+          console.error("Notifications:", error)
+        );
+      }
+    }, 350);
+  });
+
+  notificationObserverV3.observe(document.body, {
+    childList:true,
+    subtree:true
+  });
+
+
+  /* =========================================
+     FULLSCREEN REEL MESSAGE FIX
+  ========================================= */
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest(".reel-message-btn");
+    if (!button) return;
+
+    const userId = button.dataset.userid;
+    if (!userId) return;
+
+    // Stop the old Reel click handler.
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const viewer = document.getElementById("fullscreen-reel-viewer");
+
+    if (viewer) {
+      viewer.querySelectorAll("video").forEach(video => {
+        video.pause();
+      });
+
+      viewer.remove();
+    }
+
+    // Let the fullscreen overlay disappear before opening chat.
+    setTimeout(() => {
+      if (window.openDirectChat) {
+        window.openDirectChat(userId);
+      }
+    }, 80);
+
+  }, true);
+
+
+  /* =========================================
+     POST COMMENT ICON + SHARE BUTTON
+  ========================================= */
+
+  function updatePostActionsV3() {
+    document.querySelectorAll(".post-card .post-actions button")
+      .forEach(button => {
+        const code = button.getAttribute("onclick") || "";
+
+        if (code.includes("toggleComments")) {
+          if (button.dataset.v3Icon === "1") return;
+
+          const count = button.querySelector("span")?.textContent || "0";
+
+          button.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5
+              8.5 8.5 0 0 1-4-.99L3 21l1.99-5.5
+              A8.5 8.5 0 1 1 21 11.5Z"/>
+            </svg>
+            <span>${escV3(count)}</span>`;
+
+          button.dataset.v3Icon = "1";
+        }
+
+        if (code.includes("openFullscreenPostViewer")) {
+          if (button.dataset.v3Share === "1") return;
+
+          const match = code.match(/openFullscreenPostViewer\(['"]([^'"]+)/);
+          const postId = match?.[1];
+
+          if (!postId) return;
+
+          button.removeAttribute("onclick");
+          button.dataset.v3Share = "1";
+          button.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/>
+            </svg>
+            <span>Share</span>`;
+
+          button.onclick = () => sharePostV3(postId);
+        }
+      });
+  }
+
+
+  /* =========================================
+     PREMIUM TOP REEL ICON
+  ========================================= */
+
+  function updateReelIconV3() {
+    const header = document.querySelector(".top-header") ||
+      document.querySelector(".top-header, header");
+
+    if (!header) return;
+
+    header.querySelectorAll("button").forEach(button => {
+      const label = button.textContent.trim();
+
+      if (
+        button.dataset.v3ReelIcon === "1" ||
+        !["▶", "🎬", "Reels", "Reel"].includes(label)
+      ) return;
+
+      button.innerHTML = `
+        <svg width="23" height="23" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5"/>
+          <path d="M8 3l4 5M15 3l4 5M3 10h18"/>
+          <path d="M10 14l5 3-5 3z"
+            fill="currentColor" stroke="none"/>
+        </svg>`;
+
+      button.style.borderRadius = "14px";
+      button.style.background = "rgba(139,92,246,.14)";
+      button.style.border = "1px solid rgba(139,92,246,.3)";
+      button.style.color = "#c4b5fd";
+      button.dataset.v3ReelIcon = "1";
+    });
+  }
+
+
+  // Re-run UI enhancements when Home feed is refreshed.
+  const homeObserverV3 = new MutationObserver(() => {
+    updatePostActionsV3();
+    updateReelIconV3();
+  });
+
+  const mainView = document.getElementById("main-view");
+
+  if (mainView) {
+    homeObserverV3.observe(mainView, {
+      childList:true,
+      subtree:true
+    });
+  }
+
+  updatePostActionsV3();
+  updateReelIconV3();
+
+  console.log("TELESUPAR HOME V3 enhancements loaded.");
+
+})();
