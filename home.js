@@ -935,6 +935,15 @@
       const media = safeUrl(post.mediaUrl);
       const user = post.user || {};
       const id = esc(post.id);
+      const postUserId = String(
+  user.id ||
+  user._id ||
+  post.userId ||
+  post.authorId ||
+  post.author?.id ||
+  post.author?._id ||
+  ""
+);
 
       return `
         <article class="post-card" id="post-${id}">
@@ -1239,6 +1248,17 @@
 
       const media = safeUrl(post.mediaUrl);
       const user = post.user || {};
+
+const postUserId = String(
+  user.id ||
+  user._id ||
+  post.userId ||
+  post.authorId ||
+  post.author?.id ||
+  post.author?._id ||
+  ""
+);
+      
       const id = idSafe(post.id);
       const isVideo = post.mediaType === "video";
 
