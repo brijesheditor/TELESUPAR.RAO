@@ -2869,3 +2869,23 @@ const postUserId = String(
   console.log("TELESUPAR Home Fix Part 1 loaded.");
 
 })();
+
+
+
+/* =========================================
+   TELESUPAR HOME - PROFILE OPEN FIX
+========================================= */
+window.openUserProfile = function(userId) {
+  const id = String(userId || "").trim();
+
+  if (!id) {
+    console.error("TELESUPAR: User ID is empty.");
+    return;
+  }
+
+  if (typeof window.openUserExploreProfile === "function") {
+    return window.openUserExploreProfile(id);
+  }
+
+  console.error("TELESUPAR: Explore profile function not loaded.");
+};
