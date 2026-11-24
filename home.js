@@ -2532,6 +2532,32 @@
         gap:8px;
         padding:12px 0 3px;
       }
+
+.tsfix-reel-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tsfix-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tsfix-composer {
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
+  margin-top: auto;
+  background: #111827;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  z-index: 5;
+}
+      
       .tsfix-composer input {
         flex:1;
         min-width:0;
