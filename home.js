@@ -899,253 +899,303 @@
       }
     }
 
-          </div>
-    `;
-    document.body.appendChild(viewer);
+        renderSlide();
+  }
 
-    const slides = viewer.querySelector("#reel-slides");
-    viewer.querySelector("#reel-back-btn").onclick = () => viewer.remove();
-    viewer.querySelector("#reel-create-btn").onclick = () => {
-      viewer.remove();
-      window.openCreatePostModal();
-    };
 
-    let posts = [];
-    try {
-      const result = await window.api("/api/posts/feed");
-      posts = result.posts || [];
-    } catch (error) {
-      console.error("Reels loading error:", error);
-    }
+  async function loadPosts() {
+    const feed = document.getElementById("posts-feed");
+    if (!feed) return;
 
-    if (!posts.length) {
-      slides.innerHTML = `
-        <div style="height:100%;display:grid;place-items:center;text-align:center;color:#94a3b8;padding:25px">
-          <div>
-            <div style="font-size:40px">📚</div>
-            <b>No Reels available</b>
-            <p style="font-size:12px">Share an educational video to get started.</p>
-            <button class="btn-pill" onclick="window.openCreatePostModal()">Create Post</button>
-          </div>
+    const data = await window.api("/api/posts/feed");
+
+    // Keep the Home feed available for the profile overlay.
+    window.__TS_HOME_POSTS_CACHE = Array.isArray(data?.posts) ? data.posts : [];
+
+    if (!data.success || !data.posts?.length) {
+      feed.innerHTML = `
+        <div style="text-align:center;padding:50px 25px;color:#94a3b8">
+          <div style="font-size:38px;margin-bottom:12px">📚</div>
+          <b style="color:#e2e8f0">No lessons yet</b>
+          <p style="font-size:13px">Be the first to share something useful!</p>
+          <button class="btn-pill" onclick="window.openCreatePostModal()">＋ Create Post</button>
         </div>`;
       return;
     }
 
-    if (initialPostId) {
-      const index = posts.findIndex(p => String(p.id) === String(initialPostId));
-      if (index > 0) {
-        const [selected] = posts.splice(index, 1);
-        posts.unshift(selected);
+    feed.innerHTML = data.posts.map(post => {
+      let caption = post.caption || "";
+      let category = "";
+
+      if (caption.startsWith("[")) {
+        const end = caption.indexOf("]");
+        if (end !== -1) {
+          category = caption.slice(1, end);
+          caption = caption.slice(end + 1).trim();
+        }
       }
+
+      const media = safeUrl(post.mediaUrl);
+      const user = post.user || {};
+      const id = esc(post.id);
+      const postUserId = String(
+  user.id ||
+  user._id ||
+  post.userId ||
+  post.authorId ||
+  post.author?.id ||
+  post.author?._id ||
+  ""
+);
+
+      return `
+        <article class="post-card" id="post-${id}">
+          <div class="post-header">
+            <div class="post-user" onclick="window.openUserProfile('${idSafe(postUserId)}')">
+              <img src="${esc(window.avatarUrl(user))}">
+              <div style="min-width:0">
+                <div class="post-user-name">${esc(user.displayName || user.username)}</div>
+                <div class="post-user-handle">@${esc(user.username || "user")} · ${esc(timeAgo(post.createdAt))}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px">
+              ${post.isMyPost ? "" : post.isFollowing
+                ? `<button class="btn-msg-post" onclick="window.openDirectChat('${idSafe(postUserId)}')">Message</button>`
+                : `<button class="btn-follow-post" onclick="window.handlePostFollow('${idSafe(postUserId)}','${id}')">Follow</button>`
+              }
+              <button class="post-options-btn" onclick="window.openPostOptionsMenu('${id}',${!!post.isMyPost})">⋮</button>
+            </div>
+          </div>
+
+          ${media ? (post.mediaType === "video"
+            ? `<video src="${esc(media)}" class="post-media" playsinline muted controls onclick="window.openFullscreenPostViewer('${id}')"></video>`
+            : `<img src="${esc(media)}" class="post-media" loading="lazy" onclick="window.openFullscreenPostViewer('${id}')">`)
+            : ""}
+
+          <div class="post-actions">
+            <button class="action-chip ${post.likedByMe ? "liked" : ""}" onclick="window.togglePostLike('${id}',this)">
+              ♥ <span>${Number(post.likesCount || 0)}</span>
+            </button>
+            <button class="action-chip" onclick="window.toggleComments('${id}')">
+              ◯ <span id="ccount-${id}">${Number(post.commentsCount || 0)}</span>
+            </button>
+            <button class="action-chip" onclick="window.openFullscreenPostViewer('${id}')">▶ Reel</button>
+          </div>
+
+          ${(category || caption) ? `
+            <div class="post-caption" onclick="window.openFullscreenPostViewer('${id}')">
+              ${category ? `<div class="edu-badge">📚 ${esc(category)}</div>` : ""}
+              <div>${esc(caption)}</div>
+            </div>` : ""}
+          <div class="comments-box hidden" id="comments-${id}"></div>
+        </article>`;
+    }).join("");
+  }
+
+  function idSafe(value) {
+    return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "");
+  }
+
+  window.handlePostFollow = async function(userId, postId) {
+    if (!userId) return;
+    const button = document.querySelector(`#post-${CSS.escape(postId)} .btn-follow-post`);
+    if (button) {
+      button.disabled = true;
+      button.textContent = "...";
     }
 
-    slides.innerHTML = posts.map((post, index) => {
-      const user = post.user || {};
-      const media = safeUrl(post.mediaUrl);
-      const postUserId = String(
-        user.id ||
-        user._id ||
-        post.userId ||
-        post.authorId ||
-        post.author?.id ||
-        post.author?._id ||
-        ""
-      );
-
-      const isVideo = post.mediaType === "video";
-      return `
-        <section class="reel-slide" data-reel-index="${index}" data-post-id="${esc(post.id)}">
-          ${isVideo
-            ? `<video class="reel-media" src="${esc(media)}" playsinline loop muted preload="metadata"></video>`
-            : `<img class="reel-media" src="${esc(media)}" alt="Post media">`
-          }
-          <div class="reel-shade"></div>
-          <div class="reel-play-indicator">▶</div>
-
-          <div class="reel-action-rail">
-            <button class="reel-action-btn ${post.likedByMe ? "liked" : ""}" data-reel-like="${esc(post.id)}">
-              <span>♥</span><span>${Number(post.likesCount || 0)}</span>
-            </button>
-            <button class="reel-action-btn" data-reel-comments="${esc(post.id)}">
-              <span>◯</span><span>${Number(post.commentsCount || 0)}</span>
-            </button>
-            <button class="reel-action-btn" data-reel-share="${esc(post.id)}">
-              <span>↗</span><span>Share</span>
-            </button>
-            ${post.isMyPost ? "" : post.isFollowing
-              ? `<button class="reel-action-btn" data-reel-message="${idSafe(postUserId)}"><span>✉</span><span>Message</span></button>`
-              : `<button class="reel-action-btn" data-reel-follow="${idSafe(postUserId)}"><span>＋</span><span>Follow</span></button>`
-            }
-          </div>
-
-          <div class="reel-bottom-info">
-            <div class="reel-creator" data-userid="${idSafe(postUserId)}">
-              <img src="${esc(window.avatarUrl(user))}">
-              <span class="reel-creator-name">${esc(user.displayName || user.username || "User")}</span>
-            </div>
-            <div class="reel-caption">${esc(post.caption || "")}</div>
-            <div class="reel-category">📚 EDUCATIONAL CONTENT</div>
-          </div>
-        </section>`;
-    }).join("");
-
-    slides.querySelectorAll(".reel-slide").forEach(slide => {
-      const video = slide.querySelector("video");
-      if (video) {
-        video.addEventListener("click", () => {
-          if (video.paused) video.play().catch(() => {});
-          else video.pause();
-        });
-
-        video.addEventListener("play", () => {
-          slide.querySelector(".reel-play-indicator")?.classList.remove("show");
-        });
-
-        video.addEventListener("pause", () => {
-          slide.querySelector(".reel-play-indicator")?.classList.add("show");
-        });
-      }
-
-      slide.querySelector(".reel-creator")?.addEventListener("click", e => {
-        e.stopPropagation();
-        const userId = slide.querySelector(".reel-creator")?.dataset.userid;
-        if (userId) window.openUserProfile(userId);
+    try {
+      const result = await window.api(`/api/users/${userId}/follow`, {
+        method:"POST"
       });
 
-      slide.querySelector("[data-reel-like]")?.addEventListener("click", async e => {
-        const button = e.currentTarget;
-        const postId = button.dataset.reelLike;
-        const result = await window.api(`/api/posts/${postId}/like`, {
-          method:"POST"
-        });
-
-        if (result.success) {
-          button.classList.toggle("liked", !!result.liked);
-          button.querySelector("span:last-child").textContent = Number(result.likesCount || 0);
-        }
-      });
-
-      slide.querySelector("[data-reel-comments]")?.addEventListener("click", () => {
-        const postId = slide.dataset.postId;
-        openReelComments(postId);
-      });
-
-      slide.querySelector("[data-reel-share]")?.addEventListener("click", async () => {
-        const postId = slide.dataset.postId;
-        const shareUrl = `${location.origin}${location.pathname}?post=${encodeURIComponent(postId)}`;
-
-        if (navigator.share) {
-          try {
-            await navigator.share({ title:"TELESUPAR Post", url:shareUrl });
-          } catch (error) {}
-        } else if (navigator.clipboard) {
-          await navigator.clipboard.writeText(shareUrl);
-          alert("Post link copied!");
-        }
-      });
-
-      slide.querySelector("[data-reel-follow]")?.addEventListener("click", async e => {
-        const button = e.currentTarget;
-        const userId = button.dataset.reelFollow;
-        if (!userId) return;
-
-        button.disabled = true;
-        const result = await window.api(`/api/users/${userId}/follow`, {
-          method:"POST"
-        });
-
-        if (result.success) {
-          button.innerHTML = "<span>✉</span><span>Message</span>";
-          button.removeAttribute("data-reel-follow");
-          button.dataset.reelMessage = userId;
+      if (result.success) {
+        const container = document.getElementById(`post-action-container-${postId}`);
+        if (container) {
+          container.innerHTML = `<button class="btn-msg-post" onclick="window.openDirectChat('${idSafe(userId)}')">Message</button>`;
         } else {
+          loadPosts();
+        }
+      } else {
+        if (button) {
           button.disabled = false;
-          alert(result.message || "Could not follow user");
+          button.textContent = "Follow";
         }
-      });
-
-      slide.querySelector("[data-reel-message]")?.addEventListener("click", e => {
-        const userId = e.currentTarget.dataset.reelMessage;
-        if (userId) window.openDirectChat(userId);
-      });
-    });
-
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        const video = entry.target.querySelector("video");
-        if (!video) return;
-
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
-      });
-    }, { root:slides, threshold:[0.25, 0.65, 0.9] });
-
-    slides.querySelectorAll(".reel-slide").forEach(slide => observer.observe(slide));
-
-    if (initialPostId) {
-      const target = slides.querySelector(`[data-post-id="${CSS.escape(initialPostId)}"]`);
-      target?.scrollIntoView({ block:"start" });
+        alert(result.message || "Could not follow user");
+      }
+    } catch (error) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Follow";
+      }
+      console.error(error);
     }
   };
 
-  async function openReelComments(postId) {
-    document.getElementById("reel-comments-modal")?.remove();
+  window.openPostOptionsMenu = function(postId, isMine) {
+    document.getElementById("post-options-modal")?.remove();
 
     const modal = document.createElement("div");
-    modal.id = "reel-comments-modal";
+    modal.id = "post-options-modal";
     modal.className = "ts-modal";
+
     modal.innerHTML = `
-      <div class="ts-modal-panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <b>Comments & Doubts</b>
-          <button id="close-reel-comments" style="background:none;border:0;color:white;font-size:22px">✕</button>
-        </div>
-        <div id="reel-comments-list" style="margin-top:15px">
-          <p style="color:#94a3b8">Loading...</p>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:14px">
-          <input id="reel-comment-input" placeholder="Write a comment..."
-            style="flex:1;min-width:0;background:#1e293b;color:white;border:1px solid var(--ts-border);border-radius:22px;padding:11px">
-          <button id="send-reel-comment" class="btn-pill">Send</button>
-        </div>
+      <div class="ts-modal-panel" style="padding:10px 18px 25px">
+        <div style="width:42px;height:4px;border-radius:10px;background:#475569;margin:4px auto 17px"></div>
+        ${isMine ? `
+          <button class="post-menu-item" id="edit-post-option">✏️ Edit Post</button>
+          <button class="post-menu-item" id="delete-post-option" style="color:#fb7185">🗑 Delete Post</button>
+        ` : ""}
+        <button class="post-menu-item" id="report-post-option" style="color:#fb7185">⚑ Report Post</button>
+        <button class="post-menu-item" id="cancel-post-option" style="color:#94a3b8">Cancel</button>
       </div>`;
 
+    const menuStyle = document.createElement("style");
+    menuStyle.textContent = `
+      .post-menu-item {
+        display:block;width:100%;text-align:left;padding:16px 8px;
+        background:none;border:0;border-bottom:1px solid rgba(255,255,255,.07);
+        color:#e2e8f0;font-size:14px;font-weight:700;
+      }`;
+    modal.appendChild(menuStyle);
     document.body.appendChild(modal);
-    modal.querySelector("#close-reel-comments").onclick = () => modal.remove();
+
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    modal.querySelector("#cancel-post-option").onclick = () => modal.remove();
+    modal.querySelector("#edit-post-option")?.addEventListener("click", () => window.handleEditPostModal(postId));
+    modal.querySelector("#delete-post-option")?.addEventListener("click", () => window.handleDeletePost(postId));
+    modal.querySelector("#report-post-option").onclick = () => window.handleReportPost(postId);
+  };
 
-    const list = modal.querySelector("#reel-comments-list");
-    const result = await window.api(`/api/posts/${postId}/comments`);
+  window.handleReportPost = async function(postId) {
+    document.getElementById("post-options-modal")?.remove();
 
-    if (!result.success) {
-      list.innerHTML = `<p style="color:#fb7185">Could not load comments.</p>`;
-    } else {
-      list.innerHTML = (result.comments || []).map(comment => `
-        <div style="padding:10px 0;border-bottom:1px solid var(--ts-border);font-size:13px">
-          <b>${esc(comment.user?.displayName || comment.user?.username || "User")}</b>
-          <div style="margin-top:4px;color:#cbd5e1">${esc(comment.text || "")}</div>
-        </div>`).join("") || `<p style="color:#94a3b8">No comments yet.</p>`;
-    }
+    const reason = prompt(
+      "Select report reason:\n1. Non-educational content\n2. Promotion / Spam\n3. Inappropriate material"
+    );
+    if (!reason) return;
 
-    modal.querySelector("#send-reel-comment").onclick = async () => {
-      const input = modal.querySelector("#reel-comment-input");
-      const text = input.value.trim();
-      if (!text) return;
+    const result = await window.api(`/api/posts/${postId}/report`, {
+      method:"POST",
+      body:JSON.stringify({ reason })
+    });
 
-      const sent = await window.api(`/api/posts/${postId}/comments`, {
-        method:"POST",
-        body:JSON.stringify({ text })
+    alert(result.success
+      ? "Post reported successfully."
+      : (result.message || "Could not report post"));
+  };
+
+  window.handleDeletePost = async function(postId) {
+    document.getElementById("post-options-modal")?.remove();
+    if (!confirm("Are you sure you want to delete this post?")) return;
+
+    const result = await window.api(`/api/posts/${postId}`, {
+      method:"DELETE"
+    });
+
+    if (result.success) loadPosts();
+    else alert(result.message || "Could not delete post");
+  };
+
+  window.handleEditPostModal = async function(postId) {
+    document.getElementById("post-options-modal")?.remove();
+
+    const caption = prompt("Edit your lesson caption:");
+    if (caption === null) return;
+
+    const result = await window.api(`/api/posts/${postId}`, {
+      method:"PATCH",
+      body:JSON.stringify({ caption:caption.trim() })
+    });
+
+    if (result.success) loadPosts();
+    else alert(result.message || "Could not edit post");
+  };
+
+  window.togglePostLike = async function(postId, button) {
+    if (!button || button.dataset.loading === "1") return;
+    button.dataset.loading = "1";
+
+    try {
+      const result = await window.api(`/api/posts/${postId}/like`, {
+        method:"POST"
       });
 
-      if (sent.success) {
-        input.value = "";
-        modal.remove();
-        openReelComments(postId);
-      } else alert(sent.message || "Could not send comment");
-    };
-  }
+      if (result.success) {
+        button.classList.toggle("liked", !!result.liked);
+        const count = button.querySelector("span");
+        if (count) count.textContent = Number(result.likesCount || 0);
+      }
+    } finally {
+      button.dataset.loading = "0";
+    }
+  };
+
+  window.toggleComments = async function(postId) {
+    const box = document.getElementById(`comments-${postId}`);
+    if (!box) return;
+
+    box.classList.toggle("hidden");
+    if (box.classList.contains("hidden")) return;
+
+    box.innerHTML = `<p style="color:#94a3b8;font-size:12px">Loading discussions...</p>`;
+
+    const result = await window.api(`/api/posts/${postId}/comments`);
+    if (!result.success) {
+      box.innerHTML = `<p style="color:#fb7185">Could not load comments.</p>`;
+      return;
+    }
+
+    const comments = result.comments || [];
+    box.innerHTML = `
+      <div>
+        ${comments.map(c => `
+          <div class="comment-item">
+            <b>${esc(c.user?.displayName || "User")}:</b>
+            ${esc(c.text)}
+          </div>`).join("") || `<p style="color:#94a3b8">No comments yet.</p>`}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="cinput-${esc(postId)}" placeholder="Ask a doubt..."
+          style="flex:1;min-width:0;background:#1e293b;border:1px solid var(--ts-border);border-radius:25px;padding:10px;color:white">
+        <button class="btn-pill" onclick="window.submitComment('${idSafe(postId)}')">Send</button>
+      </div>`;
+  };
+
+  window.submitComment = async function(postId) {
+    const input = document.getElementById(`cinput-${postId}`);
+    const text = input?.value.trim();
+    if (!text) return;
+
+    const result = await window.api(`/api/posts/${postId}/comments`, {
+      method:"POST",
+      body:JSON.stringify({ text })
+    });
+
+    if (result.success) {
+      const box = document.getElementById(`comments-${postId}`);
+      box?.classList.add("hidden");
+      window.toggleComments(postId);
+      const count = document.getElementById(`ccount-${postId}`);
+      if (count) count.textContent = Number(count.textContent || 0) + 1;
+    } else alert(result.message || "Could not send comment");
+  };
 
 
+  window.openFullscreenPostViewer = async function(initialPostId) {
+    document.getElementById("fullscreen-reel-viewer")?.remove();
+
+    const viewer = document.createElement("div");
+    viewer.id = "fullscreen-reel-viewer";
+
+    viewer.innerHTML = `
+      <div class="reel-topbar">
+        <button class="reel-back-btn" id="reel-back-btn">← Back</button>
+        <div class="reel-top-title">TELESUPAR Reels</div>
+        <button class="reel-create-btn" id="reel-create-btn">＋</button>
+      </div>
+      <div class="reel-slides" id="reel-slides">
+        <div style="height:100%;display:grid;place-items:center;color:#94a3b8">
+          Loading Reels...
+        </div>
+      </div>`;
