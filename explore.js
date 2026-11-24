@@ -228,12 +228,14 @@
     }
   }
 
-  // Instagram-style Profile Page View (above Reels viewer with z-index 9999)
+  // Instagram-style Profile Page View
   window.openUserExploreProfile = async function(userId) {
     let existing = document.getElementById("explore-user-profile-modal");
     if (existing) existing.remove();
 
-    // Pause active reel videos while viewing user profile above reels
+    const cleanInputId = String(userId || "").trim();
+    if (!cleanInputId) return;
+
     const reelViewer = document.getElementById("fullscreen-reel-viewer");
     const playingVideos = [];
     if (reelViewer) {
@@ -249,7 +251,7 @@
     modal.id = "explore-user-profile-modal";
     modal.style.setProperty("position", "fixed", "important");
     modal.style.setProperty("inset", "0", "important");
-    modal.style.setProperty("z-index", "9999", "important");
+    modal.style.setProperty("z-index", "10060", "important");
     modal.style.setProperty("display", "flex", "important");
     modal.style.cssText += `
       background: #090d16;
@@ -276,23 +278,109 @@
 
     document.getElementById("close-user-profile").onclick = closeModal;
 
+    function openFollowListModal(type, targetId, totalCount) {
+      document.getElementById("explore-follow-list-modal")?.remove();
+
+      const listModal = document.createElement("div");
+      listModal.id = "explore-follow-list-modal";
+      listModal.style.setProperty("position", "fixed", "important");
+      listModal.style.setProperty("inset", "0", "important");
+      listModal.style.setProperty("z-index", "10080", "important");
+      listModal.style.setProperty("display", "flex", "important");
+      listModal.style.cssText += `
+        background: rgba(0,0,0,0.75);
+        align-items: flex-end; justify-content: center; padding: 12px;
+      `;
+
+      const titleText = type === "followers" ? "Followers" : "Following";
+      listModal.innerHTML = `
+        <div style="width:100%; max-width:480px; max-height:72vh; overflow:hidden; background:#111827; border:1px solid rgba(255,255,255,0.12); border-radius:22px; padding:16px; color:#fff;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08);">
+            <b style="font-size:16px;">${titleText} (${Number(totalCount || 0)})</b>
+            <button id="close-follow-list-modal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
+          </div>
+          <div id="follow-list-items" style="overflow-y:auto; max-height:56vh; padding-top:8px;">
+            <div style="text-align:center; padding:28px; color:#94a3b8;">Loading ${titleText.toLowerCase()}...</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(listModal);
+
+      listModal.querySelector("#close-follow-list-modal").onclick = () => listModal.remove();
+      listModal.onclick = (e) => { if (e.target === listModal) listModal.remove(); };
+
+      (async () => {
+        const itemsBox = listModal.querySelector("#follow-list-items");
+        try {
+          const endpoint = type === "followers"
+            ? `/api/users/${encodeURIComponent(targetId)}/followers`
+            : `/api/users/${encodeURIComponent(targetId)}/following`;
+
+          const res = await window.api(endpoint).catch(() => null);
+          const rawList = res?.users || res?.followers || res?.following || res?.data || [];
+
+          if (!Array.isArray(rawList) || !rawList.length) {
+            itemsBox.innerHTML = `<div style="text-align:center; padding:28px; color:#94a3b8;">No ${titleText.toLowerCase()} to show.</div>`;
+            return;
+          }
+
+          itemsBox.innerHTML = rawList.map(item => {
+            const u = item.user || item;
+            const uid = String(u.id || u._id || "").trim();
+            const uname = u.displayName || u.username || "User";
+            const handle = u.username ? `@${u.username}` : "";
+            const av = window.avatarUrl ? window.avatarUrl(u) : (u.avatar || "");
+            return `
+              <div class="explore-user-row" data-open-uid="${uid}">
+                <img src="${av}" alt="${uname}" />
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:14px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${uname}</div>
+                  <div style="font-size:12px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${handle}</div>
+                </div>
+                <span style="color:#94a3b8;">›</span>
+              </div>
+            `;
+          }).join("");
+
+          itemsBox.querySelectorAll("[data-open-uid]").forEach(row => {
+            row.onclick = () => {
+              const nextUid = row.getAttribute("data-open-uid");
+              listModal.remove();
+              if (nextUid) window.openUserExploreProfile(nextUid);
+            };
+          });
+        } catch (err) {
+          console.error("Follow list load error:", err);
+          itemsBox.innerHTML = `<div style="text-align:center; padding:28px; color:#ef4444;">Could not load ${titleText.toLowerCase()}.</div>`;
+        }
+      })();
+    }
+
     try {
       const [profileRes, followStatusRes] = await Promise.all([
-        window.api(`/api/users/${userId}/profile`),
-        window.api(`/api/users/${userId}/follow-status`).catch(() => ({ success: false }))
+        window.api(`/api/users/${encodeURIComponent(cleanInputId)}/profile`),
+        window.api(`/api/users/${encodeURIComponent(cleanInputId)}/follow-status`).catch(() => ({ success: false }))
       ]);
 
       const bodyContainer = document.getElementById("profile-modal-body");
 
       if (profileRes && profileRes.success && profileRes.profile) {
         const p = profileRes.profile;
+        const resolvedUserId = String(p.id || p._id || cleanInputId).trim();
         document.getElementById("modal-username-title").textContent = p.username || "Profile";
 
-        const isFollowing = followStatusRes.success ? followStatusRes.following : false;
-        const followersCount = followStatusRes.success ? (followStatusRes.followersCount || 0) : 0;
-        const followingCount = followStatusRes.success ? (followStatusRes.followingCount || 0) : 0;
+        const isFollowing = followStatusRes.success ? !!followStatusRes.following : false;
+        const followersCount = followStatusRes.success
+          ? Number(followStatusRes.followersCount ?? p.followersCount ?? 0)
+          : Number(p.followersCount ?? 0);
+        const followingCount = followStatusRes.success
+          ? Number(followStatusRes.followingCount ?? p.followingCount ?? 0)
+          : Number(p.followingCount ?? 0);
 
-        const userPosts = allPostsCache.filter(post => post.user && post.user.id === userId);
+        const userPosts = allPostsCache.filter(post => {
+          const postUid = String(post.user?.id || post.user?._id || post.userId || "").trim();
+          return postUid && postUid === resolvedUserId;
+        });
 
         bodyContainer.innerHTML = `
           <div style="padding: 16px;">
@@ -301,26 +389,26 @@
                 <img src="${window.avatarUrl ? window.avatarUrl(p) : (p.avatar || '')}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #000;" />
               </div>
               <div style="display: flex; flex: 1; justify-content: space-around; text-align: center;">
-                <div>
+                <div style="cursor:pointer;">
                   <div style="font-weight: 800; font-size: 16px;">${userPosts.length}</div>
                   <div style="font-size: 12px; color: #94a3b8;">posts</div>
                 </div>
-                <div>
+                <div id="profile-followers-trigger" style="cursor:pointer;">
                   <div style="font-weight: 800; font-size: 16px;" id="profile-followers-count">${followersCount}</div>
                   <div style="font-size: 12px; color: #94a3b8;">followers</div>
                 </div>
-                <div>
-                  <div style="font-weight: 800; font-size: 16px;">${followingCount}</div>
+                <div id="profile-following-trigger" style="cursor:pointer;">
+                  <div style="font-weight: 800; font-size: 16px;" id="profile-following-count">${followingCount}</div>
                   <div style="font-size: 12px; color: #94a3b8;">following</div>
                 </div>
               </div>
             </div>
 
             <div style="margin-top: 12px;">
-              <div style="font-weight: 800; font-size: 15px; color: #fff;">${p.displayName}</div>
+              <div style="font-weight: 800; font-size: 15px; color: #fff;">${p.displayName || p.username || "User"}</div>
               <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px; white-space: pre-wrap; line-height: 1.4;">${p.bio || "Study enthusiast & learner on TELESUPAR."}</div>
               <div style="display: inline-flex; align-items: center; gap: 6px; background: #1e293b; padding: 4px 10px; border-radius: 99px; font-size: 12px; color: #60a5fa; margin-top: 8px;">
-                <span>@${p.username}</span>
+                <span>@${p.username || "user"}</span>
               </div>
             </div>
 
@@ -361,12 +449,26 @@
           </div>
         `;
 
+        document.getElementById("profile-followers-trigger").onclick = () => {
+          const curCount = Number(document.getElementById("profile-followers-count")?.textContent || followersCount);
+          openFollowListModal("followers", resolvedUserId, curCount);
+        };
+
+        document.getElementById("profile-following-trigger").onclick = () => {
+          const curCount = Number(document.getElementById("profile-following-count")?.textContent || followingCount);
+          openFollowListModal("following", resolvedUserId, curCount);
+        };
+
         bodyContainer.querySelectorAll("[data-profile-post-id]").forEach(tile => {
           tile.addEventListener("click", (e) => {
             e.stopPropagation();
             const pid = tile.getAttribute("data-profile-post-id");
             if (pid && typeof window.openFullscreenPostViewer === "function") {
               window.openFullscreenPostViewer(pid);
+              setTimeout(() => {
+                const fv = document.getElementById("fullscreen-reel-viewer");
+                if (fv) fv.style.setProperty("z-index", "10070", "important");
+              }, 0);
             }
           });
         });
@@ -376,12 +478,14 @@
         followBtn.onclick = async () => {
           try {
             const method = currentlyFollowing ? "DELETE" : "POST";
-            const res = await window.api(`/api/users/${userId}/follow`, { method });
+            const res = await window.api(`/api/users/${encodeURIComponent(resolvedUserId)}/follow`, { method });
             if (res && res.success) {
-              currentlyFollowing = res.following;
+              currentlyFollowing = !!res.following;
               followBtn.textContent = currentlyFollowing ? "Following ✓" : "Follow";
               followBtn.style.background = currentlyFollowing ? "#1e293b" : "linear-gradient(135deg, #6366f1, #ec4899)";
-              document.getElementById("profile-followers-count").textContent = res.followersCount;
+              if (res.followersCount !== undefined) {
+                document.getElementById("profile-followers-count").textContent = res.followersCount;
+              }
             }
           } catch (e) {
             console.error("Follow action failed", e);
@@ -389,23 +493,38 @@
         };
 
         document.getElementById("profile-msg-btn").onclick = async () => {
+          const msgBtn = document.getElementById("profile-msg-btn");
           try {
-            const msgBtn = document.getElementById("profile-msg-btn");
             msgBtn.disabled = true;
             msgBtn.textContent = "Opening...";
 
-            const chatRes = await window.api(
-              `/api/conversations/${encodeURIComponent(userId)}`,
+            let chatRes = await window.api(
+              `/api/conversations/${encodeURIComponent(resolvedUserId)}`,
               { method: "POST" }
-            );
+            ).catch(() => null);
 
-            modal.remove();
-            if (reelViewer) {
-              reelViewer.querySelectorAll("video").forEach(v => v.pause());
-              reelViewer.remove();
+            if (!chatRes || !chatRes.success) {
+              chatRes = await window.api(`/api/conversations`, {
+                method: "POST",
+                body: JSON.stringify({ userId: resolvedUserId, participantId: resolvedUserId, targetUserId: resolvedUserId })
+              }).catch(() => null);
             }
 
-            const convId = chatRes?.conversation?.id || chatRes?.id || userId;
+            if (chatRes && chatRes.success === false && /not found/i.test(String(chatRes.message || ""))) {
+              alert(chatRes.message || "User not found");
+              msgBtn.disabled = false;
+              msgBtn.textContent = "Message";
+              return;
+            }
+
+            modal.remove();
+            const currentReelViewer = document.getElementById("fullscreen-reel-viewer");
+            if (currentReelViewer) {
+              currentReelViewer.querySelectorAll("video").forEach(v => v.pause());
+              currentReelViewer.remove();
+            }
+
+            const convId = chatRes?.conversation?.id || chatRes?.conversation?._id || chatRes?.id || resolvedUserId;
 
             if (typeof window.openDirectChat === "function") {
               window.openDirectChat(convId, p);
@@ -415,7 +534,7 @@
               window.renderChat(document.getElementById("app") || document.body, convId);
             } else {
               localStorage.setItem("telesupar_active_chat_id", convId);
-              const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
+              const chatTabBtn = document.querySelector('button[data-tab="chat"]') ||
                                  document.querySelector('.bottom-nav button:nth-child(3)') ||
                                  Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Chat') || b.innerHTML.includes('chat'));
               if (chatTabBtn) {
@@ -426,11 +545,8 @@
             }
           } catch (err) {
             console.error("Open chat error:", err);
-            modal.remove();
-            localStorage.setItem("telesupar_active_chat_id", userId);
-            const chatTabBtn = document.querySelector('button[data-tab="chat"]') || 
-                               document.querySelector('.bottom-nav button:nth-child(3)');
-            if (chatTabBtn) chatTabBtn.click();
+            msgBtn.disabled = false;
+            msgBtn.textContent = "Message";
           }
         };
 
@@ -444,6 +560,7 @@
       }
     }
   };
+
 
   function openSavedLessonsModal() {
     alert("Saved study posts feature coming up next!");
