@@ -948,7 +948,7 @@
       return `
         <article class="post-card" id="post-${id}">
           <div class="post-header">
-            <div class="post-user" onclick="window.openUserProfile('${idSafe(user.id)}')">
+            <div class="post-user" onclick="window.openUserProfile('${idSafe(postUserId)}')">
               <img src="${esc(window.avatarUrl(user))}">
               <div style="min-width:0">
                 <div class="post-user-name">${esc(user.displayName || user.username)}</div>
@@ -957,8 +957,8 @@
             </div>
             <div style="display:flex;align-items:center;gap:5px">
               ${post.isMyPost ? "" : post.isFollowing
-                ? `<button class="btn-msg-post" onclick="window.openDirectChat('${idSafe(user.id)}')">Message</button>`
-                : `<button class="btn-follow-post" onclick="window.handlePostFollow('${idSafe(user.id)}','${id}')">Follow</button>`
+                ? `<button class="btn-msg-post" onclick="window.openDirectChat('${idSafe(postUserId)}')">Message</button>`
+                : `<button class="btn-follow-post" onclick="window.handlePostFollow('${idSafe(postUserId)}','${id}')">Follow</button>`
               }
               <button class="post-options-btn" onclick="window.openPostOptionsMenu('${id}',${!!post.isMyPost})">⋮</button>
             </div>
