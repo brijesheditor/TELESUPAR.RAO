@@ -275,16 +275,17 @@
       background:linear-gradient(to top,rgba(0,0,0,.85),transparent);
     }
 
-    /* PREMIUM REELS VIEWER */
+        /* PREMIUM REELS VIEWER */
     #fullscreen-reel-viewer {
-      position:fixed;
-      inset:0;
-      z-index:600;
+      position:fixed !important;
+      inset:0 !important;
+      z-index:10050 !important;
       background:#000;
       color:#fff;
       overflow:hidden;
       font-family:inherit;
     }
+
     .reel-topbar {
       position:absolute;
       top:0;
