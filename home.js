@@ -1664,7 +1664,14 @@
 
     const renderOne = (comment, isReply = false) => {
       const user = comment.user || {};
-      const userId = user.id || "";
+      const userId = String(
+  user.id ||
+  user._id ||
+  user.userId ||
+  comment.userId ||
+  comment.authorId ||
+  ""
+);
       const actions = [];
 
       if (!isReply) {
