@@ -2435,3 +2435,377 @@
   console.log("TELESUPAR HOME V3 enhancements loaded.");
 
 })();
+
+
+
+/* =====================================================
+   TELESUPAR HOME FIX - PART 1/3
+   Profile Navigation + Comments + Reply + Edit + Delete
+===================================================== */
+
+(() => {
+  "use strict";
+
+  if (window.__TS_HOME_FIX_PART1__) return;
+  window.__TS_HOME_FIX_PART1__ = true;
+
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[ch]));
+
+  // Correct profile function from explore.js
+  window.TSOpenHomeProfile = function(userId) {
+    if (!userId) return;
+
+    if (typeof window.openUserExploreProfile === "function") {
+      window.openUserExploreProfile(String(userId));
+    } else {
+      console.error("Explore profile function is not available yet.");
+    }
+  };
+
+  // Comment styling
+  if (!document.getElementById("ts-home-fix-comments-css")) {
+    const style = document.createElement("style");
+    style.id = "ts-home-fix-comments-css";
+    style.textContent = `
+      .tsfix-comment {
+        display:flex;
+        gap:10px;
+        padding:12px 0;
+        border-bottom:1px solid rgba(255,255,255,.07);
+      }
+      .tsfix-comment-avatar {
+        width:36px;
+        height:36px;
+        flex-shrink:0;
+        border-radius:50%;
+        object-fit:cover;
+        cursor:pointer;
+      }
+      .tsfix-comment-content {
+        flex:1;
+        min-width:0;
+      }
+      .tsfix-comment-user {
+        color:#f8fafc;
+        background:none;
+        border:0;
+        padding:0;
+        font-size:12px;
+        font-weight:800;
+        cursor:pointer;
+      }
+      .tsfix-comment-text {
+        color:#dbe4f0;
+        font-size:13px;
+        line-height:1.5;
+        margin-top:5px;
+        overflow-wrap:anywhere;
+      }
+      .tsfix-comment-actions {
+        display:flex;
+        gap:15px;
+        margin-top:7px;
+        flex-wrap:wrap;
+      }
+      .tsfix-comment-actions button {
+        background:none;
+        border:0;
+        color:#a5b4fc;
+        font-size:11px;
+        font-weight:700;
+        padding:2px 0;
+        cursor:pointer;
+      }
+      .tsfix-replies {
+        margin:8px 0 5px 13px;
+        padding-left:12px;
+        border-left:2px solid rgba(139,92,246,.4);
+      }
+      .tsfix-composer {
+        display:flex;
+        gap:8px;
+        padding:12px 0 3px;
+      }
+      .tsfix-composer input {
+        flex:1;
+        min-width:0;
+        padding:11px 14px;
+        color:white;
+        background:#1e293b;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:25px;
+        outline:none;
+      }
+      .tsfix-composer button {
+        padding:0 17px;
+        color:white;
+        font-weight:800;
+        border:0;
+        border-radius:22px;
+        background:linear-gradient(135deg,#6366f1,#9333ea);
+      }
+      .tsfix-empty {
+        color:#94a3b8;
+        text-align:center;
+        padding:22px 8px;
+        font-size:13px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  async function loadComments(postId, list) {
+    list.innerHTML = `<p class="tsfix-empty">Loading comments...</p>`;
+
+    const result = await window.api(
+      `/api/posts/${encodeURIComponent(postId)}/comments`
+    );
+
+    if (!result.success) {
+      list.innerHTML = `<p class="tsfix-empty">Could not load comments.</p>`;
+      return;
+    }
+
+    const comments = result.comments || [];
+
+    function renderComment(comment, isReply = false) {
+      const user = comment.user || {};
+      const userId = user.id || "";
+      const avatar = window.avatarUrl(user);
+
+      let actions = "";
+
+      if (!isReply) {
+        actions += `
+          <button data-action="reply"
+            data-id="${esc(comment.id)}">Reply</button>`;
+      }
+
+      if (comment.isMine && !isReply) {
+        actions += `
+          <button data-action="edit"
+            data-id="${esc(comment.id)}">Edit</button>
+          <button data-action="delete"
+            data-id="${esc(comment.id)}">Delete</button>`;
+      }
+
+      return `
+        <div class="tsfix-comment">
+          <img class="tsfix-comment-avatar"
+            data-profile="${esc(userId)}"
+            src="${esc(avatar)}">
+
+          <div class="tsfix-comment-content">
+            <button class="tsfix-comment-user"
+              data-profile="${esc(userId)}">
+              ${esc(user.displayName || user.username || "User")}
+            </button>
+
+            <div class="tsfix-comment-text">${esc(comment.text)}</div>
+
+            <div class="tsfix-comment-actions">
+              ${actions}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    list.innerHTML = comments.length
+      ? comments.map(comment => `
+          <div class="tsfix-parent">
+            ${renderComment(comment)}
+            <div class="tsfix-replies">
+              ${(comment.replies || [])
+                .map(reply => renderComment(reply, true))
+                .join("")}
+            </div>
+          </div>
+        `).join("")
+      : `<p class="tsfix-empty">No comments yet. Start the discussion!</p>`;
+  }
+
+  function setupComments(postId, container) {
+    container.innerHTML = `
+      <div class="tsfix-list"></div>
+      <div class="tsfix-composer">
+        <input class="tsfix-input"
+          maxlength="500"
+          placeholder="Write a comment...">
+        <button class="tsfix-send">Send</button>
+      </div>
+    `;
+
+    const list = container.querySelector(".tsfix-list");
+    const input = container.querySelector(".tsfix-input");
+    const send = container.querySelector(".tsfix-send");
+
+    const refresh = () => loadComments(postId, list);
+
+    send.onclick = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+
+      send.disabled = true;
+
+      try {
+        const result = await window.api(
+          `/api/posts/${encodeURIComponent(postId)}/comments`,
+          {
+            method: "POST",
+            body: JSON.stringify({ text })
+          }
+        );
+
+        if (result.success) {
+          input.value = "";
+          await refresh();
+        } else {
+          alert(result.message || "Comment could not be sent.");
+        }
+      } finally {
+        send.disabled = false;
+      }
+    };
+
+    input.onkeydown = event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        send.click();
+      }
+    };
+
+    list.onclick = async event => {
+      const profile = event.target.closest("[data-profile]");
+
+      if (profile) {
+        window.TSOpenHomeProfile(profile.dataset.profile);
+        return;
+      }
+
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const commentId = button.dataset.id;
+
+      if (!commentId) return;
+
+      if (action === "reply") {
+        const text = prompt("Write your reply:");
+        if (!text || !text.trim()) return;
+
+        const result = await window.api(
+          `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}/replies`,
+          {
+            method: "POST",
+            body: JSON.stringify({ text: text.trim() })
+          }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Reply failed.");
+
+        return;
+      }
+
+      if (action === "edit") {
+        const current = button
+          .closest(".tsfix-comment")
+          ?.querySelector(".tsfix-comment-text")
+          ?.textContent || "";
+
+        const text = prompt("Edit your comment:", current);
+
+        if (text === null || !text.trim()) return;
+
+        const result = await window.api(
+          `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ text: text.trim() })
+          }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Edit failed.");
+
+        return;
+      }
+
+      if (action === "delete") {
+        if (!confirm("Are you sure you want to delete this comment?")) {
+          return;
+        }
+
+        const result = await window.api(
+          `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+          { method: "DELETE" }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Delete failed.");
+      }
+    };
+
+    refresh();
+  }
+
+  // Replace Home comment handler
+  window.toggleComments = function(postId) {
+    const box = document.getElementById(`comments-${postId}`);
+    if (!box) return;
+
+    box.classList.toggle("hidden");
+
+    if (!box.classList.contains("hidden")) {
+      setupComments(postId, box);
+    }
+  };
+
+  // Replace Reel comments with the same working comment system
+  window.openReelCommentsModal = function(postId) {
+    document.getElementById("reel-comments-modal")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "reel-comments-modal";
+    modal.className = "ts-modal";
+
+    modal.innerHTML = `
+      <div class="ts-modal-panel"
+        style="height:78vh;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;
+          align-items:center;padding-bottom:14px">
+          <b>Comments & Replies</b>
+          <button class="tsfix-close"
+            style="background:none;border:0;color:white;font-size:22px">
+            ✕
+          </button>
+        </div>
+        <div class="tsfix-reel-content"
+          style="flex:1;overflow:auto"></div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector(".tsfix-close").onclick = () => modal.remove();
+
+    modal.onclick = event => {
+      if (event.target === modal) modal.remove();
+    };
+
+    setupComments(
+      postId,
+      modal.querySelector(".tsfix-reel-content")
+    );
+  };
+
+  console.log("TELESUPAR Home Fix Part 1 loaded.");
+
+})();
