@@ -228,7 +228,7 @@
     }
   }
 
-  // Instagram-style Profile Page View (above Reels viewer with z-index 800)
+  // Instagram-style Profile Page View (above Reels viewer with z-index 9999)
   window.openUserExploreProfile = async function(userId) {
     let existing = document.getElementById("explore-user-profile-modal");
     if (existing) existing.remove();
@@ -247,9 +247,13 @@
 
     const modal = document.createElement("div");
     modal.id = "explore-user-profile-modal";
-    modal.style.cssText = `
-      position: fixed; inset: 0; background: #090d16; z-index: 800;
-      display: flex; flex-direction: column; color: #fff; font-family: inherit; overflow-y: auto;
+    modal.style.setProperty("position", "fixed", "important");
+    modal.style.setProperty("inset", "0", "important");
+    modal.style.setProperty("z-index", "9999", "important");
+    modal.style.setProperty("display", "flex", "important");
+    modal.style.cssText += `
+      background: #090d16;
+      flex-direction: column; color: #fff; font-family: inherit; overflow-y: auto;
     `;
     modal.innerHTML = `
       <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#111827; position:sticky; top:0; z-index:10;">
@@ -342,7 +346,7 @@
               const statCount = formatCount(post.viewsCount || post.likesCount || 0);
               let cleanText = (post.caption || "").replace(/^\[.*?\]\s*/, "");
               return `
-                <div class="explore-tile" onclick="window.openFullscreenPostViewer('${post.id}')">
+                <div class="explore-tile" data-profile-post-id="${post.id}">
                   ${post.mediaUrl ? (
                     isVideo
                       ? `<video src="${post.mediaUrl}" muted preload="metadata" playsinline></video>`
@@ -356,6 +360,16 @@
             }).join('') : `<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#64748b;">No posts uploaded by this user yet.</div>`}
           </div>
         `;
+
+        bodyContainer.querySelectorAll("[data-profile-post-id]").forEach(tile => {
+          tile.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const pid = tile.getAttribute("data-profile-post-id");
+            if (pid && typeof window.openFullscreenPostViewer === "function") {
+              window.openFullscreenPostViewer(pid);
+            }
+          });
+        });
 
         const followBtn = document.getElementById("profile-follow-btn");
         let currentlyFollowing = isFollowing;
