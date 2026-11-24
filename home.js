@@ -297,7 +297,7 @@
       justify-content:space-between;
       z-index:20;
       background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent);
-          }
+    }
     .reel-back-btn {
       border:1px solid rgba(255,255,255,.16);
       color:white;
@@ -481,7 +481,7 @@
   `;
   document.head.appendChild(style);
 
-  const esc = (value) => String(value ?? "").replace(/[&<>"\']/g, c => ({
+  const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({
     "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
   })[c]);
 
@@ -498,6 +498,23 @@
     if (seconds < 86400) return Math.floor(seconds / 3600) + "h";
     return Math.floor(seconds / 86400) + "d";
   };
+
+  function idSafe(value) {
+    return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "");
+  }
+
+  function resolveUserId(user, post) {
+    return String(
+      user?.id ||
+      user?._id ||
+      user?.userId ||
+      post?.userId ||
+      post?.authorId ||
+      post?.author?.id ||
+      post?.author?._id ||
+      ""
+    );
+  }
 
   window.renderHome = async function (container) {
     container.innerHTML = `
@@ -596,9 +613,8 @@
     modal.innerHTML = `
       <div class="ts-modal-panel" style="height:85vh;max-height:85vh">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <strong style="font-size:18px">Notifications & Activity</strong>')
-
-                    <button id="close-notif-modal" style="background:none;border:0;color:white;font-size:22px">✕</button>
+          <strong style="font-size:18px">Notifications & Activity</strong>
+          <button id="close-notif-modal" style="background:none;border:0;color:white;font-size:22px">✕</button>
         </div>
         <div id="notif-list-container" style="overflow:auto">
           <p style="text-align:center;color:#94a3b8;padding:30px">Loading activities...</p>
@@ -618,43 +634,120 @@
     }
 
     box.innerHTML = res.notifications.map(n => {
-      const actor = n.user || n.actor || {};
-      const post = n.post || n.targetPost;
-      let action = "interacted with your post";
+      const actor = n.actor || n.user || {};
+      const post = n.post || n.targetPost || {};
+      const story = n.story || {};
       const type = String(n.type || "").toLowerCase();
 
-      if (type.includes("like")) action = post?.storyId ? "liked your story" : "liked your post";
-      else if (type.includes("comment")) action = "commented: " + (n.text || n.commentText || "");
-      else if (type.includes("reply")) action = "replied to your doubt";
-      else if (type.includes("follow")) action = "started following you";
+      let action = "interacted with you";
+      if (type.includes("post_like") || type.includes("like")) {
+        action = (post?.storyId || story?.id || type.includes("story")) ? "liked your story" : "liked your post";
+      } else if (type.includes("comment_reply") || type.includes("reply")) {
+        action = `replied: ${n.commentText || n.text || ""}`;
+      } else if (type.includes("comment")) {
+        action = `commented: ${n.commentText || n.text || ""}`;
+      } else if (type.includes("follow")) {
+        action = "started following you";
+      }
 
-      const media = safeUrl(post?.mediaUrl);
+      const media = safeUrl(story.mediaUrl || post.mediaUrl);
+      const actorId = resolveUserId(actor, null);
       const thumb = media
-        ? `<img src="${esc(media)}" style="width:43px;height:43px;object-fit:cover;border-radius:10px">`
+        ? `<img data-v3-thumb="${esc(post.id || "")}" src="${esc(media)}" style="width:48px;height:48px;object-fit:cover;border-radius:10px;cursor:pointer">`
         : "";
 
       return `
-        <div class="notif-item" data-postid="${esc(post?.id || "")}"
-          style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--ts-border);cursor:pointer">
-          <img src="${esc(window.avatarUrl(actor))}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">
-          <div style="flex:1;font-size:13px;line-height:1.5">
-            <b>${esc(actor.displayName || actor.username || "Someone")}</b>
+        <div class="tsv3-notification"
+          data-v3-actor="${esc(actorId)}"
+          data-v3-post="${esc(post.id || "")}"
+          data-v3-type="${esc(type)}"
+          style="display:flex;align-items:center;gap:11px;
+          padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+
+          <img data-v3-actor="${esc(actorId)}"
+            src="${esc(window.avatarUrl(actor))}"
+            style="width:43px;height:43px;border-radius:50%;
+            object-fit:cover;cursor:pointer">
+
+          <div style="flex:1;min-width:0;font-size:13px;line-height:1.5">
+            <b data-v3-actor="${esc(actorId)}"
+              style="cursor:pointer">
+              ${esc(actor.displayName || actor.username || "Someone")}
+            </b>
             ${esc(action)}
-            <div style="font-size:11px;color:#94a3b8">${esc(timeAgo(n.createdAt || n.timestamp))} ago</div>
+
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px">
+              ${esc(timeAgo(n.createdAt || n.timestamp))}
+            </div>
+
+            ${type === "new_follow"
+              ? `<button class="tsv3-follow-back"
+                  data-userid="${esc(actorId)}"
+                  style="margin-top:8px;border:0;border-radius:18px;
+                  padding:7px 14px;background:#6366f1;
+                  color:white;font-weight:800;font-size:11px">
+                  Follow Back
+                </button>`
+              : ""}
           </div>
+
           ${thumb}
         </div>`;
     }).join("");
 
-    box.querySelectorAll(".notif-item").forEach(item => {
-      item.onclick = () => {
-        const id = item.dataset.postid;
-        if (id) {
-          modal.remove();
-          window.openFullscreenPostViewer(id);
+    box.querySelectorAll("[data-v3-actor]").forEach(el => {
+      el.addEventListener("click", event => {
+        event.stopPropagation();
+        const id = el.dataset.v3Actor;
+        if (id && window.openUserProfile) window.openUserProfile(id);
+      });
+    });
+
+    box.querySelectorAll("[data-v3-thumb]").forEach(el => {
+      el.onclick = () => {
+        const postId = el.dataset.v3Thumb;
+        if (!postId) return;
+        modal.remove();
+        window.openFullscreenPostViewer?.(postId);
+      };
+    });
+
+    box.querySelectorAll(".tsv3-follow-back").forEach(async button => {
+      const userId = button.dataset.userid;
+      if (!userId) {
+        button.remove();
+        return;
+      }
+
+      const status = await window.api(`/api/users/${userId}/follow-status`);
+      if (!button.isConnected) return;
+
+      if (status.success && status.following) {
+        button.textContent = "Following";
+        button.disabled = true;
+        button.style.background = "#334155";
+      }
+
+      button.onclick = async event => {
+        event.stopPropagation();
+        if (button.disabled) return;
+
+        button.disabled = true;
+        button.textContent = "Following...";
+
+        const response = await window.api(`/api/users/${userId}/follow`, { method:"POST" });
+        if (response.success) {
+          button.textContent = "Following";
+          button.style.background = "#334155";
+        } else {
+          button.disabled = false;
+          button.textContent = "Follow Back";
+          alert(response.message || "Could not follow user");
         }
       };
     });
+
+    await window.api("/api/notifications/read", { method:"PATCH" });
   }
 
   async function updateBottomNavBadges() {
@@ -899,18 +992,14 @@
       }
     }
 
-        renderSlide();
+    renderSlide();
   }
-
 
   async function loadPosts() {
     const feed = document.getElementById("posts-feed");
     if (!feed) return;
 
     const data = await window.api("/api/posts/feed");
-
-    // Keep the Home feed available for the profile overlay.
-    window.__TS_HOME_POSTS_CACHE = Array.isArray(data?.posts) ? data.posts : [];
 
     if (!data.success || !data.posts?.length) {
       feed.innerHTML = `
@@ -938,15 +1027,7 @@
       const media = safeUrl(post.mediaUrl);
       const user = post.user || {};
       const id = esc(post.id);
-      const postUserId = String(
-  user.id ||
-  user._id ||
-  post.userId ||
-  post.authorId ||
-  post.author?.id ||
-  post.author?._id ||
-  ""
-);
+      const postUserId = resolveUserId(user, post);
 
       return `
         <article class="post-card" id="post-${id}">
@@ -958,7 +1039,7 @@
                 <div class="post-user-handle">@${esc(user.username || "user")} · ${esc(timeAgo(post.createdAt))}</div>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:5px">
+            <div id="post-action-container-${id}" style="display:flex;align-items:center;gap:5px">
               ${post.isMyPost ? "" : post.isFollowing
                 ? `<button class="btn-msg-post" onclick="window.openDirectChat('${idSafe(postUserId)}')">Message</button>`
                 : `<button class="btn-follow-post" onclick="window.handlePostFollow('${idSafe(postUserId)}','${id}')">Follow</button>`
@@ -992,10 +1073,6 @@
     }).join("");
   }
 
-  function idSafe(value) {
-    return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "");
-  }
-
   window.handlePostFollow = async function(userId, postId) {
     if (!userId) return;
     const button = document.querySelector(`#post-${CSS.escape(postId)} .btn-follow-post`);
@@ -1012,7 +1089,9 @@
       if (result.success) {
         const container = document.getElementById(`post-action-container-${postId}`);
         if (container) {
+          const optsBtn = container.querySelector(".post-options-btn");
           container.innerHTML = `<button class="btn-msg-post" onclick="window.openDirectChat('${idSafe(userId)}')">Message</button>`;
+          if (optsBtn) container.appendChild(optsBtn);
         } else {
           loadPosts();
         }
@@ -1131,57 +1210,6 @@
     }
   };
 
-  window.toggleComments = async function(postId) {
-    const box = document.getElementById(`comments-${postId}`);
-    if (!box) return;
-
-    box.classList.toggle("hidden");
-    if (box.classList.contains("hidden")) return;
-
-    box.innerHTML = `<p style="color:#94a3b8;font-size:12px">Loading discussions...</p>`;
-
-    const result = await window.api(`/api/posts/${postId}/comments`);
-    if (!result.success) {
-      box.innerHTML = `<p style="color:#fb7185">Could not load comments.</p>`;
-      return;
-    }
-
-    const comments = result.comments || [];
-    box.innerHTML = `
-      <div>
-        ${comments.map(c => `
-          <div class="comment-item">
-            <b>${esc(c.user?.displayName || "User")}:</b>
-            ${esc(c.text)}
-          </div>`).join("") || `<p style="color:#94a3b8">No comments yet.</p>`}
-      </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="cinput-${esc(postId)}" placeholder="Ask a doubt..."
-          style="flex:1;min-width:0;background:#1e293b;border:1px solid var(--ts-border);border-radius:25px;padding:10px;color:white">
-        <button class="btn-pill" onclick="window.submitComment('${idSafe(postId)}')">Send</button>
-      </div>`;
-  };
-
-  window.submitComment = async function(postId) {
-    const input = document.getElementById(`cinput-${postId}`);
-    const text = input?.value.trim();
-    if (!text) return;
-
-    const result = await window.api(`/api/posts/${postId}/comments`, {
-      method:"POST",
-      body:JSON.stringify({ text })
-    });
-
-    if (result.success) {
-      const box = document.getElementById(`comments-${postId}`);
-      box?.classList.add("hidden");
-      window.toggleComments(postId);
-      const count = document.getElementById(`ccount-${postId}`);
-      if (count) count.textContent = Number(count.textContent || 0) + 1;
-    } else alert(result.message || "Could not send comment");
-  };
-
-
   window.openFullscreenPostViewer = async function(initialPostId) {
     document.getElementById("fullscreen-reel-viewer")?.remove();
 
@@ -1199,8 +1227,6 @@
           Loading Reels...
         </div>
       </div>`;
-
-          </div>`;
 
     document.body.appendChild(viewer);
 
@@ -1253,18 +1279,7 @@
 
       const media = safeUrl(post.mediaUrl);
       const user = post.user || {};
-
-const postUserId = String(
-  user.id ||
-  user._id ||
-  post.userId ||
-  post.authorId ||
-  post.author?.id ||
-  post.author?._id ||
-  ""
-);
-
-      const id = idSafe(post.id);
+      const postUserId = resolveUserId(user, post);
       const isVideo = post.mediaType === "video";
 
       return `
@@ -1321,7 +1336,6 @@ const postUserId = String(
         </section>`;
     }).join("");
 
-    // Play only the currently visible video.
     const videos = slides.querySelectorAll("video.reel-media");
 
     const observer = new IntersectionObserver(entries => {
@@ -1343,7 +1357,6 @@ const postUserId = String(
 
     videos.forEach(video => observer.observe(video));
 
-    // Tap video to pause/play.
     slides.querySelectorAll(".reel-slide").forEach(slide => {
       const media = slide.querySelector(".reel-media");
       const indicator = slide.querySelector(".reel-play-indicator");
@@ -1363,7 +1376,6 @@ const postUserId = String(
       }
     });
 
-    // Like button.
     slides.querySelectorAll(".reel-like-btn").forEach(button => {
       button.onclick = async () => {
         if (button.dataset.loading === "1") return;
@@ -1386,14 +1398,12 @@ const postUserId = String(
       };
     });
 
-    // Comments.
     slides.querySelectorAll(".reel-comment-btn").forEach(button => {
       button.onclick = () => {
         window.openReelCommentsModal(button.dataset.postid);
       };
     });
 
-    // Share using Android share sheet where supported.
     slides.querySelectorAll(".reel-share-btn").forEach(button => {
       button.onclick = async () => {
         const id = button.dataset.postid;
@@ -1418,7 +1428,6 @@ const postUserId = String(
       };
     });
 
-    // Profile navigation.
     slides.querySelectorAll(".reel-creator").forEach(el => {
       el.addEventListener("click", e => {
         if (e.target.closest("button")) return;
@@ -1429,7 +1438,6 @@ const postUserId = String(
       });
     });
 
-    // Follow from Reel.
     slides.querySelectorAll(".reel-follow-btn").forEach(button => {
       button.onclick = async () => {
         const userId = button.dataset.userid;
@@ -1442,8 +1450,6 @@ const postUserId = String(
 
         if (response.success) {
           button.outerHTML = `<button class="btn-msg-post reel-message-btn" data-userid="${idSafe(userId)}">Message</button>`;
-          const next = slides.querySelector(`.reel-message-btn[data-userid="${CSS.escape(idSafe(userId))}"]`);
-          if (next) next.onclick = () => window.openDirectChat(userId);
         } else {
           button.disabled = false;
           alert(response.message || "Could not follow user");
@@ -1451,14 +1457,6 @@ const postUserId = String(
       };
     });
 
-    slides.querySelectorAll(".reel-message-btn").forEach(button => {
-      button.onclick = () => {
-        const userId = button.dataset.userid;
-        if (userId && window.openDirectChat) window.openDirectChat(userId);
-      };
-    });
-
-    // Start at the requested post.
     if (initialPostId) {
       const target = slides.querySelector(
         `.reel-slide[data-postid="${CSS.escape(String(initialPostId))}"]`
@@ -1466,102 +1464,19 @@ const postUserId = String(
       if (target) target.scrollIntoView({ block:"start" });
     }
   };
-
-  window.openReelCommentsModal = async function(postId) {
-    document.getElementById("reel-comments-modal")?.remove();
-
-    const modal = document.createElement("div");
-    modal.id = "reel-comments-modal";
-    modal.className = "ts-modal";
-
-    modal.innerHTML = `
-      <div class="ts-modal-panel" style="height:72vh;display:flex;flex-direction:column;padding:0">
-        <div style="padding:17px;display:flex;justify-content:space-between;border-bottom:1px solid var(--ts-border)">
-          <b>Comments & Doubts</b>
-          <button id="close-reel-comments" style="background:none;border:0;color:white;font-size:21px">✕</button>
-        </div>
-        <div id="reel-comments-list" style="flex:1;overflow:auto;padding:16px">
-          <p style="color:#94a3b8;text-align:center">Loading discussions...</p>
-        </div>
-        <div style="display:flex;gap:9px;padding:13px;border-top:1px solid var(--ts-border)">
-          <input id="reel-comment-input" placeholder="Ask a doubt or comment..."
-            style="flex:1;min-width:0;background:#1e293b;border:1px solid var(--ts-border);border-radius:25px;padding:12px;color:white">
-          <button id="reel-send-comment-btn" class="btn-pill">Post</button>
-        </div>
-      </div>`;
-
-    document.body.appendChild(modal);
-
-    modal.querySelector("#close-reel-comments").onclick = () => modal.remove();
-    modal.onclick = e => { if (e.target === modal) modal.remove(); };
-
-    const list = modal.querySelector("#reel-comments-list");
-
-    async function refreshComments() {
-      const response = await window.api(`/api/posts/${postId}/comments`);
-
-          if (!response.success) {
-        list.innerHTML = `<p style="color:#fb7185">Could not load comments.</p>`;
-        return;
-      }
-
-      const comments = response.comments || [];
-      list.innerHTML = comments.length ? comments.map(comment => `
-        <div style="display:flex;gap:11px;margin-bottom:17px">
-          <img src="${esc(window.avatarUrl(comment.user))}"
-            style="width:35px;height:35px;border-radius:50%;object-fit:cover">
-          <div style="flex:1">
-            <b style="font-size:13px">${esc(comment.user?.displayName || "User")}</b>
-            <p style="font-size:13px;color:#dbe4f0;line-height:1.5;margin:5px 0 0">${esc(comment.text)}</p>
-          </div>
-        </div>`).join("") :
-        `<p style="text-align:center;color:#94a3b8;padding:35px">No comments yet. Ask the first question!</p>`;
-    }
-
-    refreshComments();
-
-    modal.querySelector("#reel-send-comment-btn").onclick = async () => {
-      const input = modal.querySelector("#reel-comment-input");
-      const text = input.value.trim();
-      if (!text) return;
-
-      const button = modal.querySelector("#reel-send-comment-btn");
-      button.disabled = true;
-
-      const response = await window.api(`/api/posts/${postId}/comments`, {
-        method:"POST",
-        body:JSON.stringify({ text })
-      });
-
-      button.disabled = false;
-
-      if (response.success) {
-        input.value = "";
-        refreshComments();
-      } else {
-        alert(response.message || "Could not post comment");
-      }
-    };
-  };
-
 })();
 
-
-
-
-
 /* =====================================================
-   TELESUPAR HOME V3 - PART 1/3
-   Comments • Edit • Delete • Reply • Profile links
+   TELESUPAR HOME FIX - COMMENTS, STORY STATS & UI
 ===================================================== */
 
 (() => {
   "use strict";
 
-  if (window.__TS_HOME_V3__) return;
-  window.__TS_HOME_V3__ = true;
+  if (window.__TS_HOME_FIX_PART1__) return;
+  window.__TS_HOME_FIX_PART1__ = true;
 
-  const escV3 = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
@@ -1569,202 +1484,278 @@ const postUserId = String(
     "'": "&#39;"
   }[ch]));
 
-  const avatarV3 = user =>
-    window.avatarUrl
-      ? window.avatarUrl(user || {})
-      : "";
+  const avatarV3 = user => window.avatarUrl ? window.avatarUrl(user || {}) : "";
 
-  const openProfileV3 = userId => {
-    if (userId && window.openUserProfile) {
-      window.openUserProfile(String(userId));
+  window.TSOpenHomeProfile = function(userId) {
+    if (!userId) return;
+    if (typeof window.openUserExploreProfile === "function") {
+      window.openUserExploreProfile(String(userId));
+    } else {
+      console.error("Explore profile function is not available yet.");
     }
   };
 
-  const commentCSS = document.createElement("style");
-  commentCSS.id = "ts-home-v3-css";
-  commentCSS.textContent = `
-    .tsv3-comment {
-      display:flex;
-      gap:10px;
-      padding:12px 0;
-      border-bottom:1px solid rgba(255,255,255,.07);
+  window.openUserProfile = function(userId) {
+    const id = String(userId || "").trim();
+    if (!id) {
+      console.error("TELESUPAR: User ID is empty.");
+      return;
     }
-    .tsv3-avatar {
-      width:36px;
-      height:36px;
-      border-radius:50%;
-      object-fit:cover;
-      flex-shrink:0;
-      cursor:pointer;
+    if (typeof window.openUserExploreProfile === "function") {
+      return window.openUserExploreProfile(id);
     }
-    .tsv3-comment-body {
-      flex:1;
-      min-width:0;
-    }
-    .tsv3-comment-name {
-      color:#f8fafc;
-      font-size:12px;
-      font-weight:800;
-      cursor:pointer;
-      background:none;
-      border:0;
-      padding:0;
-    }
-    .tsv3-comment-text {
-      color:#dbe4f0;
-      font-size:13px;
-      line-height:1.5;
-      overflow-wrap:anywhere;
-      margin-top:4px;
-    }
-    .tsv3-comment-actions {
-      display:flex;
-      gap:13px;
-      flex-wrap:wrap;
-      margin-top:7px;
-    }
-    .tsv3-comment-actions button {
-      border:0;
-      background:none;
-      color:#a5b4fc;
-      font-size:11px;
-      font-weight:700;
-      padding:2px 0;
-      cursor:pointer;
-    }
-    .tsv3-replies {
-      margin:10px 0 0 13px;
-      padding-left:12px;
-      border-left:2px solid rgba(139,92,246,.35);
-    }
-    .tsv3-composer {
-      display:flex;
-      gap:8px;
-      padding:12px 0 3px;
-    }
-    .tsv3-composer input {
-      flex:1;
-      min-width:0;
-      background:#1e293b;
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:24px;
-      padding:11px 14px;
-      color:white;
-      outline:none;
-    }
-    .tsv3-send {
-      border:0;
-      border-radius:22px;
-      padding:0 17px;
-      background:linear-gradient(135deg,#6366f1,#9333ea);
-      color:white;
-      font-weight:800;
-    }
-    .tsv3-empty {
-      color:#94a3b8;
-      text-align:center;
-      padding:22px 8px;
-      font-size:13px;
-    }
-  `;
-  document.head.appendChild(commentCSS);
+    console.error("TELESUPAR: Explore profile function not loaded.");
+  };
 
-  async function loadCommentsV3(postId, container) {
-    container.innerHTML =
-      `<p class="tsv3-empty">Loading comments...</p>`;
+  if (!document.getElementById("ts-home-fix-comments-css")) {
+    const style = document.createElement("style");
+    style.id = "ts-home-fix-comments-css";
+    style.textContent = `
+      .tsfix-comment {
+        display:flex;
+        gap:10px;
+        padding:12px 0;
+        border-bottom:1px solid rgba(255,255,255,.07);
+      }
+      .tsfix-comment-avatar {
+        width:36px;
+        height:36px;
+        flex-shrink:0;
+        border-radius:50%;
+        object-fit:cover;
+        cursor:pointer;
+      }
+      .tsfix-comment-content {
+        flex:1;
+        min-width:0;
+      }
+      .tsfix-comment-user {
+        color:#f8fafc;
+        background:none;
+        border:0;
+        padding:0;
+        font-size:12px;
+        font-weight:800;
+        cursor:pointer;
+      }
+      .tsfix-comment-text {
+        color:#dbe4f0;
+        font-size:13px;
+        line-height:1.5;
+        margin-top:5px;
+        overflow-wrap:anywhere;
+      }
+      .tsfix-comment-actions {
+        display:flex;
+        gap:15px;
+        margin-top:7px;
+        flex-wrap:wrap;
+      }
+      .tsfix-comment-actions button {
+        background:none;
+        border:0;
+        color:#a5b4fc;
+        font-size:11px;
+        font-weight:700;
+        padding:2px 0;
+        cursor:pointer;
+      }
+      .tsfix-replies {
+        margin:8px 0 5px 13px;
+        padding-left:12px;
+        border-left:2px solid rgba(139,92,246,.4);
+      }
+      .tsfix-reel-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+      .tsfix-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+      .tsfix-composer {
+        display:flex;
+        gap:8px;
+        position: sticky;
+        bottom: 0;
+        flex-shrink: 0;
+        margin-top: auto;
+        background: #111827;
+        padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+        z-index: 5;
+      }
+      .tsfix-composer input {
+        flex:1;
+        min-width:0;
+        padding:11px 14px;
+        color:white;
+        background:#1e293b;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:25px;
+        outline:none;
+      }
+      .tsfix-composer button {
+        padding:0 17px;
+        color:white;
+        font-weight:800;
+        border:0;
+        border-radius:22px;
+        background:linear-gradient(135deg,#6366f1,#9333ea);
+      }
+      .tsfix-empty {
+        color:#94a3b8;
+        text-align:center;
+        padding:22px 8px;
+        font-size:13px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  async function loadComments(postId, list) {
+    list.innerHTML = `<p class="tsfix-empty">Loading comments...</p>`;
 
     const result = await window.api(
       `/api/posts/${encodeURIComponent(postId)}/comments`
     );
 
     if (!result.success) {
-      container.innerHTML =
-        `<p class="tsv3-empty">Could not load comments.</p>`;
+      list.innerHTML = `<p class="tsfix-empty">Could not load comments.</p>`;
       return;
     }
 
     const comments = result.comments || [];
 
-    const renderOne = (comment, isReply = false) => {
+    function renderComment(comment, isReply = false) {
       const user = comment.user || {};
       const userId = String(
-  user.id ||
-  user._id ||
-  user.userId ||
-  comment.userId ||
-  comment.authorId ||
-  ""
-);
-      const actions = [];
+        user.id ||
+        user._id ||
+        user.userId ||
+        comment.userId ||
+        comment.authorId ||
+        ""
+      );
+      const avatar = window.avatarUrl(user);
+
+      let actions = "";
 
       if (!isReply) {
-        actions.push(
-          `<button data-v3-action="reply"
-            data-id="${escV3(comment.id)}">Reply</button>`
-        );
+        actions += `
+          <button data-action="reply"
+            data-id="${esc(comment.id)}">Reply</button>`;
       }
 
-      if (comment.isMine) {
-        actions.push(
-          `<button data-v3-action="edit"
-            data-id="${escV3(comment.id)}">Edit</button>`
-        );
-        actions.push(
-          `<button data-v3-action="delete"
-            data-id="${escV3(comment.id)}">Delete</button>`
-        );
+      if (comment.isMine && !isReply) {
+        actions += `
+          <button data-action="edit"
+            data-id="${esc(comment.id)}">Edit</button>
+          <button data-action="delete"
+            data-id="${esc(comment.id)}">Delete</button>`;
       }
 
       return `
-        <div class="tsv3-comment">
-          <img class="tsv3-avatar"
-            data-v3-profile="${escV3(userId)}"
-            src="${escV3(avatarV3(user))}">
-          <div class="tsv3-comment-body">
-            <button class="tsv3-comment-name"
-              data-v3-profile="${escV3(userId)}">
-              ${escV3(user.displayName || user.username || "User")}
+        <div class="tsfix-comment">
+          <img class="tsfix-comment-avatar"
+            data-profile="${esc(userId)}"
+            src="${esc(avatar)}">
+
+          <div class="tsfix-comment-content">
+            <button class="tsfix-comment-user"
+              data-profile="${esc(userId)}">
+              ${esc(user.displayName || user.username || "User")}
             </button>
 
-            <div class="tsv3-comment-text">
-              ${escV3(comment.text)}
-            </div>
+            <div class="tsfix-comment-text">${esc(comment.text)}</div>
 
-            <div class="tsv3-comment-actions">
-              ${actions.join("")}
+            <div class="tsfix-comment-actions">
+              ${actions}
             </div>
           </div>
         </div>`;
-    };
+    }
 
-    container.innerHTML = comments.length
+    list.innerHTML = comments.length
       ? comments.map(comment => `
-          <div class="tsv3-parent"
-            data-parent-id="${escV3(comment.id)}">
-            ${renderOne(comment)}
-            <div class="tsv3-replies">
+          <div class="tsfix-parent">
+            ${renderComment(comment)}
+            <div class="tsfix-replies">
               ${(comment.replies || [])
-                .map(reply => renderOne(reply, true))
+                .map(reply => renderComment(reply, true))
                 .join("")}
             </div>
           </div>
         `).join("")
-      : `<p class="tsv3-empty">No comments yet. Start the discussion!</p>`;
+      : `<p class="tsfix-empty">No comments yet. Start the discussion!</p>`;
   }
 
-  function bindCommentActionsV3(postId, container, refresh) {
-    container.onclick = async event => {
-      const profile = event.target.closest("[data-v3-profile]");
+  function setupComments(postId, container) {
+    container.innerHTML = `
+      <div class="tsfix-list"></div>
+      <div class="tsfix-composer">
+        <input class="tsfix-input"
+          maxlength="500"
+          placeholder="Write a comment...">
+        <button class="tsfix-send">Send</button>
+      </div>
+    `;
+
+    const list = container.querySelector(".tsfix-list");
+    const input = container.querySelector(".tsfix-input");
+    const send = container.querySelector(".tsfix-send");
+
+    const refresh = () => loadComments(postId, list);
+
+    send.onclick = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+
+      send.disabled = true;
+
+      try {
+        const result = await window.api(
+          `/api/posts/${encodeURIComponent(postId)}/comments`,
+          {
+            method: "POST",
+            body: JSON.stringify({ text })
+          }
+        );
+
+        if (result.success) {
+          input.value = "";
+          await refresh();
+        } else {
+          alert(result.message || "Comment could not be sent.");
+        }
+      } finally {
+        send.disabled = false;
+      }
+    };
+
+    input.onkeydown = event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        send.click();
+      }
+    };
+
+    list.onclick = async event => {
+      const profile = event.target.closest("[data-profile]");
 
       if (profile) {
-        openProfileV3(profile.dataset.v3Profile);
+        window.TSOpenHomeProfile(profile.dataset.profile);
         return;
       }
 
-      const button = event.target.closest("[data-v3-action]");
+      const button = event.target.closest("[data-action]");
       if (!button) return;
 
-      const action = button.dataset.v3Action;
+      const action = button.dataset.action;
       const commentId = button.dataset.id;
 
       if (!commentId) return;
@@ -1774,27 +1765,404 @@ const postUserId = String(
         if (!text || !text.trim()) return;
 
         const result = await window.api(
-          `/api/posts/${postId}/comments/${commentId}/replies`,
+          `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}/replies`,
           {
-            method:"POST",
-            body:JSON.stringify({ text:text.trim() })
+            method: "POST",
+            body: JSON.stringify({ text: text.trim() })
           }
         );
 
         if (result.success) await refresh();
-        else alert(result.message || "Reply failed");
+        else alert(result.message || "Reply failed.");
+        return;
       }
 
       if (action === "edit") {
         const current = button
-          .closest(".tsv3-comment")
-          ?.querySelector(".tsv3-comment-text")
+          .closest(".tsfix-comment")
+          ?.querySelector(".tsfix-comment-text")
           ?.textContent || "";
 
         const text = prompt("Edit your comment:", current);
         if (text === null || !text.trim()) return;
 
         const result = await window.api(
-          `/api/posts/${postId}/comments/${commentId}`,
+          `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
           {
-            method:"PATCH",
+            method: "PATCH",
+            body: JSON.stringify({ text: text.trim() })
+          }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Edit failed.");
+        return;
+      }
+
+      if (action === "delete") {
+        if (!confirm("Are you sure you want to delete this comment?")) return;
+
+        const result = await window.api(
+          `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+          { method: "DELETE" }
+        );
+
+        if (result.success) await refresh();
+        else alert(result.message || "Delete failed.");
+      }
+    };
+
+    refresh();
+  }
+
+  window.toggleComments = function(postId) {
+    const box = document.getElementById(`comments-${postId}`);
+    if (!box) return;
+
+    box.classList.toggle("hidden");
+
+    if (!box.classList.contains("hidden")) {
+      setupComments(postId, box);
+    }
+  };
+
+  window.openReelCommentsModal = function(postId) {
+    document.getElementById("reel-comments-modal")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "reel-comments-modal";
+    modal.className = "ts-modal";
+
+    modal.innerHTML = `
+      <div class="ts-modal-panel"
+        style="height:78vh;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;
+          align-items:center;padding-bottom:14px">
+          <b>Comments & Replies</b>
+          <button class="tsfix-close"
+            style="background:none;border:0;color:white;font-size:22px">
+            ✕
+          </button>
+        </div>
+        <div class="tsfix-reel-content"
+          style="flex:1;overflow:auto"></div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector(".tsfix-close").onclick = () => modal.remove();
+    modal.onclick = event => {
+      if (event.target === modal) modal.remove();
+    };
+
+    setupComments(
+      postId,
+      modal.querySelector(".tsfix-reel-content")
+    );
+  };
+
+  function openStoryPeopleModalV3(title, people, count, emptyText) {
+    document.getElementById("tsv3-story-people")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "tsv3-story-people";
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:rgba(0,0,0,.75);
+      display:flex;align-items:flex-end;justify-content:center;
+      padding:12px;
+    `;
+
+    const list = (people || []).map(item => {
+      const user = item.user || item;
+      const id = user.id || "";
+      const name = user.displayName || user.username || "User";
+
+      return `
+        <button data-v3-person="${esc(id)}"
+          style="width:100%;display:flex;align-items:center;
+          gap:12px;padding:12px;background:transparent;
+          border:0;border-bottom:1px solid rgba(255,255,255,.07);
+          color:white;text-align:left">
+
+          <img src="${esc(avatarV3(user))}"
+            style="width:42px;height:42px;border-radius:50%;
+            object-fit:cover">
+
+          <span style="flex:1;min-width:0">
+            <b style="font-size:13px">${esc(name)}</b>
+            <small style="display:block;color:#94a3b8;margin-top:3px">
+              ${esc(user.username ? "@" + user.username : "")}
+            </small>
+          </span>
+
+          <span style="color:#a5b4fc">›</span>
+        </button>`;
+    }).join("");
+
+    modal.innerHTML = `
+      <div style="width:100%;max-width:480px;max-height:70vh;
+        overflow:hidden;background:#111827;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:22px;padding:17px">
+
+        <div style="display:flex;align-items:center;
+          justify-content:space-between;margin-bottom:12px">
+          <b style="font-size:16px">${esc(title)} (${Number(count || 0)})</b>
+          <button id="v3-close-people"
+            style="background:none;border:0;color:white;font-size:22px">
+            ✕
+          </button>
+        </div>
+
+        <div style="overflow:auto;max-height:55vh">
+          ${list || `<p class="tsfix-empty">${esc(emptyText)}</p>`}
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector("#v3-close-people").onclick = () => modal.remove();
+    modal.onclick = event => {
+      if (event.target === modal) modal.remove();
+    };
+
+    modal.querySelectorAll("[data-v3-person]").forEach(button => {
+      button.onclick = () => {
+        const id = button.dataset.v3Person;
+        modal.remove();
+        window.TSOpenHomeProfile(id);
+      };
+    });
+  }
+
+  async function showStoryPeopleV3(storyId, type) {
+    if (!storyId) return;
+
+    const endpoint = type === "views"
+      ? `/api/stories/${storyId}/viewers`
+      : `/api/stories/${storyId}/likes`;
+
+    const result = await window.api(endpoint);
+
+    if (!result.success) {
+      alert(result.message || "Could not load story activity");
+      return;
+    }
+
+    if (type === "views") {
+      openStoryPeopleModalV3(
+        "Story Viewers",
+        result.viewers || [],
+        result.viewsCount,
+        "No viewers yet."
+      );
+    } else {
+      openStoryPeopleModalV3(
+        "Story Likes",
+        result.likes || [],
+        result.likesCount,
+        "No likes yet."
+      );
+    }
+  }
+
+  async function attachStoryStatsV3(viewer) {
+    const bottom = viewer.querySelector(".story-viewer-bottom");
+    const media = viewer.querySelector(".story-viewer-media");
+
+    if (!bottom || !media || bottom.dataset.v3Stats === "1") return;
+
+    const feed = await window.api("/api/stories/feed");
+    if (!feed.success) return;
+
+    const mediaUrl = media.getAttribute("src") || media.src || "";
+    const mine = feed.myStories || [];
+    const story = mine.find(item => String(item.mediaUrl || "") === String(mediaUrl));
+
+    if (!story) return;
+
+    bottom.dataset.v3Stats = "1";
+
+    const buttons = document.createElement("div");
+    buttons.style.cssText = `
+      display:flex;gap:7px;align-items:center;
+      flex-wrap:wrap;margin-right:auto;
+    `;
+
+    buttons.innerHTML = `
+      <button class="btn-pill" data-v3-story-views>
+        👁 ${Number(story.viewsCount || 0)} Views
+      </button>
+      <button class="btn-pill" data-v3-story-likes>
+        ♥ ${Number(story.likesCount || 0)} Likes
+      </button>
+    `;
+
+    bottom.insertBefore(buttons, bottom.firstChild);
+
+    buttons.querySelector("[data-v3-story-views]").onclick =
+      () => showStoryPeopleV3(story.id, "views");
+
+    buttons.querySelector("[data-v3-story-likes]").onclick =
+      () => showStoryPeopleV3(story.id, "likes");
+  }
+
+  const storyObserverV3 = new MutationObserver(() => {
+    document.querySelectorAll(".story-viewer").forEach(viewer => {
+      attachStoryStatsV3(viewer).catch(error =>
+        console.error("Story stats:", error)
+      );
+    });
+  });
+
+  storyObserverV3.observe(document.body, {
+    childList:true,
+    subtree:true
+  });
+
+  function sharePostV3(postId) {
+    const url =
+      `${location.origin}${location.pathname}#post-${encodeURIComponent(postId)}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title:"TELESUPAR",
+        text:"Check out this post on TELESUPAR",
+        url
+      }).catch(error => {
+        if (error.name !== "AbortError") console.error(error);
+      });
+    } else if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => alert("Post link copied!"))
+        .catch(() => prompt("Copy post link:", url));
+    } else {
+      prompt("Copy post link:", url);
+    }
+  }
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest(".reel-message-btn");
+    if (!button) return;
+
+    const userId = button.dataset.userid;
+    if (!userId) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const viewer = document.getElementById("fullscreen-reel-viewer");
+    if (viewer) {
+      viewer.querySelectorAll("video").forEach(video => {
+        video.pause();
+      });
+      viewer.remove();
+    }
+
+    setTimeout(() => {
+      if (typeof window.openDirectChat === "function") {
+        window.openDirectChat(userId);
+      }
+    }, 80);
+  }, true);
+
+  function updatePostActionsV3() {
+    document.querySelectorAll(".post-card .post-actions button")
+      .forEach(button => {
+        const code = button.getAttribute("onclick") || "";
+
+        if (code.includes("toggleComments")) {
+          if (button.dataset.v3Icon === "1") return;
+
+          const count = button.querySelector("span")?.textContent || "0";
+
+          button.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5
+              8.5 8.5 0 0 1-4-.99L3 21l1.99-5.5
+              A8.5 8.5 0 1 1 21 11.5Z"/>
+            </svg>
+            <span>${esc(count)}</span>`;
+
+          button.dataset.v3Icon = "1";
+        }
+
+        if (code.includes("openFullscreenPostViewer")) {
+          if (button.dataset.v3Share === "1") return;
+
+          const match = code.match(/openFullscreenPostViewer\(['"]([^'"]+)/);
+          const postId = match?.[1];
+
+          if (!postId) return;
+
+          button.removeAttribute("onclick");
+          button.dataset.v3Share = "1";
+          button.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/>
+            </svg>
+            <span>Share</span>`;
+
+          button.onclick = () => sharePostV3(postId);
+        }
+      });
+  }
+
+  function updateReelIconV3() {
+    const header = document.querySelector(".top-header") ||
+      document.querySelector(".top-header, header");
+
+    if (!header) return;
+
+    header.querySelectorAll("button").forEach(button => {
+      const label = button.textContent.trim();
+
+      if (
+        button.dataset.v3ReelIcon === "1" ||
+        !["▶", "🎬", "Reels", "Reel"].includes(label)
+      ) return;
+
+      button.innerHTML = `
+        <svg width="23" height="23" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5"/>
+          <path d="M8 3l4 5M15 3l4 5M3 10h18"/>
+          <path d="M10 14l5 3-5 3z"
+            fill="currentColor" stroke="none"/>
+        </svg>`;
+
+      button.style.borderRadius = "14px";
+      button.style.background = "rgba(139,92,246,.14)";
+      button.style.border = "1px solid rgba(139,92,246,.3)";
+      button.style.color = "#c4b5fd";
+      button.dataset.v3ReelIcon = "1";
+    });
+  }
+
+  const homeObserverV3 = new MutationObserver(() => {
+    updatePostActionsV3();
+    updateReelIconV3();
+  });
+
+  const mainView = document.getElementById("main-view");
+  if (mainView) {
+    homeObserverV3.observe(mainView, {
+      childList:true,
+      subtree:true
+    });
+  }
+
+  updatePostActionsV3();
+  updateReelIconV3();
+})();
