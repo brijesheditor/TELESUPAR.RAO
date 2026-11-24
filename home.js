@@ -598,4 +598,554 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
           <strong style="font-size:18px">Notifications & Activity</strong>')
 
-          
+                    <button id="close-notif-modal" style="background:none;border:0;color:white;font-size:22px">✕</button>
+        </div>
+        <div id="notif-list-container" style="overflow:auto">
+          <p style="text-align:center;color:#94a3b8;padding:30px">Loading activities...</p>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    modal.querySelector("#close-notif-modal").onclick = () => modal.remove();
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    const box = modal.querySelector("#notif-list-container");
+    const res = await window.api("/api/notifications");
+
+    if (!res.success || !res.notifications?.length) {
+      box.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:35px">No recent notifications.</p>`;
+      return;
+    }
+
+    box.innerHTML = res.notifications.map(n => {
+      const actor = n.user || n.actor || {};
+      const post = n.post || n.targetPost;
+      let action = "interacted with your post";
+      const type = String(n.type || "").toLowerCase();
+
+      if (type.includes("like")) action = post?.storyId ? "liked your story" : "liked your post";
+      else if (type.includes("comment")) action = "commented: " + (n.text || n.commentText || "");
+      else if (type.includes("reply")) action = "replied to your doubt";
+      else if (type.includes("follow")) action = "started following you";
+
+      const media = safeUrl(post?.mediaUrl);
+      const thumb = media
+        ? `<img src="${esc(media)}" style="width:43px;height:43px;object-fit:cover;border-radius:10px">`
+        : "";
+
+      return `
+        <div class="notif-item" data-postid="${esc(post?.id || "")}"
+          style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--ts-border);cursor:pointer">
+          <img src="${esc(window.avatarUrl(actor))}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">
+          <div style="flex:1;font-size:13px;line-height:1.5">
+            <b>${esc(actor.displayName || actor.username || "Someone")}</b>
+            ${esc(action)}
+            <div style="font-size:11px;color:#94a3b8">${esc(timeAgo(n.createdAt || n.timestamp))} ago</div>
+          </div>
+          ${thumb}
+        </div>`;
+    }).join("");
+
+    box.querySelectorAll(".notif-item").forEach(item => {
+      item.onclick = () => {
+        const id = item.dataset.postid;
+        if (id) {
+          modal.remove();
+          window.openFullscreenPostViewer(id);
+        }
+      };
+    });
+  }
+
+  async function updateBottomNavBadges() {
+    try {
+      const chat = await window.api("/api/conversations");
+      let unreadChat = 0;
+      (chat.conversations || []).forEach(c => unreadChat += Number(c.unreadCount || 0));
+
+      const channel = await window.api("/api/channels");
+      let unreadChannel = 0;
+      (channel.channels || []).forEach(c => unreadChannel += Number(c.unreadCount || 0));
+
+      const updateBadge = (selector, count) => {
+        const btn = document.querySelector(selector);
+        if (!btn) return;
+        btn.style.position = "relative";
+        let badge = btn.querySelector(".nav-badge");
+
+        if (count > 0) {
+          if (!badge) {
+            badge = document.createElement("span");
+            badge.className = "nav-badge";
+            badge.style.cssText = "position:absolute;top:3px;right:5px;background:#ef4444;color:white;font-size:10px;font-weight:800;padding:2px 5px;border-radius:20px";
+            btn.appendChild(badge);
+          }
+          badge.textContent = count > 99 ? "99+" : count;
+        } else badge?.remove();
+      };
+
+      updateBadge('[data-tab="chat"]', unreadChat);
+      updateBadge('[data-tab="groups"]', unreadChannel);
+
+      const profile = document.querySelector('[data-tab="profile"]');
+      if (profile && window.AppState?.user) {
+        const avatar = window.avatarUrl(window.AppState.user);
+        profile.innerHTML = `<img src="${esc(avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1.5px solid white">`;
+      }
+    } catch (err) {
+      console.error("Home nav update:", err);
+    }
+  }
+
+  window.openCreatePostModal = function () {
+    document.getElementById("create-post-modal")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "create-post-modal";
+    modal.className = "ts-modal";
+    modal.innerHTML = `
+      <div class="ts-modal-panel" style="padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <strong style="font-size:18px">Create Educational Post</strong>
+          <button id="close-post-modal" style="background:none;border:0;color:white;font-size:22px">✕</button>
+        </div>
+        <label style="font-size:12px;color:#94a3b8">SUBJECT CATEGORY</label>
+        <select id="modal-post-category" style="width:100%;margin:8px 0 16px;padding:13px;background:#1e293b;color:white;border:1px solid var(--ts-border);border-radius:12px">
+          <option>Mathematics</option><option>Physics</option>
+          <option>Chemistry</option><option>Biology</option>
+          <option>Programming</option><option>General Studies</option>
+          <option>English</option>
+        </select>
+        <label style="font-size:12px;color:#94a3b8">LESSON / QUESTION</label>
+        <textarea id="modal-post-caption" rows="4" placeholder="Share a concept, formula or study notes..." style="width:100%;box-sizing:border-box;margin:8px 0 15px;padding:13px;background:#1e293b;color:white;border:1px solid var(--ts-border);border-radius:12px;resize:vertical"></textarea>
+        <label style="display:block;padding:14px;background:#1e293b;border-radius:12px;margin-bottom:17px;color:#c4b5fd">
+          📷 Attach Study Video / Diagram
+          <input type="file" id="modal-post-file" accept="image/*,video/*" hidden>
+          <span id="modal-file-name" style="display:block;font-size:11px;color:#94a3b8;margin-top:6px"></span>
+        </label>
+        <button id="modal-publish-btn" class="btn-pill" style="width:100%;padding:13px">Publish Educational Post</button>
+      </div>`;
+    document.body.appendChild(modal);
+
+    modal.querySelector("#close-post-modal").onclick = () => modal.remove();
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.querySelector("#modal-post-file").onchange = e => {
+      modal.querySelector("#modal-file-name").textContent =
+        e.target.files?.[0]?.name || "";
+    };
+
+    modal.querySelector("#modal-publish-btn").onclick = async () => {
+      const category = modal.querySelector("#modal-post-category").value;
+      const caption = modal.querySelector("#modal-post-caption").value.trim();
+      const file = modal.querySelector("#modal-post-file").files[0];
+
+      if (!caption && !file) {
+        alert("Please add a description or attach media.");
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("caption", `[${category}] ${caption}`);
+      if (file) fd.append("file", file);
+
+      const btn = modal.querySelector("#modal-publish-btn");
+      btn.disabled = true;
+      btn.textContent = "Publishing...";
+
+      try {
+        const result = await window.api("/api/posts", {
+          method:"POST", body:fd
+        });
+        if (result.success) {
+          modal.remove();
+          loadPosts();
+        } else {
+          btn.disabled = false;
+          btn.textContent = "Publish Educational Post";
+          alert(result.message || "Could not publish post");
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Publish Educational Post";
+        alert("Network error. Please try again.");
+      }
+    };
+  };
+
+  async function loadStories() {
+    const bar = document.getElementById("stories-bar");
+    if (!bar) return;
+
+    const data = await window.api("/api/stories/feed");
+    if (!data.success) return;
+
+    const me = window.AppState?.user || {};
+    const mine = data.myStories || [];
+    const hasMine = mine.length > 0;
+
+    let html = `
+      <div class="story-item" id="my-story-btn">
+        <div class="story-ring ${hasMine ? "" : "seen"}">
+          <img src="${esc(window.avatarUrl(me))}">
+          <div class="story-add-badge">+</div>
+        </div>
+        <span class="story-name">Your Story</span>
+      </div>`;
+
+    (data.users || []).forEach((entry, index) => {
+      html += `
+        <div class="story-item" data-story-user="${index}">
+          <div class="story-ring">
+            <img src="${esc(window.avatarUrl(entry.user))}">
+          </div>
+          <span class="story-name">${esc(entry.user.displayName || entry.user.username)}</span>
+        </div>`;
+    });
+
+    bar.innerHTML = html;
+
+    bar.querySelector("#my-story-btn").onclick = () => {
+      if (hasMine) openStoryViewer(me, mine, true);
+      else document.getElementById("story-upload-input")?.click();
+    };
+
+    bar.querySelectorAll("[data-story-user]").forEach(el => {
+      el.onclick = () => {
+        const entry = data.users[Number(el.dataset.storyUser)];
+        if (entry) openStoryViewer(entry.user, entry.stories, false);
+      };
+    });
+  }
+
+  function openStoryViewer(user, stories, isMine) {
+    let index = 0;
+    const viewer = document.createElement("div");
+    viewer.className = "story-viewer";
+    document.body.appendChild(viewer);
+
+    async function renderSlide() {
+      const story = stories[index];
+      if (!story) {
+        viewer.remove();
+        return;
+      }
+
+      if (!isMine) {
+        window.api(`/api/stories/${story.id}/view`, { method:"POST" });
+      }
+
+      const media = safeUrl(story.mediaUrl);
+      const mediaTag = story.resourceType === "video"
+        ? `<video src="${esc(media)}" class="story-viewer-media" autoplay playsinline controls></video>`
+        : `<img src="${esc(media)}" class="story-viewer-media">`;
+
+      viewer.innerHTML = `
+        ${mediaTag}
+        <div class="story-viewer-top">
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="${esc(window.avatarUrl(user))}" style="width:38px;height:38px;border-radius:50%;object-fit:cover">
+            <div><b>${esc(user.displayName || user.username)}</b>
+              <div style="font-size:11px;color:#cbd5e1">${index + 1} / ${stories.length}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:9px">
+            ${isMine ? `<button id="add-more-story" class="btn-pill">＋</button>` : ""}
+            <button id="close-story-btn" class="btn-pill">✕</button>
+          </div>
+        </div>
+        <div class="story-viewer-bottom">
+          ${isMine
+            ? `<span style="font-size:12px">👁 ${Number(story.viewsCount || 0)} views · ♥ ${Number(story.likesCount || 0)} likes</span>`
+            : `<input id="story-reply-input" placeholder="Ask a doubt..." style="flex:1;min-width:0;background:#ffffff22;border:1px solid #ffffff55;border-radius:25px;padding:11px;color:white">
+               <button id="story-like-btn" class="btn-pill">${story.likedByMe ? "♥" : "♡"}</button>
+               <button id="story-send-reply" class="btn-pill">Send</button>`
+          }
+          <button id="next-story-btn" class="btn-pill">Next ›</button>
+        </div>`;
+
+      viewer.querySelector("#close-story-btn").onclick = () => viewer.remove();
+      viewer.querySelector("#next-story-btn").onclick = () => {
+        index++;
+        renderSlide();
+      };
+
+      viewer.querySelector("#add-more-story")?.addEventListener("click", () => {
+        viewer.remove();
+        document.getElementById("story-upload-input")?.click();
+      });
+
+      if (!isMine) {
+        viewer.querySelector("#story-like-btn").onclick = async () => {
+          const result = await window.api(`/api/stories/${story.id}/like`, { method:"POST" });
+          if (result.success) {
+            story.likedByMe = result.liked;
+            viewer.querySelector("#story-like-btn").textContent = result.liked ? "♥" : "♡";
+          }
+        };
+
+        viewer.querySelector("#story-send-reply").onclick = async () => {
+          const text = viewer.querySelector("#story-reply-input").value.trim();
+          if (!text) return;
+          const conv = await window.api(`/api/conversations/${user.id}`, { method:"POST" });
+          if (conv.success) {
+            await window.api(`/api/conversations/${conv.conversation.id}/messages`, {
+              method:"POST",
+              body:JSON.stringify({ text, storyReply:{ storyId:story.id } })
+            });
+            viewer.remove();
+          }
+        };
+      }
+    }
+
+          </div>
+    `;
+    document.body.appendChild(viewer);
+
+    const slides = viewer.querySelector("#reel-slides");
+    viewer.querySelector("#reel-back-btn").onclick = () => viewer.remove();
+    viewer.querySelector("#reel-create-btn").onclick = () => {
+      viewer.remove();
+      window.openCreatePostModal();
+    };
+
+    let posts = [];
+    try {
+      const result = await window.api("/api/posts/feed");
+      posts = result.posts || [];
+    } catch (error) {
+      console.error("Reels loading error:", error);
+    }
+
+    if (!posts.length) {
+      slides.innerHTML = `
+        <div style="height:100%;display:grid;place-items:center;text-align:center;color:#94a3b8;padding:25px">
+          <div>
+            <div style="font-size:40px">📚</div>
+            <b>No Reels available</b>
+            <p style="font-size:12px">Share an educational video to get started.</p>
+            <button class="btn-pill" onclick="window.openCreatePostModal()">Create Post</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (initialPostId) {
+      const index = posts.findIndex(p => String(p.id) === String(initialPostId));
+      if (index > 0) {
+        const [selected] = posts.splice(index, 1);
+        posts.unshift(selected);
+      }
+    }
+
+    slides.innerHTML = posts.map((post, index) => {
+      const user = post.user || {};
+      const media = safeUrl(post.mediaUrl);
+      const postUserId = String(
+        user.id ||
+        user._id ||
+        post.userId ||
+        post.authorId ||
+        post.author?.id ||
+        post.author?._id ||
+        ""
+      );
+
+      const isVideo = post.mediaType === "video";
+      return `
+        <section class="reel-slide" data-reel-index="${index}" data-post-id="${esc(post.id)}">
+          ${isVideo
+            ? `<video class="reel-media" src="${esc(media)}" playsinline loop muted preload="metadata"></video>`
+            : `<img class="reel-media" src="${esc(media)}" alt="Post media">`
+          }
+          <div class="reel-shade"></div>
+          <div class="reel-play-indicator">▶</div>
+
+          <div class="reel-action-rail">
+            <button class="reel-action-btn ${post.likedByMe ? "liked" : ""}" data-reel-like="${esc(post.id)}">
+              <span>♥</span><span>${Number(post.likesCount || 0)}</span>
+            </button>
+            <button class="reel-action-btn" data-reel-comments="${esc(post.id)}">
+              <span>◯</span><span>${Number(post.commentsCount || 0)}</span>
+            </button>
+            <button class="reel-action-btn" data-reel-share="${esc(post.id)}">
+              <span>↗</span><span>Share</span>
+            </button>
+            ${post.isMyPost ? "" : post.isFollowing
+              ? `<button class="reel-action-btn" data-reel-message="${idSafe(postUserId)}"><span>✉</span><span>Message</span></button>`
+              : `<button class="reel-action-btn" data-reel-follow="${idSafe(postUserId)}"><span>＋</span><span>Follow</span></button>`
+            }
+          </div>
+
+          <div class="reel-bottom-info">
+            <div class="reel-creator" data-userid="${idSafe(postUserId)}">
+              <img src="${esc(window.avatarUrl(user))}">
+              <span class="reel-creator-name">${esc(user.displayName || user.username || "User")}</span>
+            </div>
+            <div class="reel-caption">${esc(post.caption || "")}</div>
+            <div class="reel-category">📚 EDUCATIONAL CONTENT</div>
+          </div>
+        </section>`;
+    }).join("");
+
+    slides.querySelectorAll(".reel-slide").forEach(slide => {
+      const video = slide.querySelector("video");
+      if (video) {
+        video.addEventListener("click", () => {
+          if (video.paused) video.play().catch(() => {});
+          else video.pause();
+        });
+
+        video.addEventListener("play", () => {
+          slide.querySelector(".reel-play-indicator")?.classList.remove("show");
+        });
+
+        video.addEventListener("pause", () => {
+          slide.querySelector(".reel-play-indicator")?.classList.add("show");
+        });
+      }
+
+      slide.querySelector(".reel-creator")?.addEventListener("click", e => {
+        e.stopPropagation();
+        const userId = slide.querySelector(".reel-creator")?.dataset.userid;
+        if (userId) window.openUserProfile(userId);
+      });
+
+      slide.querySelector("[data-reel-like]")?.addEventListener("click", async e => {
+        const button = e.currentTarget;
+        const postId = button.dataset.reelLike;
+        const result = await window.api(`/api/posts/${postId}/like`, {
+          method:"POST"
+        });
+
+        if (result.success) {
+          button.classList.toggle("liked", !!result.liked);
+          button.querySelector("span:last-child").textContent = Number(result.likesCount || 0);
+        }
+      });
+
+      slide.querySelector("[data-reel-comments]")?.addEventListener("click", () => {
+        const postId = slide.dataset.postId;
+        openReelComments(postId);
+      });
+
+      slide.querySelector("[data-reel-share]")?.addEventListener("click", async () => {
+        const postId = slide.dataset.postId;
+        const shareUrl = `${location.origin}${location.pathname}?post=${encodeURIComponent(postId)}`;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({ title:"TELESUPAR Post", url:shareUrl });
+          } catch (error) {}
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          alert("Post link copied!");
+        }
+      });
+
+      slide.querySelector("[data-reel-follow]")?.addEventListener("click", async e => {
+        const button = e.currentTarget;
+        const userId = button.dataset.reelFollow;
+        if (!userId) return;
+
+        button.disabled = true;
+        const result = await window.api(`/api/users/${userId}/follow`, {
+          method:"POST"
+        });
+
+        if (result.success) {
+          button.innerHTML = "<span>✉</span><span>Message</span>";
+          button.removeAttribute("data-reel-follow");
+          button.dataset.reelMessage = userId;
+        } else {
+          button.disabled = false;
+          alert(result.message || "Could not follow user");
+        }
+      });
+
+      slide.querySelector("[data-reel-message]")?.addEventListener("click", e => {
+        const userId = e.currentTarget.dataset.reelMessage;
+        if (userId) window.openDirectChat(userId);
+      });
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const video = entry.target.querySelector("video");
+        if (!video) return;
+
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      });
+    }, { root:slides, threshold:[0.25, 0.65, 0.9] });
+
+    slides.querySelectorAll(".reel-slide").forEach(slide => observer.observe(slide));
+
+    if (initialPostId) {
+      const target = slides.querySelector(`[data-post-id="${CSS.escape(initialPostId)}"]`);
+      target?.scrollIntoView({ block:"start" });
+    }
+  };
+
+  async function openReelComments(postId) {
+    document.getElementById("reel-comments-modal")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "reel-comments-modal";
+    modal.className = "ts-modal";
+    modal.innerHTML = `
+      <div class="ts-modal-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <b>Comments & Doubts</b>
+          <button id="close-reel-comments" style="background:none;border:0;color:white;font-size:22px">✕</button>
+        </div>
+        <div id="reel-comments-list" style="margin-top:15px">
+          <p style="color:#94a3b8">Loading...</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <input id="reel-comment-input" placeholder="Write a comment..."
+            style="flex:1;min-width:0;background:#1e293b;color:white;border:1px solid var(--ts-border);border-radius:22px;padding:11px">
+          <button id="send-reel-comment" class="btn-pill">Send</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+    modal.querySelector("#close-reel-comments").onclick = () => modal.remove();
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    const list = modal.querySelector("#reel-comments-list");
+    const result = await window.api(`/api/posts/${postId}/comments`);
+
+    if (!result.success) {
+      list.innerHTML = `<p style="color:#fb7185">Could not load comments.</p>`;
+    } else {
+      list.innerHTML = (result.comments || []).map(comment => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--ts-border);font-size:13px">
+          <b>${esc(comment.user?.displayName || comment.user?.username || "User")}</b>
+          <div style="margin-top:4px;color:#cbd5e1">${esc(comment.text || "")}</div>
+        </div>`).join("") || `<p style="color:#94a3b8">No comments yet.</p>`;
+    }
+
+    modal.querySelector("#send-reel-comment").onclick = async () => {
+      const input = modal.querySelector("#reel-comment-input");
+      const text = input.value.trim();
+      if (!text) return;
+
+      const sent = await window.api(`/api/posts/${postId}/comments`, {
+        method:"POST",
+        body:JSON.stringify({ text })
+      });
+
+      if (sent.success) {
+        input.value = "";
+        modal.remove();
+        openReelComments(postId);
+      } else alert(sent.message || "Could not send comment");
+    };
+  }
+
+
