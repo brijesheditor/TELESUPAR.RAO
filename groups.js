@@ -1,12 +1,12 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "telesupar_glass_v8";
+  const STORAGE_KEY = "telesupar_ig_channels_v2";
   const OFFICIAL_ID = "telesupar_official_channel";
   const EMOJI_CHOICES = ["❤️", "👍", "👎", "🔥", "🥰", "👏", "😁"];
 
   const style = document.createElement("style");
-  style.id = "telesupar-glass-style";
+  style.id = "telesupar-ig-channel-style";
   style.textContent = `
     body.ts-room-immersive nav,
     body.ts-room-immersive footer,
@@ -18,22 +18,22 @@
       display: none !important;
     }
 
-    .ts-glass-app {
+    .ts-ig-app {
       min-height: 100vh;
       background:
-        radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.16), transparent 42%),
-        radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.16), transparent 45%),
-        #090e16;
+        radial-gradient(circle at 15% 8%, rgba(236, 72, 153, 0.16), transparent 40%),
+        radial-gradient(circle at 85% 18%, rgba(139, 92, 246, 0.18), transparent 44%),
+        #090d14;
       color: #f8fafc;
       padding-bottom: 96px;
       font-family: inherit;
     }
 
-    .ts-glass-top {
+    .ts-ig-top {
       position: sticky;
       top: 0;
       z-index: 25;
-      background: rgba(17, 25, 39, 0.84);
+      background: rgba(15, 21, 34, 0.84);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.09);
@@ -58,8 +58,8 @@
       flex-shrink: 0;
     }
 
-    .ts-btn-primary {
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    .ts-ig-btn {
+      background: linear-gradient(135deg, #e11d48, #8b5cf6);
       border: none;
       color: #fff;
       border-radius: 999px;
@@ -72,7 +72,7 @@
       flex-shrink: 0;
     }
 
-    .ts-btn-glass {
+    .ts-glass-btn {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.12);
       color: #e2e8f0;
@@ -86,18 +86,9 @@
       flex-shrink: 0;
     }
 
-    .ts-glass-card {
-      background: rgba(23, 34, 52, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 16px;
-    }
-
     .ts-search-box {
       padding: 8px 14px 10px;
-      background: rgba(15, 23, 36, 0.65);
-      backdrop-filter: blur(12px);
+      background: rgba(15, 21, 34, 0.65);
     }
 
     .ts-search-input {
@@ -105,126 +96,138 @@
       box-sizing: border-box;
       background: rgba(255, 255, 255, 0.07);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 18px;
+      border-radius: 16px;
       padding: 9px 14px;
       color: #fff;
       font-size: 14px;
       outline: none;
     }
 
-    .ts-chip-row {
-      display: flex;
-      gap: 8px;
-      padding: 4px 14px 12px;
-      overflow-x: auto;
-    }
-
-    .ts-chip {
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      color: #94a3b8;
-      border-radius: 999px;
-      padding: 6px 13px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .ts-chip.active {
-      background: rgba(56, 189, 248, 0.22);
-      border-color: rgba(56, 189, 248, 0.5);
-      color: #fff;
-    }
-
     .ts-gate-banner {
       margin: 10px 14px;
       padding: 14px;
       border-radius: 18px;
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(139, 92, 246, 0.22));
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.24));
       backdrop-filter: blur(18px);
-      border: 1px solid rgba(125, 211, 252, 0.35);
+      border: 1px solid rgba(244, 114, 182, 0.35);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
     }
 
-    .ts-chat-item {
+    .ts-channel-row {
       display: flex;
       align-items: center;
       gap: 12px;
       margin: 8px 14px;
-      padding: 11px 12px;
-      border-radius: 16px;
-      background: rgba(23, 34, 52, 0.68);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(24, 33, 50, 0.72);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       cursor: pointer;
     }
 
-    .ts-chat-item.locked {
-      opacity: 0.52;
+    .ts-channel-row.locked {
+      opacity: 0.5;
     }
 
-    .ts-logo-img {
-      width: 48px;
-      height: 48px;
+    .ts-ring-ava {
       border-radius: 50%;
-      object-fit: cover;
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      padding: 2px;
+      background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
+      display: inline-grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .ts-logo-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #141d2e;
       display: grid;
       place-items: center;
       font-weight: 800;
-      font-size: 18px;
       color: #fff;
-      flex-shrink: 0;
-      overflow: hidden;
     }
 
     .ts-pinned-bar {
       margin: 8px 14px 0;
       padding: 9px 12px;
-      border-radius: 12px;
-      background: rgba(23, 34, 52, 0.78);
+      border-radius: 14px;
+      background: rgba(24, 33, 50, 0.84);
       backdrop-filter: blur(14px);
-      border-left: 3px solid #38bdf8;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
-      border-right: 1px solid rgba(255, 255, 255, 0.07);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      border-left: 3px solid #ec4899;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       font-size: 12px;
-    }
-
-    .ts-bubble-card {
-      margin: 10px 14px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: rgba(24, 37, 58, 0.78);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.09);
       cursor: pointer;
     }
 
-    .ts-bubble-card.own {
-      background: rgba(37, 99, 235, 0.34);
-      border-color: rgba(96, 165, 250, 0.35);
-      margin-left: 44px;
+    .ts-broadcast-card {
+      margin: 10px 14px;
+      padding: 13px 14px;
+      border-radius: 18px;
+      background: rgba(24, 33, 50, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.25s ease;
     }
 
-    .ts-reply-quote {
-      background: rgba(255, 255, 255, 0.06);
-      border-left: 2px solid #38bdf8;
-      padding: 5px 8px;
-      border-radius: 8px;
-      font-size: 11px;
-      color: #cbd5e1;
-      margin-bottom: 6px;
+    .ts-broadcast-card.ts-jump-glow {
+      border-color: #f472b6;
+      box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.35);
+    }
+
+    .ts-bc-img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .ts-poll-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(15, 23, 38, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ts-poll-opt {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f8fafc;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ts-poll-opt.voted {
+      border-color: #f472b6;
+      background: rgba(236, 72, 153, 0.22);
+      font-weight: 700;
     }
 
     .ts-react-chip {
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: #f8fafc;
       border-radius: 999px;
       padding: 3px 9px;
       font-size: 12px;
@@ -232,8 +235,8 @@
     }
 
     .ts-react-chip.active {
-      background: rgba(56, 189, 248, 0.25);
-      border-color: #38bdf8;
+      background: rgba(236, 72, 153, 0.28);
+      border-color: #f472b6;
       color: #fff;
       font-weight: 700;
     }
@@ -244,46 +247,48 @@
       right: 0;
       bottom: 0;
       z-index: 30;
-      background: rgba(15, 23, 36, 0.9);
+      background: rgba(15, 21, 34, 0.92);
       backdrop-filter: blur(18px);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .ts-reply-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 6px 14px;
-      background: rgba(56, 189, 248, 0.12);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-      font-size: 12px;
-      color: #e0f2fe;
+      padding: 8px 12px;
     }
 
     .ts-composer-bar {
-      padding: 8px 12px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
     }
 
     .ts-composer-input {
       flex: 1;
+      min-width: 0;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 999px;
-      padding: 9px 14px;
+      padding: 8px 13px;
       color: #fff;
-      font-size: 14px;
+      font-size: 13px;
       outline: none;
+    }
+
+    .ts-attach-preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: rgba(244, 114, 182, 0.14);
+      border: 1px solid rgba(244, 114, 182, 0.3);
+      font-size: 12px;
     }
 
     .ts-hero-glass {
       margin: 12px 14px;
       padding: 20px 16px;
       border-radius: 22px;
-      background: rgba(23, 34, 52, 0.74);
+      background: rgba(24, 33, 50, 0.76);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.11);
       text-align: center;
@@ -311,7 +316,7 @@
       margin: 10px 14px;
       border-radius: 18px;
       overflow: hidden;
-      background: rgba(23, 34, 52, 0.72);
+      background: rgba(24, 33, 50, 0.74);
       backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.09);
     }
@@ -331,11 +336,36 @@
       border-bottom: none;
     }
 
+    .ts-chip-row {
+      display: flex;
+      gap: 8px;
+      padding: 6px 14px 10px;
+      overflow-x: auto;
+    }
+
+    .ts-chip {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: #94a3b8;
+      border-radius: 999px;
+      padding: 6px 13px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .ts-chip.active {
+      background: rgba(236, 72, 153, 0.24);
+      border-color: rgba(244, 114, 182, 0.55);
+      color: #fff;
+    }
+
     .ts-media-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
-      padding: 10px 14px;
+      padding: 6px 14px 16px;
     }
 
     .ts-media-tile {
@@ -343,11 +373,12 @@
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.07);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 8px;
+      padding: 6px;
       font-size: 11px;
       color: #cbd5e1;
       overflow: hidden;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
@@ -368,7 +399,7 @@
       margin: 0 12px 10px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(25, 39, 61, 0.92);
+      background: rgba(25, 35, 54, 0.94);
       backdrop-filter: blur(18px);
       border: 1px solid rgba(255, 255, 255, 0.14);
       display: flex;
@@ -389,7 +420,7 @@
     .ts-action-sheet {
       margin: 0 12px 14px;
       border-radius: 20px;
-      background: rgba(20, 31, 49, 0.94);
+      background: rgba(20, 29, 46, 0.95);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.12);
       overflow: hidden;
@@ -420,13 +451,19 @@
     }
 
     .ts-profile-modal {
-      background: rgba(17, 26, 42, 0.96);
+      background: rgba(17, 24, 39, 0.96);
       backdrop-filter: blur(22px);
       border-top: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 24px 24px 0 0;
       max-height: 85vh;
       overflow-y: auto;
       padding: 16px;
+    }
+
+    .ts-glass-card {
+      background: rgba(24, 33, 50, 0.76);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 16px;
     }
   `;
 
@@ -435,11 +472,12 @@
   }
 
   function setNavHidden(hidden) {
-    document.body.classList.toggle("ts-room-immersive", Boolean(hidden));
+    if (hidden) document.body.classList.add("ts-room-immersive");
+    else document.body.classList.remove("ts-room-immersive");
   }
 
-  function esc(v) {
-    return String(v ?? "").replace(/[&<>"']/g, (c) => ({
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
@@ -467,11 +505,11 @@
     return window.AppState?.user?.displayName || window.AppState?.user?.username || "User";
   }
 
-  function telesuparInviteUrl(room) {
+  function telesuparInviteUrl(channel) {
     const origin = window.location?.origin && window.location.origin !== "null"
       ? window.location.origin
       : "https://telesupar.app";
-    return `${origin}/?room=${encodeURIComponent(room.id)}`;
+    return `${origin}/?channel=${encodeURIComponent(channel.id)}`;
   }
 
   function createOfficialChannel() {
@@ -480,9 +518,12 @@
       type: "channel",
       isOfficial: true,
       isPrivate: false,
+      muted: false,
+      pinnedPostId: "off_p_1",
+      pinnedText: "Welcome to TELESUPAR Broadcast Channels! Join Official TELESUPAR to explore channels.",
       name: "TELESUPAR",
       logo: "",
-      description: "Official TELESUPAR broadcast channel. Join to unlock all channels & groups.",
+      description: "Official TELESUPAR broadcast channel. Join to unlock all channels.",
       ownerId: "telesupar_system",
       admins: ["telesupar_system"],
       members: [
@@ -491,12 +532,14 @@
       isOwner: false,
       isAdmin: false,
       isMember: false,
-      allowMemberMessages: false,
       lastTime: "Now",
       posts: [
         {
           id: "off_p_1",
-          text: "Welcome to TELESUPAR! Tap Join below to enter all Channels & Groups.",
+          text: "Welcome to TELESUPAR Broadcast Channels! Join Official TELESUPAR to explore channels.",
+          image: "",
+          silent: false,
+          poll: null,
           authorName: "TELESUPAR Official",
           authorId: "telesupar_system",
           views: 120,
@@ -504,28 +547,61 @@
           myReaction: "",
           time: nowStr()
         }
-      ],
-      messages: []
+      ]
     };
   }
 
   function loadData() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      const list = Array.isArray(raw?.rooms) ? raw.rooms : [];
+      const list = Array.isArray(raw?.channels) ? raw.channels : [];
       const officialJoined = Boolean(raw?.officialJoined);
-      const hasOfficial = list.some((r) => String(r.id) === OFFICIAL_ID);
+      const hasOfficial = list.some((c) => String(c.id) === OFFICIAL_ID);
       const merged = hasOfficial ? list : [createOfficialChannel(), ...list];
-      return { rooms: merged, officialJoined };
+      return { channels: merged, officialJoined };
     } catch (_) {
-      return { rooms: [createOfficialChannel()], officialJoined: false };
+      return { channels: [createOfficialChannel()], officialJoined: false };
     }
   }
 
-  function saveData(rooms, officialJoined) {
+  function saveData(channels, officialJoined) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ rooms, officialJoined: Boolean(officialJoined) }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ channels, officialJoined: Boolean(officialJoined) }));
     } catch (_) {}
+  }
+
+  function ensureStandaloneContext() {
+    if (!window.TS_ROOM_PAGE || typeof window.api === "function") return true;
+    const token = localStorage.getItem("ts_token");
+    if (!token) {
+      window.location.replace("index.html");
+      return false;
+    }
+    let savedUser = {};
+    try { savedUser = JSON.parse(localStorage.getItem("ts_user") || "{}"); } catch (_) {}
+    window.API_BASE = window.API_BASE || "https://telesupar.onrender.com";
+    window.AppState = window.AppState || {};
+    window.AppState.token = token;
+    window.AppState.user = window.AppState.user || savedUser;
+    window.api = async function (url, opts = {}) {
+      const options = { ...opts };
+      options.headers = {
+        ...(options.headers || {}),
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      };
+      const response = await fetch(window.API_BASE + url, options);
+      let data = {};
+      try { data = await response.json(); } catch (_) {}
+      if (response.status === 401) {
+        localStorage.removeItem("ts_token");
+        window.location.replace("index.html");
+        throw new Error("Session expired. Please login again.");
+      }
+      if (!response.ok) throw new Error(data.message || "API request failed");
+      return data;
+    };
+    return true;
   }
 
   async function apiReq(url, opts) {
@@ -539,13 +615,18 @@
     return null;
   }
 
-  function renderAvatar(name, logoUrl, sizePx, extraClass) {
-    const sz = sizePx || 48;
+  function renderAvatar(name, logoUrl, sizePx) {
+    const sz = sizePx || 50;
     const ch = esc((name || "T").charAt(0).toUpperCase());
-    if (logoUrl) {
-      return `<div class="ts-logo-img ${extraClass || ""}" style="width:${sz}px; height:${sz}px; font-size:${Math.round(sz * 0.38)}px;"><img src="${esc(logoUrl)}" alt="${esc(name)}" style="width:100%; height:100%; object-fit:cover; display:block;" /></div>`;
-    }
-    return `<div class="ts-logo-img ${extraClass || ""}" style="width:${sz}px; height:${sz}px; font-size:${Math.round(sz * 0.38)}px;">${ch}</div>`;
+    const content = logoUrl
+      ? `<img src="${esc(logoUrl)}" alt="${esc(name)}" style="width:100%; height:100%; object-fit:cover; display:block;" />`
+      : `<span style="font-size:${Math.round(sz * 0.36)}px;">${ch}</span>`;
+
+    return `
+      <div class="ts-ring-ava" style="width:${sz}px; height:${sz}px;">
+        <div class="ts-logo-inner">${content}</div>
+      </div>
+    `;
   }
 
   function pickImageFile(onPicked) {
@@ -581,11 +662,6 @@
         }
       }
     }
-    if (!collected.length && Array.isArray(window.AppState?.posts)) {
-      for (const p of window.AppState.posts) {
-        if (uid && String(p.userId || p.authorId || "") === String(uid)) collected.push(p);
-      }
-    }
     return collected;
   }
 
@@ -596,9 +672,9 @@
       if (pRes?.success && pRes.profile) profile = pRes.profile;
     }
 
-    const displayName = profile?.displayName || profile?.username || fallbackName || "User";
+    const displayName = profile?.displayName || profile?.username || fallbackName || "Creator";
     const handle = profile?.username ? `@${profile.username}` : "";
-    const bio = profile?.bio || "TELESUPAR member";
+    const bio = profile?.bio || "TELESUPAR creator";
     const avatar = profile?.avatar || profile?.photoUrl || "";
     const posts = await fetchMemberPosts(uid, displayName);
 
@@ -619,12 +695,12 @@
           ${renderAvatar(displayName, avatar, 64)}
           <div>
             <div style="font-size:18px; font-weight:800;">${esc(displayName)}</div>
-            ${handle ? `<div style="font-size:13px; color:#38bdf8;">${esc(handle)}</div>` : ""}
+            ${handle ? `<div style="font-size:13px; color:#f472b6;">${esc(handle)}</div>` : ""}
             <div style="font-size:12px; color:#94a3b8; margin-top:4px;">${esc(bio)}</div>
           </div>
         </div>
 
-        <div style="font-size:13px; font-weight:700; color:#bae6fd; margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:700; color:#fbcfe8; margin-bottom:8px;">
           Posts (${posts.length})
         </div>
 
@@ -653,113 +729,100 @@
   }
 
   window.renderGroups = async function (container) {
-    if (!container) return;
+    if (!container || !ensureStandaloneContext()) return;
 
-    let { rooms, officialJoined } = loadData();
-    let activeFilter = "all";
+    let { channels, officialJoined } = loadData();
     let searchQuery = "";
-    let activeReply = null; // { id, sender, text }
 
     const apiList = await apiReq("/api/groups");
     if (apiList?.success && Array.isArray(apiList.groups)) {
-      const merged = apiList.groups.some((r) => String(r.id) === OFFICIAL_ID)
-        ? apiList.groups
-        : [createOfficialChannel(), ...apiList.groups];
-      rooms = merged.map((r) => {
-        const localMatch = rooms.find((x) => String(x.id) === String(r.id));
-        const logo = r.logo || localMatch?.logo || "";
-        return String(r.id) === OFFICIAL_ID
-          ? { ...r, logo, isMember: officialJoined || r.isMember }
-          : { ...r, logo };
+      const onlyChannels = apiList.groups.filter((r) => r.type === "channel");
+      const hasOfficial = onlyChannels.some((c) => String(c.id) === OFFICIAL_ID || c.isOfficial);
+      const baseList = hasOfficial ? onlyChannels : [createOfficialChannel(), ...onlyChannels];
+      channels = baseList.map((c) => {
+        const localMatch = channels.find((x) => String(x.id) === String(c.id));
+        const logo = c.logo || localMatch?.logo || "";
+        const muted = localMatch?.muted !== undefined ? Boolean(localMatch.muted) : Boolean(c.muted);
+        const pinnedPostId = localMatch?.pinnedPostId || c.pinnedPostId || "";
+        const pinnedText = localMatch?.pinnedText || c.pinnedText || "";
+        return String(c.id) === OFFICIAL_ID
+          ? { ...c, type: "channel", logo, muted, pinnedPostId, pinnedText, isMember: officialJoined || c.isMember }
+          : { ...c, type: "channel", logo, muted, pinnedPostId, pinnedText };
       });
-      saveData(rooms, officialJoined);
+      saveData(channels, officialJoined);
     }
 
     function persist() {
-      saveData(rooms, officialJoined);
+      saveData(channels, officialJoined);
     }
 
-    function upsertRoom(updated) {
+    function upsertChannel(updated) {
       if (!updated?.id) return;
-      const idx = rooms.findIndex((r) => String(r.id) === String(updated.id));
+      const clean = { ...updated, type: "channel" };
+      const idx = channels.findIndex((c) => String(c.id) === String(clean.id));
       if (idx >= 0) {
-        rooms[idx] = {
-          ...rooms[idx],
-          ...updated,
-          logo: updated.logo !== undefined ? updated.logo : rooms[idx].logo
+        channels[idx] = {
+          ...channels[idx],
+          ...clean,
+          logo: clean.logo !== undefined ? clean.logo : channels[idx].logo,
+          muted: clean.muted !== undefined ? clean.muted : channels[idx].muted
         };
       } else {
-        rooms.unshift(updated);
+        channels.unshift(clean);
       }
       persist();
     }
 
-    function getRoomById(id) {
-      return rooms.find((r) => String(r.id) === String(id)) || null;
+    function getChannelById(id) {
+      return channels.find((c) => String(c.id) === String(id)) || null;
     }
 
-    function removeRoom(id) {
-      rooms = rooms.filter((r) => String(r.id) !== String(id));
+    function removeChannel(id) {
+      if (String(id) === OFFICIAL_ID) return;
+      channels = channels.filter((c) => String(c.id) !== String(id));
       persist();
     }
 
-    function isRoomUnlocked(room) {
-      if (String(room.id) === OFFICIAL_ID || room.isOfficial) return true;
+    function isChannelUnlocked(ch) {
+      if (String(ch.id) === OFFICIAL_ID || ch.isOfficial) return true;
       return Boolean(officialJoined);
     }
 
-    function canManageRoom(room) {
-      const isOfficial = String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
-      if (isOfficial) return false;
+    function canManageChannel(ch) {
+      if (String(ch.id) === OFFICIAL_ID || ch.isOfficial) return false;
       const uid = meId();
-      const adminsArr = Array.isArray(room.admins) ? room.admins.map(String) : [];
-      return Boolean(room.isOwner || room.isAdmin || String(room.ownerId) === uid || adminsArr.includes(uid));
+      const adminsArr = Array.isArray(ch.admins) ? ch.admins.map(String) : [];
+      return Boolean(ch.isOwner || ch.isAdmin || String(ch.ownerId) === uid || adminsArr.includes(uid));
     }
 
-    function canDeleteItem(room, item) {
-      if (canManageRoom(room)) return true;
+    function canDeletePost(ch, post) {
+      if (canManageChannel(ch)) return true;
       const uid = meId();
-      const itemAuthorId = String(item?.senderId || item?.authorId || "");
-      return Boolean(item?.own || (itemAuthorId && itemAuthorId === uid));
+      const authorId = String(post?.authorId || "");
+      return Boolean(authorId && authorId === uid);
     }
 
-    function lastPreview(room) {
-      if (room.type === "channel") {
-        const last = room.posts?.[room.posts.length - 1];
-        return last?.text || "Broadcast channel";
-      }
-      const last = room.messages?.[room.messages.length - 1];
-      return last ? `${last.sender}: ${last.text}` : "No messages yet";
-    }
-
-    function renderHome() {
-      activeReply = null;
+    function renderChannelList() {
       setNavHidden(false);
       const q = searchQuery.trim().toLowerCase();
-      const chCount = rooms.filter((r) => r.type === "channel").length;
-      const grpCount = rooms.filter((r) => r.type === "group").length;
-
-      const filtered = rooms.filter((r) => {
-        const okType = activeFilter === "all" || r.type === activeFilter;
-        const okQ = !q || r.name.toLowerCase().includes(q) || lastPreview(r).toLowerCase().includes(q);
-        return okType && okQ;
+      const filtered = channels.filter((c) => {
+        const name = String(c.name || "").toLowerCase();
+        const lastText = String(c.posts?.[c.posts.length - 1]?.text || "").toLowerCase();
+        return !q || name.includes(q) || lastText.includes(q);
       });
 
       container.innerHTML = `
-        <div class="ts-glass-app">
-          <div class="ts-glass-top">
-            <div style="font-size:18px; font-weight:800;">TELESUPAR</div>
-            <button type="button" class="ts-btn-primary" id="ts-new-room-btn">＋ New</button>
+        <div class="ts-ig-app">
+          <div class="ts-ig-top">
+            <div>
+              <div style="font-size:10px; color:#f472b6; font-weight:800; letter-spacing:1.5px;">TELESUPAR</div>
+              <div style="font-size:19px; font-weight:800;">Broadcast Channels</div>
+            </div>
+            <button type="button" class="ts-ig-btn" id="ts-new-channel-btn">＋ Channel</button>
           </div>
 
           <div class="ts-search-box">
-            <input type="text" class="ts-search-input" id="ts-home-search" placeholder="Search Channels & Groups" value="${esc(searchQuery)}" />
-          </div>
-
-          <div class="ts-chip-row">
-            <button type="button" class="ts-chip ${activeFilter === "all" ? "active" : ""}" data-f="all">All (${rooms.length})</button>
-            <button type="button" class="ts-chip ${activeFilter === "channel" ? "active" : ""}" data-f="channel">Channels (${chCount})</button>
-            <button type="button" class="ts-chip ${activeFilter === "group" ? "active" : ""}" data-f="group">Groups (${grpCount})</button>
+            <input type="text" class="ts-search-input" id="ts-ch-search" placeholder="Search broadcast channels" value="${esc(searchQuery)}" />
           </div>
 
           ${
@@ -767,33 +830,35 @@
               ? `<div class="ts-gate-banner">
                   <div>
                     <div style="font-weight:800; font-size:14px;">Official TELESUPAR Channel</div>
-                    <div style="font-size:12px; color:#cbd5e1; margin-top:2px;">Join TELESUPAR official channel first to unlock other channels & groups.</div>
+                    <div style="font-size:12px; color:#e2e8f0; margin-top:2px;">Join official TELESUPAR channel first to unlock all channels.</div>
                   </div>
-                  <button type="button" class="ts-btn-primary" id="ts-join-official-btn">Join Official</button>
+                  <button type="button" class="ts-ig-btn" id="ts-join-official-btn">Join</button>
                 </div>`
               : ""
           }
 
           <div>
             ${filtered
-              .map((r) => {
-                const unlocked = isRoomUnlocked(r);
+              .map((ch) => {
+                const unlocked = isChannelUnlocked(ch);
+                const lastObj = ch.posts?.[ch.posts.length - 1];
+                const lastPost = lastObj?.text || (lastObj?.image ? "📷 Photo broadcast" : "Broadcast channel");
                 return `
-                  <div class="ts-chat-item ${unlocked ? "" : "locked"}" data-open-room="${esc(r.id)}">
-                    ${renderAvatar(r.name, r.logo, 48, r.type === "channel" ? "ch" : "")}
+                  <div class="ts-channel-row ${unlocked ? "" : "locked"}" data-open-ch="${esc(ch.id)}">
+                    ${renderAvatar(ch.name, ch.logo, 52)}
                     <div style="flex:1; min-width:0;">
                       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                         <span style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                          ${esc(r.name)} ${r.isOfficial ? "✓" : ""}
+                          ${esc(ch.name)} ${ch.isOfficial ? "✓" : ""} ${ch.muted ? "🔕" : ""}
                         </span>
-                        <span style="font-size:11px; color:#94a3b8;">${esc(r.lastTime || "")}</span>
+                        <span style="font-size:11px; color:#94a3b8;">${esc(ch.lastTime || "")}</span>
                       </div>
                       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:3px;">
                         <span style="font-size:13px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                          ${unlocked ? esc(lastPreview(r)) : "Join official TELESUPAR channel to unlock"}
+                          ${unlocked ? esc(lastPost) : "Join official TELESUPAR channel to unlock"}
                         </span>
                         <span class="ts-chip" style="padding:2px 8px; font-size:10px;">
-                          ${unlocked ? (r.type === "channel" ? "Channel" : "Group") : "Locked"}
+                          ${unlocked ? "Broadcast" : "Locked"}
                         </span>
                       </div>
                     </div>
@@ -805,52 +870,42 @@
         </div>
       `;
 
-      const joinOffBtn = container.querySelector("#ts-join-official-btn");
-      if (joinOffBtn) {
-        joinOffBtn.onclick = () => {
+      const joinOff = container.querySelector("#ts-join-official-btn");
+      if (joinOff) {
+        joinOff.onclick = async () => {
+          await apiReq(`/api/groups/${encodeURIComponent(OFFICIAL_ID)}/join`, { method: "POST" });
           officialJoined = true;
-          const off = rooms.find((x) => String(x.id) === OFFICIAL_ID);
+          const off = getChannelById(OFFICIAL_ID);
           if (off) off.isMember = true;
           persist();
-          renderHome();
+          renderChannelList();
         };
       }
 
-      container.querySelectorAll("[data-f]").forEach((b) => {
-        b.onclick = () => {
-          activeFilter = b.dataset.f;
-          renderHome();
-        };
-      });
-
-      const sInp = container.querySelector("#ts-home-search");
+      const sInp = container.querySelector("#ts-ch-search");
       if (sInp) {
         sInp.oninput = (e) => {
           searchQuery = e.target.value;
-          renderHome();
-          const el = container.querySelector("#ts-home-search");
+          const pos = sInp.selectionStart;
+          renderChannelList();
+          const el = container.querySelector("#ts-ch-search");
           if (el) {
             el.focus();
-            el.setSelectionRange(el.value.length, el.value.length);
+            try { el.setSelectionRange(pos, pos); } catch (_) {}
           }
         };
       }
 
-      container.querySelector("#ts-new-room-btn").onclick = async () => {
+      container.querySelector("#ts-new-channel-btn").onclick = async () => {
         if (!officialJoined) {
           alert("Please join the official TELESUPAR channel first.");
           return;
         }
-        const name = (prompt("Enter Channel or Group Name:") || "").trim();
+        const name = (prompt("Enter Broadcast Channel Name:") || "").trim();
         if (!name) return;
-        const isCh = confirm("OK = Channel (Only Admin/Owner broadcasts)\nCancel = Group (Members chat when allowed)");
-        const type = isCh ? "channel" : "group";
-        const allowMemberMessages = !isCh
-          ? confirm("Allow all group members to message?\nOK = Everyone can chat, Cancel = Admins only")
-          : false;
 
         let logoData = "";
-        if (confirm("Set a logo/DP image for this " + type + "?")) {
+        if (confirm("Set a logo/DP image for this channel?")) {
           await new Promise((resolve) => {
             pickImageFile((dataUrl) => {
               logoData = dataUrl;
@@ -863,109 +918,87 @@
         const uname = meName();
         const apiRes = await apiReq("/api/groups", {
           method: "POST",
-          body: JSON.stringify({ name, type, allowMemberMessages, logo: logoData })
+          body: JSON.stringify({ name, type: "channel", allowMemberMessages: false, logo: logoData })
         });
 
         if (apiRes?.success && apiRes.group) {
-          upsertRoom({ ...apiRes.group, logo: apiRes.group.logo || logoData });
-          renderHome();
+          upsertChannel({ ...apiRes.group, type: "channel", logo: apiRes.group.logo || logoData });
+          renderChannelList();
           return;
         }
 
-        const newRoom = {
-          id: "room_" + Date.now(),
-          type,
+        const firstPostId = "p_" + Date.now();
+        const welcomeText = `Welcome to ${name} broadcast channel!`;
+        upsertChannel({
+          id: "ch_" + Date.now(),
+          type: "channel",
           isPrivate: false,
+          muted: false,
+          pinnedPostId: firstPostId,
+          pinnedText: welcomeText,
           name,
           logo: logoData,
-          description: isCh
-            ? `Official ${name} broadcast channel on TELESUPAR.`
-            : `${name} group on TELESUPAR.`,
+          description: `${name} broadcast channel on TELESUPAR.`,
           ownerId: uid,
           admins: [uid],
-          members: [{ id: uid, name: uname, role: "Owner", status: "online" }],
+          members: [{ id: uid, name: uname, role: "Creator", status: "online" }],
           isOwner: true,
           isAdmin: true,
           isMember: true,
-          allowMemberMessages,
           lastTime: nowStr(),
-          posts: isCh
-            ? [
-                {
-                  id: "p_" + Date.now(),
-                  text: `${name} channel is live on TELESUPAR.`,
-                  authorName: uname,
-                  authorId: uid,
-                  views: 1,
-                  reactions: { "👍": 1 },
-                  myReaction: "",
-                  time: nowStr()
-                }
-              ]
-            : [],
-          messages: !isCh
-            ? [
-                {
-                  id: "m_" + Date.now(),
-                  sender: uname,
-                  senderId: uid,
-                  isAdminSender: true,
-                  text: `Welcome to ${name}!`,
-                  own: true,
-                  time: nowStr()
-                }
-              ]
-            : []
-        };
-        upsertRoom(newRoom);
-        renderHome();
+          posts: [
+            {
+              id: firstPostId,
+              text: welcomeText,
+              image: "",
+              silent: false,
+              poll: null,
+              authorName: uname,
+              authorId: uid,
+              views: 1,
+              reactions: { "❤️": 1 },
+              myReaction: "",
+              time: nowStr()
+            }
+          ]
+        });
+        renderChannelList();
       };
 
-      container.querySelectorAll("[data-open-room]").forEach((card) => {
-        card.onclick = () => {
-          const room = getRoomById(card.dataset.openRoom);
-          if (!room) return;
-          if (!isRoomUnlocked(room)) {
-            alert("Join the official TELESUPAR channel first to unlock other channels & groups.");
+      container.querySelectorAll("[data-open-ch]").forEach((row) => {
+        row.onclick = () => {
+          const ch = getChannelById(row.dataset.openCh);
+          if (!ch) return;
+          if (!isChannelUnlocked(ch)) {
+            alert("Join the official TELESUPAR channel first to unlock other channels.");
             return;
           }
-          openRoomChat(room);
+          openChannelFeed(ch);
         };
       });
-
-      const urlRoomId = new URLSearchParams(window.location.search).get("room");
-      if (urlRoomId) {
-        const target = getRoomById(urlRoomId);
-        if (target && isRoomUnlocked(target)) {
-          openRoomChat(target);
-        }
-      }
     }
 
-    function openMessagePopup(roomId, itemId, isChannelPost) {
-      const room = getRoomById(roomId);
-      if (!room) return;
-      const collection = isChannelPost ? room.posts : room.messages;
-      const item = (collection || []).find((x) => String(x.id) === String(itemId));
-      if (!item) return;
+    function openPostPopup(channelId, postId) {
+      const ch = getChannelById(channelId);
+      if (!ch) return;
+      ch.posts = Array.isArray(ch.posts) ? ch.posts : [];
+      const post = ch.posts.find((p) => String(p.id) === String(postId));
+      if (!post) return;
 
-      item.reactions = typeof item.reactions === "object" && item.reactions ? item.reactions : {};
-      const allowDelete = canDeleteItem(room, item);
-      const allowPin = canManageRoom(room);
+      post.reactions = typeof post.reactions === "object" && post.reactions ? post.reactions : {};
+      const allowDelete = canDeletePost(ch, post);
+      const allowPin = canManageChannel(ch);
 
-      const old = document.getElementById("ts-msg-popup");
+      const old = document.getElementById("ts-post-popup");
       if (old) old.remove();
 
       const pop = document.createElement("div");
-      pop.id = "ts-msg-popup";
+      pop.id = "ts-post-popup";
       pop.className = "ts-overlay";
       pop.innerHTML = `
         <div class="ts-emoji-strip">
-          ${EMOJI_CHOICES
-            .map((em) => `<button type="button" class="ts-emoji-pick" data-emoji="${esc(em)}">${esc(em)}</button>`)
-            .join("")}
+          ${EMOJI_CHOICES.map((em) => `<button type="button" class="ts-emoji-pick" data-emoji="${esc(em)}">${esc(em)}</button>`).join("")}
         </div>
-
         <div class="ts-action-sheet">
           <button type="button" class="ts-sheet-row" data-act="reply">↩ Reply</button>
           <button type="button" class="ts-sheet-row" data-act="copy">📋 Copy</button>
@@ -984,221 +1017,280 @@
       pop.querySelectorAll("[data-emoji]").forEach((eb) => {
         eb.onclick = async () => {
           const emoji = eb.dataset.emoji;
-          if (item.myReaction === emoji) {
-            item.reactions[emoji] = Math.max(0, (Number(item.reactions[emoji]) || 1) - 1);
-            item.myReaction = "";
+          if (post.myReaction === emoji) {
+            post.reactions[emoji] = Math.max(0, (Number(post.reactions[emoji]) || 1) - 1);
+            post.myReaction = "";
           } else {
-            if (item.myReaction) {
-              item.reactions[item.myReaction] = Math.max(0, (Number(item.reactions[item.myReaction]) || 1) - 1);
+            if (post.myReaction) {
+              post.reactions[post.myReaction] = Math.max(0, (Number(post.reactions[post.myReaction]) || 1) - 1);
             }
-            item.reactions[emoji] = (Number(item.reactions[emoji]) || 0) + 1;
-            item.myReaction = emoji;
+            post.reactions[emoji] = (Number(post.reactions[emoji]) || 0) + 1;
+            post.myReaction = emoji;
           }
-          upsertRoom(room);
-          if (isChannelPost) {
-            await apiReq(`/api/groups/${encodeURIComponent(room.id)}/posts/${encodeURIComponent(item.id)}/react`, {
-              method: "POST",
-              body: JSON.stringify({ reaction: emoji })
-            });
-          }
+          upsertChannel(ch);
+          await apiReq(`/api/groups/${encodeURIComponent(ch.id)}/posts/${encodeURIComponent(post.id)}/react`, {
+            method: "POST",
+            body: JSON.stringify({ reaction: emoji })
+          });
           pop.remove();
-          openRoomChat(room);
+          openChannelFeed(getChannelById(ch.id) || ch);
         };
       });
 
       pop.querySelectorAll("[data-act]").forEach((ab) => {
-        ab.onclick = () => {
+        ab.onclick = async () => {
           const act = ab.dataset.act;
-          const textVal = item.text || "";
+          const textVal = post.text || post.poll?.question || "";
           if (act === "reply") {
-            activeReply = {
-              id: item.id,
-              sender: item.authorName || item.sender || room.name,
-              text: textVal.slice(0, 80)
-            };
+            const inp = container.querySelector("#ts-bc-input");
+            if (inp) {
+              inp.value = `Replying to "${textVal.slice(0, 30)}": `;
+              inp.focus();
+            }
           } else if (act === "copy") {
-            if (navigator.clipboard?.writeText) navigator.clipboard.writeText(textVal).catch(() => {});
-            alert("Copied to clipboard");
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(textVal).catch(() => {});
+            alert("Copied");
           } else if (act === "link") {
-            const url = telesuparInviteUrl(room);
-            if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).catch(() => {});
+            const url = telesuparInviteUrl(ch);
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url).catch(() => {});
             alert("Copied TELESUPAR link: " + url);
           } else if (act === "save") {
             const blob = new Blob([textVal], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `${room.name || "telesupar"}_message.txt`;
+            a.href = url;
+            a.download = `${ch.name || "telesupar"}_broadcast.txt`;
             a.click();
+            URL.revokeObjectURL(url);
           } else if (act === "share") {
-            if (navigator.share) navigator.share({ title: room.name, text: textVal }).catch(() => {});
-            else alert(textVal);
-          } else if (act === "pin" && allowPin) {
-            room.pinnedText = textVal;
-            upsertRoom(room);
-            alert("Pinned message");
-          } else if (act === "delete" && allowDelete) {
-            if (isChannelPost) {
-              room.posts = (room.posts || []).filter((x) => String(x.id) !== String(item.id));
-            } else {
-              room.messages = (room.messages || []).filter((x) => String(x.id) !== String(item.id));
+            if (navigator.share) await navigator.share({ title: ch.name, text: textVal }).catch(() => {});
+            else if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(textVal).catch(() => {});
+              alert("Copied to share");
             }
-            upsertRoom(room);
+          } else if (act === "pin" && allowPin) {
+            ch.pinnedPostId = post.id;
+            ch.pinnedText = textVal || "Pinned Broadcast";
+            upsertChannel(ch);
+            alert("Pinned broadcast");
+          } else if (act === "delete" && allowDelete) {
+            if (!confirm("Delete this broadcast?")) return;
+            ch.posts = ch.posts.filter((x) => String(x.id) !== String(post.id));
+            if (String(ch.pinnedPostId) === String(post.id)) {
+              ch.pinnedPostId = ch.posts[0]?.id || "";
+              ch.pinnedText = ch.posts[0]?.text || "";
+            }
+            upsertChannel(ch);
           }
           pop.remove();
-          openRoomChat(room);
-          if (act === "reply") {
-            const inp = container.querySelector("#ts-room-input");
-            if (inp) inp.focus();
-          }
+          openChannelFeed(getChannelById(ch.id) || ch);
         };
       });
 
       (container || document.body).appendChild(pop);
     }
 
-    function renderComposer(canWrite, placeholder, buttonLabel, lockedText) {
-      if (!canWrite) {
-        return `
-          <div class="ts-composer-wrap">
-            <div class="ts-composer-bar" style="justify-content:center; color:#94a3b8; font-size:12px;">
-              ${esc(lockedText)}
-            </div>
-          </div>
-        `;
-      }
-      return `
-        <div class="ts-composer-wrap">
-          ${
-            activeReply
-              ? `<div class="ts-reply-banner">
-                  <div style="min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                    ↩ Replying to <b>${esc(activeReply.sender)}</b>: ${esc(activeReply.text)}
-                  </div>
-                  <button type="button" id="ts-cancel-reply" style="background:none; border:none; color:#f87171; font-weight:700; cursor:pointer;">✕</button>
-                </div>`
-              : ""
-          }
-          <div class="ts-composer-bar">
-            <input type="text" class="ts-composer-input" id="ts-room-input" placeholder="${esc(placeholder)}" autocomplete="off" />
-            <button type="button" class="ts-btn-primary" id="ts-room-send">${esc(buttonLabel)}</button>
-          </div>
-        </div>
-      `;
-    }
-
-    function openRoomChat(roomInput) {
-      const room = getRoomById(roomInput.id) || roomInput;
+    function openChannelFeed(chInput) {
+      const ch = getChannelById(chInput.id) || chInput;
       setNavHidden(true);
-      room.posts = Array.isArray(room.posts) ? room.posts : [];
-      room.messages = Array.isArray(room.messages) ? room.messages : [];
-      room.members = Array.isArray(room.members) ? room.members : [];
+      ch.posts = Array.isArray(ch.posts) ? ch.posts : [];
+      ch.members = Array.isArray(ch.members) ? ch.members : [];
 
-      const isOfficial = String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
-      const isAdmin = canManageRoom(room);
-      const isMember = isOfficial ? officialJoined : Boolean(room.isMember || isAdmin);
-      const allowMemberMessages = room.allowMemberMessages !== false;
-      const memberCount = Math.max(room.members.length, 1);
+      let pendingImage = "";
+      let silentMode = false;
 
-      const pinnedText =
-        room.pinnedText ||
-        (room.type === "channel" ? room.posts[0]?.text : room.messages[0]?.text) ||
-        "";
+      const isOfficial = String(ch.id) === OFFICIAL_ID || Boolean(ch.isOfficial);
+      const isAdmin = canManageChannel(ch);
+      const isMember = isOfficial ? officialJoined : Boolean(ch.isMember || isAdmin);
+      const subCount = Math.max(Number(ch.memberCount ?? ch.members.length), 1);
 
-      if (room.type === "channel") {
+      const pinnedPost = ch.posts.find((p) => String(p.id) === String(ch.pinnedPostId)) || ch.posts[0] || null;
+      const pinnedText = ch.pinnedText || pinnedPost?.text || (pinnedPost?.image ? "📷 Photo broadcast" : "");
+
+      function drawFeed() {
+        const current = getChannelById(ch.id) || ch;
+        const pPost = current.posts.find((p) => String(p.id) === String(current.pinnedPostId)) || current.posts[0] || null;
+        const pText = current.pinnedText || pPost?.text || (pPost?.image ? "📷 Photo broadcast" : "");
+
         container.innerHTML = `
-          <div class="ts-glass-app">
-            <div class="ts-glass-top">
+          <div class="ts-ig-app">
+            <div class="ts-ig-top">
               <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
-                <button type="button" class="ts-back-btn" id="ts-chat-back">← Back</button>
-                <div id="ts-open-ch-info" style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
-                  ${renderAvatar(room.name, room.logo, 38, "ch")}
+                <button type="button" class="ts-back-btn" id="ts-feed-back">← Back</button>
+                <div id="ts-open-info" style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
+                  ${renderAvatar(current.name, current.logo, 40)}
                   <div style="min-width:0;">
-                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(room.name)} ${isOfficial ? "✓" : ""}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${memberCount} subscribers</div>
+                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${esc(current.name)} ${isOfficial ? "✓" : ""} ${current.muted ? "🔕" : ""}
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8;">${compact(subCount)} subscribers</div>
                   </div>
                 </div>
               </div>
               ${
                 !isMember
-                  ? `<button type="button" class="ts-btn-primary" id="ts-join-room-btn">Join</button>`
-                  : `<button type="button" class="ts-btn-glass" id="ts-ch-info-btn">Info</button>`
+                  ? `<button type="button" class="ts-ig-btn" id="ts-join-ch-btn">Join</button>`
+                  : `<button type="button" class="ts-glass-btn" id="ts-info-ch-btn">Info</button>`
               }
             </div>
 
             ${
-              pinnedText
-                ? `<div class="ts-pinned-bar">
-                    <div style="color:#38bdf8; font-weight:700;">Pinned Message</div>
-                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(pinnedText)}</div>
+              pText
+                ? `<div class="ts-pinned-bar" id="ts-pin-jump-bar" data-jump-id="${esc(pPost?.id || "")}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span style="color:#f472b6; font-weight:700;">📌 Pinned Broadcast</span>
+                      <span style="font-size:10px; color:#94a3b8;">Tap to jump</span>
+                    </div>
+                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">${esc(pText)}</div>
                   </div>`
                 : ""
             }
 
-            <div style="padding-bottom:84px;">
+            <div style="padding-bottom:96px;">
               ${
-                room.posts.length
-                  ? room.posts
+                current.posts.length
+                  ? current.posts
                       .map((p) => {
                         const rx = typeof p.reactions === "object" && p.reactions ? p.reactions : {};
                         const entries = Object.entries(rx).filter(([, cnt]) => Number(cnt) > 0);
+                        let pollHtml = "";
+                        if (p.poll && Array.isArray(p.poll.options)) {
+                          const totalVotes = p.poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
+                          pollHtml = `
+                            <div class="ts-poll-box" data-stop-pop="1">
+                              <div style="font-size:13px; font-weight:700; color:#fbcfe8;">📊 ${esc(p.poll.question)}</div>
+                              ${p.poll.options
+                                .map((opt, idx) => {
+                                  const v = Number(opt.votes) || 0;
+                                  const pct = totalVotes > 0 ? Math.round((v / totalVotes) * 100) : 0;
+                                  const isVoted = Number(p.poll.myVote) === idx;
+                                  return `
+                                    <button type="button" class="ts-poll-opt ${isVoted ? "voted" : ""}" data-vote-post="${esc(p.id)}" data-vote-idx="${idx}">
+                                      <span>${esc(opt.label)}</span>
+                                      <span style="font-size:11px; color:#f472b6;">${pct}% (${v})</span>
+                                    </button>
+                                  `;
+                                })
+                                .join("")}
+                              <div style="font-size:11px; color:#94a3b8; margin-top:6px;">${totalVotes} votes</div>
+                            </div>
+                          `;
+                        }
+
                         return `
-                    <div class="ts-bubble-card" data-post-id="${esc(p.id)}">
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <span class="ts-author-click" data-uid="${esc(p.authorId || "")}" data-uname="${esc(p.authorName || room.name)}" style="font-size:12px; font-weight:700; color:#38bdf8; cursor:pointer;">
-                          ${esc(p.authorName || room.name)}
-                        </span>
-                        <span style="font-size:10px; color:#5eead4; font-weight:700;">Admin</span>
-                      </div>
-                      ${
-                        p.replyTo
-                          ? `<div class="ts-reply-quote">↩ <b>${esc(p.replyTo.sender)}</b>: ${esc(p.replyTo.text)}</div>`
-                          : ""
-                      }
-                      <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(p.text)}</div>
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
-                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                          ${
-                            entries.length
-                              ? entries
-                                  .map(([em, cnt]) => `<span class="ts-react-chip ${p.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>`)
-                                  .join("")
-                              : `<span style="font-size:11px; color:#64748b;">Tap post to react</span>`
-                          }
-                        </div>
-                        <span style="font-size:11px; color:#94a3b8;">👁 ${compact((Number(p.views) || 0) + 1)} • ${esc(p.time || "")}</span>
-                      </div>
-                    </div>
-                  `;
+                          <div class="ts-broadcast-card" id="ts-post-${esc(p.id)}" data-post-id="${esc(p.id)}">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                              <span
+                                class="ts-author-click"
+                                data-uid="${esc(p.authorId || "")}"
+                                data-uname="${esc(p.authorName || current.name)}"
+                                style="font-size:12px; font-weight:700; color:#f472b6; cursor:pointer;"
+                              >
+                                ${esc(p.authorName || current.name)}
+                              </span>
+                              <span style="font-size:10px; color:#5eead4; font-weight:700;">
+                                ${p.silent ? "🔕 Silent • " : ""}Creator
+                              </span>
+                            </div>
+                            ${p.image ? `<img src="${esc(p.image)}" alt="broadcast" class="ts-bc-img" />` : ""}
+                            ${p.text ? `<div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(p.text)}</div>` : ""}
+                            ${pollHtml}
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap;">
+                              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                ${
+                                  entries.length
+                                    ? entries
+                                        .map(([em, cnt]) => `<span class="ts-react-chip ${p.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>`)
+                                        .join("")
+                                    : `<span style="font-size:11px; color:#64748b;">Tap to react</span>`
+                                }
+                              </div>
+                              <span style="font-size:11px; color:#94a3b8;">👁 ${compact((Number(p.views) || 0) + 1)} • ${esc(p.time || "")}</span>
+                            </div>
+                          </div>
+                        `;
                       })
                       .join("")
                   : `<div style="text-align:center; padding:44px 16px; color:#94a3b8;">No broadcasts yet.</div>`
               }
             </div>
 
-            ${renderComposer(
-              isAdmin,
-              "Broadcast message...",
-              "Post",
-              !isMember ? "Join this channel first" : "Only channel owner & admins can broadcast"
-            )}
+            ${
+              isAdmin
+                ? `<div class="ts-composer-wrap">
+                    ${
+                      pendingImage
+                        ? `<div class="ts-attach-preview">
+                            <span>📷 Photo attached</span>
+                            <button type="button" id="ts-clear-img" style="background:none;border:none;color:#f87171;font-weight:700;cursor:pointer;">✕ Remove</button>
+                          </div>`
+                        : ""
+                    }
+                    <div class="ts-composer-bar">
+                      <button type="button" class="ts-glass-btn" id="ts-bc-photo" title="Attach Photo">🖼</button>
+                      <button type="button" class="ts-glass-btn" id="ts-bc-poll" title="Create Poll">📊</button>
+                      <button type="button" class="ts-glass-btn" id="ts-bc-silent" title="Silent Mode">${silentMode ? "🔕" : "🔔"}</button>
+                      <input type="text" class="ts-composer-input" id="ts-bc-input" placeholder="Broadcast update..." autocomplete="off" />
+                      <button type="button" class="ts-ig-btn" id="ts-bc-send">Send</button>
+                    </div>
+                  </div>`
+                : `<div class="ts-composer-wrap" style="text-align:center; color:#94a3b8; font-size:12px;">
+                    ${!isMember ? "Join this channel to view updates" : "Only channel owner & admins can broadcast"}
+                  </div>`
+            }
           </div>
         `;
 
-        container.querySelector("#ts-chat-back").onclick = renderHome;
-        container.querySelector("#ts-open-ch-info").onclick = () => openGlassInfo(room);
-        const iBtn = container.querySelector("#ts-ch-info-btn");
-        if (iBtn) iBtn.onclick = () => openGlassInfo(room);
+        container.querySelector("#ts-feed-back").onclick = renderChannelList;
+        container.querySelector("#ts-open-info").onclick = () => openChannelInfo(current);
+        const infoBtn = container.querySelector("#ts-info-ch-btn");
+        if (infoBtn) infoBtn.onclick = () => openChannelInfo(current);
 
-        const jBtn = container.querySelector("#ts-join-room-btn");
-        if (jBtn) {
-          jBtn.onclick = async () => {
-            if (isOfficial) officialJoined = true;
-            room.isMember = true;
-            upsertRoom(room);
-            await apiReq(`/api/groups/${encodeURIComponent(room.id)}/join`, { method: "POST" });
-            openRoomChat(room);
+        const pinBar = container.querySelector("#ts-pin-jump-bar");
+        if (pinBar) {
+          pinBar.onclick = () => {
+            const jid = pinBar.dataset.jumpId;
+            if (!jid) return;
+            const target = container.querySelector(`#ts-post-${CSS.escape(jid)}`);
+            if (target) {
+              target.scrollIntoView({ behavior: "smooth", block: "center" });
+              target.classList.add("ts-jump-glow");
+              setTimeout(() => target.classList.remove("ts-jump-glow"), 1500);
+            }
           };
         }
+
+        const joinBtn = container.querySelector("#ts-join-ch-btn");
+        if (joinBtn) {
+          joinBtn.onclick = async () => {
+            if (isOfficial) officialJoined = true;
+            current.isMember = true;
+            upsertChannel(current);
+            await apiReq(`/api/groups/${encodeURIComponent(current.id)}/join`, { method: "POST" });
+            openChannelFeed(getChannelById(current.id) || current);
+          };
+        }
+
+        container.querySelectorAll("[data-vote-post]").forEach((vb) => {
+          vb.onclick = (e) => {
+            e.stopPropagation();
+            const postObj = current.posts.find((x) => String(x.id) === String(vb.dataset.votePost));
+            const idx = Number(vb.dataset.voteIdx);
+            if (!postObj?.poll?.options?.[idx]) return;
+            const prevIdx = postObj.poll.myVote;
+            if (prevIdx !== undefined && prevIdx !== null && prevIdx !== "" && postObj.poll.options[Number(prevIdx)]) {
+              postObj.poll.options[Number(prevIdx)].votes = Math.max(0, (Number(postObj.poll.options[Number(prevIdx)].votes) || 1) - 1);
+            }
+            if (Number(prevIdx) === idx) {
+              postObj.poll.myVote = "";
+            } else {
+              postObj.poll.options[idx].votes = (Number(postObj.poll.options[idx].votes) || 0) + 1;
+              postObj.poll.myVote = idx;
+            }
+            upsertChannel(current);
+            drawFeed();
+          };
+        });
 
         container.querySelectorAll(".ts-author-click").forEach((el) => {
           el.onclick = (e) => {
@@ -1208,41 +1300,92 @@
         });
 
         container.querySelectorAll("[data-post-id]").forEach((card) => {
-          card.onclick = () => openMessagePopup(room.id, card.dataset.postId, true);
+          card.onclick = () => openPostPopup(current.id, card.dataset.postId);
         });
 
         if (isAdmin) {
-          const cancelRep = container.querySelector("#ts-cancel-reply");
-          if (cancelRep) {
-            cancelRep.onclick = () => {
-              activeReply = null;
-              openRoomChat(room);
+          const photoBtn = container.querySelector("#ts-bc-photo");
+          if (photoBtn) {
+            photoBtn.onclick = () => {
+              pickImageFile((dataUrl) => {
+                pendingImage = dataUrl;
+                drawFeed();
+              });
+            };
+          }
+
+          const clearImgBtn = container.querySelector("#ts-clear-img");
+          if (clearImgBtn) {
+            clearImgBtn.onclick = () => {
+              pendingImage = "";
+              drawFeed();
+            };
+          }
+
+          const silentBtn = container.querySelector("#ts-bc-silent");
+          if (silentBtn) {
+            silentBtn.onclick = () => {
+              silentMode = !silentMode;
+              drawFeed();
+            };
+          }
+
+          const pollBtn = container.querySelector("#ts-bc-poll");
+          if (pollBtn) {
+            pollBtn.onclick = () => {
+              const question = (prompt("Enter Poll Question:") || "").trim();
+              if (!question) return;
+              const rawOpts = (prompt("Enter options separated by comma (e.g. Yes, No, Maybe):") || "").trim();
+              const opts = rawOpts.split(",").map((s) => s.trim()).filter(Boolean);
+              if (opts.length < 2) {
+                alert("Please enter at least 2 options separated by comma.");
+                return;
+              }
+              current.posts.push({
+                id: "p_" + Date.now(),
+                text: "",
+                image: "",
+                silent: silentMode,
+                poll: {
+                  question,
+                  options: opts.map((label) => ({ label, votes: 0 })),
+                  myVote: ""
+                },
+                authorName: meName(),
+                authorId: meId(),
+                views: 1,
+                reactions: {},
+                myReaction: "",
+                time: nowStr()
+              });
+              current.lastTime = nowStr();
+              upsertChannel(current);
+              drawFeed();
             };
           }
 
           const publish = async () => {
-            const inp = container.querySelector("#ts-room-input");
+            const inp = container.querySelector("#ts-bc-input");
             const txt = (inp?.value || "").trim();
-            if (!txt) return;
-            const replySnapshot = activeReply;
-            const res = await apiReq(`/api/groups/${encodeURIComponent(room.id)}/posts`, {
+            if (!txt && !pendingImage) return;
+
+            const res = await apiReq(`/api/groups/${encodeURIComponent(current.id)}/posts`, {
               method: "POST",
-              body: JSON.stringify({ text: txt, replyTo: replySnapshot })
+              body: JSON.stringify({ text: txt, image: pendingImage, silent: silentMode })
             });
-            if (res && res.success === false) {
-              alert(res.message || "Only admins can broadcast");
-              return;
-            }
-            activeReply = null;
             if (res?.success && res.group) {
-              upsertRoom(res.group);
-              openRoomChat(getRoomById(room.id));
+              pendingImage = "";
+              upsertChannel({ ...res.group, type: "channel" });
+              openChannelFeed(getChannelById(current.id) || current);
               return;
             }
-            room.posts.push({
+
+            current.posts.push({
               id: "p_" + Date.now(),
               text: txt,
-              replyTo: replySnapshot,
+              image: pendingImage,
+              silent: silentMode,
+              poll: null,
               authorName: meName(),
               authorId: meId(),
               views: 1,
@@ -1250,270 +1393,115 @@
               myReaction: "",
               time: nowStr()
             });
-            room.lastTime = nowStr();
-            upsertRoom(room);
-            openRoomChat(room);
+            pendingImage = "";
+            current.lastTime = nowStr();
+            upsertChannel(current);
+            drawFeed();
           };
-          container.querySelector("#ts-room-send").onclick = publish;
-          container.querySelector("#ts-room-input").onkeydown = (e) => {
+
+          container.querySelector("#ts-bc-send").onclick = publish;
+          container.querySelector("#ts-bc-input").onkeydown = (e) => {
             if (e.key === "Enter") {
               e.preventDefault();
               publish();
             }
           };
         }
-      } else {
-        const canChat = isAdmin || (isMember && allowMemberMessages);
-        container.innerHTML = `
-          <div class="ts-glass-app">
-            <div class="ts-glass-top">
-              <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
-                <button type="button" class="ts-back-btn" id="ts-chat-back">← Back</button>
-                <div id="ts-open-grp-info" style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
-                  ${renderAvatar(room.name, room.logo, 38)}
-                  <div style="min-width:0;">
-                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(room.name)}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${memberCount} members</div>
-                  </div>
-                </div>
-              </div>
-              ${
-                isAdmin
-                  ? `<button type="button" class="ts-btn-glass" id="ts-perm-btn">${allowMemberMessages ? "🔓 Open" : "🔒 Admin"}</button>`
-                  : (!isMember ? `<button type="button" class="ts-btn-primary" id="ts-join-grp">Join</button>` : "")
-              }
-            </div>
-
-            ${
-              pinnedText
-                ? `<div class="ts-pinned-bar">
-                    <div style="color:#38bdf8; font-weight:700;">Pinned Message</div>
-                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(pinnedText)}</div>
-                  </div>`
-                : ""
-            }
-
-            <div style="padding-bottom:84px;">
-              ${
-                room.messages.length
-                  ? room.messages
-                      .map((m) => {
-                        const senderLabel = m.sender || "Member";
-                        const rx = typeof m.reactions === "object" && m.reactions ? m.reactions : {};
-                        const entries = Object.entries(rx).filter(([, cnt]) => Number(cnt) > 0);
-                        return `
-                    <div class="ts-bubble-card ${m.own ? "own" : ""}" data-msg-id="${esc(m.id)}">
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                        <span class="ts-author-click" data-uid="${esc(m.senderId || "")}" data-uname="${esc(senderLabel)}" style="font-size:12px; font-weight:700; color:#38bdf8; cursor:pointer;">
-                          ${esc(senderLabel)}
-                        </span>
-                        ${m.isAdminSender ? `<span style="font-size:10px; color:#5eead4; font-weight:700;">Admin</span>` : ""}
-                      </div>
-                      ${
-                        m.replyTo
-                          ? `<div class="ts-reply-quote">↩ <b>${esc(m.replyTo.sender)}</b>: ${esc(m.replyTo.text)}</div>`
-                          : ""
-                      }
-                      <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(m.text)}</div>
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px;">
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                          ${entries.map(([em, cnt]) => `<span class="ts-react-chip ${m.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>`).join("")}
-                        </div>
-                        <span style="font-size:10px; color:#cbd5e1;">${esc(m.time || "")}</span>
-                      </div>
-                    </div>
-                  `;
-                      })
-                      .join("")
-                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8;">No group messages yet.</div>`
-              }
-            </div>
-
-            ${renderComposer(
-              canChat,
-              "Message",
-              "Send",
-              !isMember ? "Join group to send messages" : "Admins have restricted messaging"
-            )}
-          </div>
-        `;
-
-        container.querySelector("#ts-chat-back").onclick = renderHome;
-        container.querySelector("#ts-open-grp-info").onclick = () => openGlassInfo(room);
-
-        container.querySelectorAll(".ts-author-click").forEach((el) => {
-          el.onclick = (e) => {
-            e.stopPropagation();
-            openUserProfileWithPosts(container, el.dataset.uid, el.dataset.uname);
-          };
-        });
-
-        container.querySelectorAll("[data-msg-id]").forEach((card) => {
-          card.onclick = () => openMessagePopup(room.id, card.dataset.msgId, false);
-        });
-
-        const permBtn = container.querySelector("#ts-perm-btn");
-        if (permBtn) {
-          permBtn.onclick = async () => {
-            const next = !allowMemberMessages;
-            const res = await apiReq(`/api/groups/${encodeURIComponent(room.id)}/settings`, {
-              method: "PATCH",
-              body: JSON.stringify({ allowMemberMessages: next })
-            });
-            if (res?.success && res.group) upsertRoom(res.group);
-            else {
-              room.allowMemberMessages = next;
-              upsertRoom(room);
-            }
-            openRoomChat(getRoomById(room.id));
-          };
-        }
-
-        const joinBtn = container.querySelector("#ts-join-grp");
-        if (joinBtn) {
-          joinBtn.onclick = async () => {
-            room.isMember = true;
-            upsertRoom(room);
-            await apiReq(`/api/groups/${encodeURIComponent(room.id)}/join`, { method: "POST" });
-            openRoomChat(room);
-          };
-        }
-
-        if (canChat) {
-          const cancelRep = container.querySelector("#ts-cancel-reply");
-          if (cancelRep) {
-            cancelRep.onclick = () => {
-              activeReply = null;
-              openRoomChat(room);
-            };
-          }
-
-          const send = async () => {
-            const inp = container.querySelector("#ts-room-input");
-            const txt = (inp?.value || "").trim();
-            if (!txt) return;
-            const uname = meName();
-            const replySnapshot = activeReply;
-            const res = await apiReq(`/api/groups/${encodeURIComponent(room.id)}/messages`, {
-              method: "POST",
-              body: JSON.stringify({ sender: uname, text: txt, replyTo: replySnapshot })
-            });
-            if (res && res.success === false) {
-              alert(res.message || "Permission denied");
-              return;
-            }
-            activeReply = null;
-            if (res?.success && res.group) {
-              upsertRoom(res.group);
-              openRoomChat(getRoomById(room.id));
-              return;
-            }
-            room.messages.push({
-              id: "m_" + Date.now(),
-              sender: uname,
-              senderId: meId(),
-              isAdminSender: isAdmin,
-              text: txt,
-              replyTo: replySnapshot,
-              own: true,
-              reactions: {},
-              myReaction: "",
-              time: nowStr()
-            });
-            room.lastTime = nowStr();
-            upsertRoom(room);
-            openRoomChat(room);
-          };
-          container.querySelector("#ts-room-send").onclick = send;
-          container.querySelector("#ts-room-input").onkeydown = (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              send();
-            }
-          };
-        }
       }
+
+      drawFeed();
     }
 
-    function openGlassInfo(roomInput) {
-      const room = getRoomById(roomInput.id) || roomInput;
+    function openChannelInfo(chInput) {
+      const ch = getChannelById(chInput.id) || chInput;
       setNavHidden(true);
-      let activeTab = "media";
-      let muted = Boolean(room.muted);
 
-      const isAdmin = canManageRoom(room);
-      const members = room.members.length
-        ? room.members
-        : [{ id: room.ownerId || meId(), name: meName(), role: "Owner", status: "online" }];
-      const adminsCount = Math.max((room.admins || []).length, 1);
+      let activeTab = "media";
+      const isOfficial = String(ch.id) === OFFICIAL_ID || Boolean(ch.isOfficial);
+      const isAdmin = canManageChannel(ch);
+      const isMember = isOfficial ? officialJoined : Boolean(ch.isMember || isAdmin);
+      const members = ch.members.length
+        ? ch.members
+        : [{ id: ch.ownerId || meId(), name: meName(), role: "Creator", status: "online" }];
+      const adminsCount = Math.max((ch.admins || []).length, 1);
 
       function drawInfo() {
-        const current = getRoomById(room.id) || room;
-        const mediaSource = current.type === "channel" ? current.posts : current.messages;
+        const current = getChannelById(ch.id) || ch;
+        const posts = Array.isArray(current.posts) ? current.posts : [];
 
         container.innerHTML = `
-          <div class="ts-glass-app">
-            <div class="ts-glass-top">
+          <div class="ts-ig-app">
+            <div class="ts-ig-top">
               <button type="button" class="ts-back-btn" id="ts-info-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">${current.type === "channel" ? "Channel Info" : "Group Info"}</span>
-              <div style="display:flex; gap:6px;">
-                ${isAdmin ? `<button type="button" class="ts-btn-glass" id="ts-edit-pencil-btn">✎ Edit</button>` : `<span style="width:42px;"></span>`}
-              </div>
+              <span style="font-weight:700; font-size:15px;">Channel Info</span>
+              ${
+                isAdmin
+                  ? `<button type="button" class="ts-glass-btn" id="ts-edit-btn">✎ Edit</button>`
+                  : `<span style="width:42px;"></span>`
+              }
             </div>
 
             <div class="ts-hero-glass">
               <div style="display:flex; justify-content:center; margin-bottom:10px;">
-                ${renderAvatar(current.name, current.logo, 82, current.type === "channel" ? "ch" : "")}
+                ${renderAvatar(current.name, current.logo, 84)}
               </div>
               <div style="font-size:20px; font-weight:800;">${esc(current.name)}</div>
               <div style="font-size:12px; color:#94a3b8; margin-top:3px;">
-                ${current.isPrivate ? "private" : "public"} ${current.type}
+                ${current.isPrivate ? "Private broadcast channel" : "Public broadcast channel"}
               </div>
-              ${
-                current.description
-                  ? `<div style="font-size:12px; color:#cbd5e1; margin-top:8px; line-height:1.4;">${esc(current.description)}</div>`
-                  : ""
-              }
+              <div style="font-size:13px; color:#cbd5e1; margin-top:8px; line-height:1.4;">
+                ${esc(current.description || "")}
+              </div>
 
               <div class="ts-quick-4">
-                <button type="button" class="ts-quick-box" id="ts-info-chat">💬 Chat</button>
-                <button type="button" class="ts-quick-box" id="ts-info-mute">${muted ? "🔔 Unmute" : "🔕 Mute"}</button>
+                <button type="button" class="ts-quick-box" id="ts-info-feed">📢 Channel</button>
+                <button type="button" class="ts-quick-box" id="ts-info-mute">${current.muted ? "🔔 Unmute" : "🔕 Mute"}</button>
                 <button type="button" class="ts-quick-box" id="ts-info-link">🔗 Invite</button>
                 <button type="button" class="ts-quick-box" id="ts-info-logo">🖼 Logo</button>
               </div>
             </div>
 
             <div class="ts-group-box">
-              <div class="ts-row-btn" id="ts-open-subscribers">
-                <span>👥 ${current.type === "channel" ? "Subscribers" : "Members"}</span>
-                <span style="color:#38bdf8; font-weight:700;">${members.length} ›</span>
+              <div class="ts-row-btn" id="ts-open-subs">
+                <span>👥 Subscribers</span>
+                <span style="color:#f472b6; font-weight:700;">${members.length} ›</span>
               </div>
               <div class="ts-row-btn" id="ts-open-admins">
                 <span>🛡 Administrators</span>
-                <span style="color:#38bdf8; font-weight:700;">${adminsCount} ›</span>
+                <span style="color:#f472b6; font-weight:700;">${adminsCount} ›</span>
               </div>
-              <div class="ts-row-btn" id="ts-open-settings-row">
-                <span>⚙ ${current.type === "channel" ? "Channel Settings" : "Group Settings"}</span>
+              <div class="ts-row-btn" id="ts-open-edit-row">
+                <span>⚙ Channel Settings</span>
                 <span style="color:#94a3b8; font-size:12px;">›</span>
               </div>
+              ${
+                !isOfficial && !isAdmin
+                  ? `<div class="ts-row-btn" id="ts-toggle-join-row">
+                      <span style="color:${isMember ? "#f87171" : "#5eead4"}; font-weight:700;">
+                        ${isMember ? "🚪 Leave Channel" : "＋ Join Channel"}
+                      </span>
+                    </div>`
+                  : ""
+              }
             </div>
 
-            <div class="ts-chip-row" style="padding-top:6px;">
-              <button type="button" class="ts-chip ${activeTab === "media" ? "active" : ""}" data-it="media">Media</button>
-              <button type="button" class="ts-chip ${activeTab === "files" ? "active" : ""}" data-it="files">Files</button>
-              <button type="button" class="ts-chip ${activeTab === "links" ? "active" : ""}" data-it="links">Links</button>
-              <button type="button" class="ts-chip ${activeTab === "polls" ? "active" : ""}" data-it="polls">Polls</button>
+            <div class="ts-chip-row">
+              <button type="button" class="ts-chip ${activeTab === "media" ? "active" : ""}" data-t="media">Media</button>
+              <button type="button" class="ts-chip ${activeTab === "links" ? "active" : ""}" data-t="links">Links</button>
+              <button type="button" class="ts-chip ${activeTab === "polls" ? "active" : ""}" data-t="polls">Polls</button>
             </div>
 
             ${
               activeTab === "media"
                 ? `<div class="ts-media-grid">
                     ${
-                      mediaSource.length
-                        ? mediaSource
-                            .map((item) => `<div class="ts-media-tile">${esc((item.text || "").slice(0, 60))}</div>`)
-                            .join("")
-                        : `<div style="grid-column:1/-1; text-align:center; padding:28px; color:#94a3b8; font-size:13px;">No media yet</div>`
+                      posts.length
+                        ? posts.map((p) => `
+                            <div class="ts-media-tile">
+                              ${p.image ? `<img src="${esc(p.image)}" alt="media" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />` : esc((p.text || p.poll?.question || "").slice(0, 60))}
+                            </div>
+                          `).join("")
+                        : `<div style="grid-column:1/-1; text-align:center; padding:28px; color:#94a3b8; font-size:13px;">No broadcasts yet</div>`
                     }
                   </div>`
                 : `<div style="text-align:center; padding:32px 16px; color:#94a3b8; font-size:13px;">No ${esc(activeTab)} yet.</div>`
@@ -1521,51 +1509,56 @@
           </div>
         `;
 
-        container.querySelector("#ts-info-back").onclick = () => openRoomChat(current);
-        container.querySelector("#ts-info-chat").onclick = () => openRoomChat(current);
+        container.querySelector("#ts-info-back").onclick = () => openChannelFeed(current);
+        container.querySelector("#ts-info-feed").onclick = () => openChannelFeed(current);
 
-        const editP = container.querySelector("#ts-edit-pencil-btn");
-        if (editP) editP.onclick = () => openEditScreen(current);
+        const editBtn = container.querySelector("#ts-edit-btn");
+        if (editBtn) editBtn.onclick = () => openEditChannel(current);
 
-        const setRow = container.querySelector("#ts-open-settings-row");
-        if (setRow) {
-          setRow.onclick = () => {
-            if (isAdmin) openEditScreen(current);
-            else alert("Only channel/group admins can change settings.");
-          };
-        }
+        container.querySelector("#ts-open-edit-row").onclick = () => {
+          if (isAdmin) openEditChannel(current);
+          else alert("Only channel owner/admins can edit channel settings.");
+        };
 
         container.querySelector("#ts-info-mute").onclick = () => {
-          muted = !muted;
-          current.muted = muted;
-          upsertRoom(current);
+          current.muted = !current.muted;
+          upsertChannel(current);
           drawInfo();
         };
 
-        container.querySelector("#ts-info-link").onclick = () => {
+        const joinToggleRow = container.querySelector("#ts-toggle-join-row");
+        if (joinToggleRow) {
+          joinToggleRow.onclick = () => {
+            current.isMember = !isMember;
+            upsertChannel(current);
+            drawInfo();
+          };
+        }
+
+        container.querySelector("#ts-info-link").onclick = async () => {
           const link = telesuparInviteUrl(current);
-          if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).catch(() => {});
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link).catch(() => {});
           alert("TELESUPAR Invite Link: " + link);
         };
 
         container.querySelector("#ts-info-logo").onclick = () => {
           if (!isAdmin) {
-            alert("Only admin/owner can update logo.");
+            alert("Only channel owner/admin can change logo.");
             return;
           }
           pickImageFile((dataUrl) => {
             current.logo = dataUrl;
-            upsertRoom(current);
+            upsertChannel(current);
             drawInfo();
           });
         };
 
-        container.querySelector("#ts-open-subscribers").onclick = () => openSubscribersScreen(current, members);
+        container.querySelector("#ts-open-subs").onclick = () => openSubscribersScreen(current, members);
         container.querySelector("#ts-open-admins").onclick = () => openSubscribersScreen(current, members);
 
-        container.querySelectorAll("[data-it]").forEach((btn) => {
-          btn.onclick = () => {
-            activeTab = btn.dataset.it;
+        container.querySelectorAll("[data-t]").forEach((b) => {
+          b.onclick = () => {
+            activeTab = b.dataset.t;
             drawInfo();
           };
         });
@@ -1574,167 +1567,124 @@
       drawInfo();
     }
 
-    function openEditScreen(roomInput) {
-      const room = getRoomById(roomInput.id) || roomInput;
+    function openEditChannel(chInput) {
+      const ch = getChannelById(chInput.id) || chInput;
       setNavHidden(true);
-      let nameVal = room.name || "";
-      let descVal = room.description || "";
-      let logoVal = room.logo || "";
-      let isPriv = Boolean(room.isPrivate);
-      let allowChat = room.allowMemberMessages !== false;
+
+      let nameVal = ch.name || "";
+      let descVal = ch.description || "";
+      let logoVal = ch.logo || "";
+      let isPriv = Boolean(ch.isPrivate);
 
       container.innerHTML = `
-        <div class="ts-glass-app">
-          <div class="ts-glass-top">
+        <div class="ts-ig-app">
+          <div class="ts-ig-top">
             <button type="button" class="ts-back-btn" id="ts-edit-back">← Back</button>
-            <span style="font-weight:700; font-size:15px;">Edit</span>
-            <button type="button" class="ts-btn-primary" id="ts-edit-save">Save</button>
+            <span style="font-weight:700; font-size:15px;">Edit Channel</span>
+            <button type="button" class="ts-ig-btn" id="ts-edit-save">Save</button>
           </div>
 
           <div class="ts-group-box">
             <div style="padding:14px 15px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06);">
-              <div id="ts-edit-logo-preview">${renderAvatar(nameVal, logoVal, 56)}</div>
-              <input type="text" class="ts-search-input" id="ts-edit-name" value="${esc(nameVal)}" placeholder="Name" />
+              <div id="ts-edit-logo-box">${renderAvatar(nameVal, logoVal, 58)}</div>
+              <input type="text" class="ts-search-input" id="ts-edit-name" value="${esc(nameVal)}" placeholder="Channel Name" />
             </div>
-            <div class="ts-row-btn" id="ts-set-photo-row">
-              <span style="color:#38bdf8; font-weight:700;">📷 Set New Photo</span>
-              <span style="font-size:12px; color:#94a3b8;">Logo</span>
+            <div class="ts-row-btn" id="ts-pick-logo-row">
+              <span style="color:#f472b6; font-weight:700;">📷 Set New Logo</span>
+              <span style="font-size:12px; color:#94a3b8;">DP</span>
             </div>
             <div style="padding:10px 15px;">
-              <input type="text" class="ts-search-input" id="ts-edit-desc" value="${esc(descVal)}" placeholder="Description (optional)" />
+              <input type="text" class="ts-search-input" id="ts-edit-desc" value="${esc(descVal)}" placeholder="Description" />
             </div>
           </div>
 
           <div class="ts-group-box">
-            <div class="ts-row-btn" id="ts-edit-priv">
-              <span>${room.type === "channel" ? "Channel Type" : "Group Type"}</span>
-              <span style="color:#38bdf8; font-weight:700;">${isPriv ? "Private" : "Public"}</span>
+            <div class="ts-row-btn" id="ts-toggle-priv">
+              <span>Channel Type</span>
+              <span style="color:#f472b6; font-weight:700;">${isPriv ? "Private" : "Public"}</span>
             </div>
-            <div class="ts-row-btn">
-              <span>Discussion</span>
-              <span style="color:#38bdf8; font-weight:700;">TELESUPAR</span>
-            </div>
-            <div class="ts-row-btn">
-              <span>Direct Messages</span>
-              <span style="color:#fbbf24; font-weight:700;">★ On</span>
-            </div>
-            ${
-              room.type === "group"
-                ? `<div class="ts-row-btn" id="ts-edit-chat-perm">
-                    <span>Member Chat Permission</span>
-                    <span style="color:${allowChat ? "#5eead4" : "#fda4af"}; font-weight:700;">${allowChat ? "Allowed" : "Admins Only"}</span>
-                  </div>`
-                : ""
-            }
-          </div>
-
-          <div class="ts-group-box">
-            <div class="ts-row-btn" id="ts-edit-subs-row">
-              <span>${room.type === "channel" ? "Subscribers" : "Members"}</span>
-              <span style="color:#38bdf8; font-weight:700;">${Math.max((room.members || []).length, 1)}</span>
-            </div>
-            <div class="ts-row-btn" id="ts-edit-invite-row">
-              <span>Invite Links</span>
-              <span style="color:#38bdf8; font-weight:700;">Copy ›</span>
+            <div class="ts-row-btn" id="ts-edit-subs-link">
+              <span>Subscribers</span>
+              <span style="color:#f472b6; font-weight:700;">${Math.max((ch.members || []).length, 1)} ›</span>
             </div>
           </div>
 
           <div class="ts-group-box">
-            <div class="ts-row-btn" id="ts-edit-delete" style="color:#f87171; font-weight:700;">
-              <span>Delete ${room.type === "channel" ? "Channel" : "Group"}</span>
+            <div class="ts-row-btn" id="ts-delete-ch-btn" style="color:#f87171; font-weight:700;">
+              <span>Delete Channel</span>
             </div>
           </div>
         </div>
       `;
 
-      container.querySelector("#ts-edit-back").onclick = () => openGlassInfo(getRoomById(room.id) || room);
+      container.querySelector("#ts-edit-back").onclick = () => openChannelInfo(getChannelById(ch.id) || ch);
 
-      container.querySelector("#ts-set-photo-row").onclick = () => {
+      container.querySelector("#ts-pick-logo-row").onclick = () => {
         pickImageFile((dataUrl) => {
           logoVal = dataUrl;
-          room.logo = dataUrl;
-          upsertRoom(room);
-          const prev = container.querySelector("#ts-edit-logo-preview");
-          if (prev) prev.innerHTML = renderAvatar(nameVal, logoVal, 56);
+          ch.logo = dataUrl;
+          upsertChannel(ch);
+          const box = container.querySelector("#ts-edit-logo-box");
+          if (box) box.innerHTML = renderAvatar(nameVal, logoVal, 58);
         });
       };
 
-      container.querySelector("#ts-edit-priv").onclick = () => {
-        room.name = container.querySelector("#ts-edit-name")?.value || nameVal;
-        room.description = container.querySelector("#ts-edit-desc")?.value || descVal;
-        room.logo = logoVal;
-        room.isPrivate = !isPriv;
-        upsertRoom(room);
-        openEditScreen(room);
+      container.querySelector("#ts-toggle-priv").onclick = () => {
+        nameVal = container.querySelector("#ts-edit-name")?.value || nameVal;
+        descVal = container.querySelector("#ts-edit-desc")?.value || descVal;
+        isPriv = !isPriv;
+        ch.name = nameVal;
+        ch.description = descVal;
+        ch.logo = logoVal;
+        ch.isPrivate = isPriv;
+        upsertChannel(ch);
+        openEditChannel(ch);
       };
 
-      const chatPerm = container.querySelector("#ts-edit-chat-perm");
-      if (chatPerm) {
-        chatPerm.onclick = async () => {
-          allowChat = !allowChat;
-          await apiReq(`/api/groups/${encodeURIComponent(room.id)}/settings`, {
-            method: "PATCH",
-            body: JSON.stringify({ allowMemberMessages: allowChat })
-          });
-          room.allowMemberMessages = allowChat;
-          upsertRoom(room);
-          openEditScreen(room);
-        };
-      }
-
-      container.querySelector("#ts-edit-subs-row").onclick = () => openSubscribersScreen(room, room.members || []);
-      container.querySelector("#ts-edit-invite-row").onclick = () => {
-        const link = telesuparInviteUrl(room);
-        if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).catch(() => {});
-        alert("Invite Link copied: " + link);
-      };
+      container.querySelector("#ts-edit-subs-link").onclick = () => openSubscribersScreen(ch, ch.members || []);
 
       container.querySelector("#ts-edit-save").onclick = () => {
         const nextName = (container.querySelector("#ts-edit-name")?.value || "").trim();
         const nextDesc = (container.querySelector("#ts-edit-desc")?.value || "").trim();
         if (!nextName) return;
-        room.name = nextName;
-        room.description = nextDesc;
-        room.logo = logoVal;
-        room.isPrivate = isPriv;
-        room.allowMemberMessages = allowChat;
-        upsertRoom(room);
-        openGlassInfo(getRoomById(room.id) || room);
+        ch.name = nextName;
+        ch.description = nextDesc;
+        ch.logo = logoVal;
+        ch.isPrivate = isPriv;
+        upsertChannel(ch);
+        openChannelInfo(getChannelById(ch.id) || ch);
       };
 
-      container.querySelector("#ts-edit-delete").onclick = () => {
-        if (!confirm(`Delete "${room.name}"?`)) return;
-        removeRoom(room.id);
-        renderHome();
+      container.querySelector("#ts-delete-ch-btn").onclick = () => {
+        if (!confirm(`Delete channel "${ch.name}"?`)) return;
+        removeChannel(ch.id);
+        renderChannelList();
       };
     }
 
-    function openSubscribersScreen(roomInput, initialMembers) {
-      const room = getRoomById(roomInput.id) || roomInput;
+    function openSubscribersScreen(chInput, initialMembers) {
+      const ch = getChannelById(chInput.id) || chInput;
       setNavHidden(true);
+
       let subSearch = "";
       let list = initialMembers.length
-        ? initialMembers.map((m, idx) =>
-            typeof m === "object" ? m : { id: String(m), name: `Member ${idx + 1}`, role: idx === 0 ? "Owner" : "Member", status: "online" }
-          )
-        : [{ id: room.ownerId || meId(), name: meName(), role: "Owner", status: "online" }];
-
-      const isManager = canManageRoom(room);
+        ? initialMembers
+        : [{ id: ch.ownerId || meId(), name: meName(), role: "Creator", status: "online" }];
 
       function paintSubs() {
         const q = subSearch.trim().toLowerCase();
-        const adminsSet = new Set((room.admins || []).map(String));
-        const visible = list.filter((obj) => {
-          const n = obj.name || obj.displayName || obj.username || "Member";
-          return !q || n.toLowerCase().includes(q);
+        const visible = list.filter((m, idx) => {
+          const obj = typeof m === "object" ? m : { id: m, name: `Subscriber ${idx + 1}`, role: "Member" };
+          const label = obj.name || obj.displayName || obj.username || `Subscriber ${idx + 1}`;
+          return !q || label.toLowerCase().includes(q);
         });
 
         container.innerHTML = `
-          <div class="ts-glass-app">
-            <div class="ts-glass-top">
+          <div class="ts-ig-app">
+            <div class="ts-ig-top">
               <button type="button" class="ts-back-btn" id="ts-subs-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">${room.type === "channel" ? "Subscribers" : "Members"}</span>
-              <span style="font-size:12px; color:#38bdf8; font-weight:700;">${list.length}</span>
+              <span style="font-weight:700; font-size:15px;">Subscribers</span>
+              <span style="font-size:12px; color:#f472b6; font-weight:700;">${list.length}</span>
             </div>
 
             <div class="ts-search-box">
@@ -1742,39 +1692,31 @@
             </div>
 
             <div class="ts-group-box">
-              <div class="ts-row-btn" id="ts-sub-add-btn">
-                <span style="color:#38bdf8; font-weight:700;">👤+ Add ${room.type === "channel" ? "subscribers" : "members"}</span>
+              <div class="ts-row-btn" id="ts-add-sub-btn">
+                <span style="color:#f472b6; font-weight:700;">＋ Add subscriber</span>
               </div>
-              <div class="ts-row-btn" id="ts-sub-invite-btn">
-                <span style="color:#38bdf8; font-weight:700;">🔗 Invite via Link</span>
+              <div class="ts-row-btn" id="ts-copy-sub-link">
+                <span style="color:#f472b6; font-weight:700;">🔗 Invite via Link</span>
               </div>
             </div>
 
             <div class="ts-group-box">
               ${visible
-                .map((obj, i) => {
-                  const label = obj.name || obj.displayName || obj.username || `Member ${i + 1}`;
-                  const mid = String(obj.id || i);
-                  const isSubAdmin = adminsSet.has(mid) || obj.role === "Owner" || obj.role === "Admin";
+                .map((m, i) => {
+                  const obj = typeof m === "object"
+                    ? m
+                    : { id: m, name: `Subscriber ${i + 1}`, role: i === 0 ? "Creator" : "Member", status: "online" };
+                  const label = obj.name || obj.displayName || obj.username || `Subscriber ${i + 1}`;
                   return `
-                    <div class="ts-row-btn" data-sub-uid="${esc(mid)}" data-sub-name="${esc(label)}">
-                      <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-                        ${renderAvatar(label, obj.avatar || "", 42)}
-                        <div style="min-width:0;">
-                          <div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(label)}</div>
-                          <div style="font-size:11px; color:#94a3b8;">${esc(obj.status || "member")}</div>
+                    <div class="ts-row-btn" data-sub-uid="${esc(obj.id || "")}" data-sub-name="${esc(label)}">
+                      <div style="display:flex; align-items:center; gap:12px;">
+                        ${renderAvatar(label, obj.avatar || "", 44)}
+                        <div>
+                          <div style="font-weight:700; font-size:14px;">${esc(label)}</div>
+                          <div style="font-size:11px; color:#94a3b8;">${esc(obj.status || "subscriber")}</div>
                         </div>
                       </div>
-                      <div style="display:flex; align-items:center; gap:8px;">
-                        ${
-                          isManager && mid !== String(room.ownerId || meId())
-                            ? `<button type="button" class="ts-btn-glass" data-toggle-admin="${esc(mid)}" style="height:26px; padding:0 9px; font-size:11px;">
-                                ${isSubAdmin ? "Demote" : "Make Admin"}
-                              </button>`
-                            : ""
-                        }
-                        <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(isSubAdmin ? (obj.role || "Admin") : "Member")}</span>
-                      </div>
+                      <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(obj.role || (i === 0 ? "Creator" : "Member"))}</span>
                     </div>
                   `;
                 })
@@ -1783,56 +1725,41 @@
           </div>
         `;
 
-        container.querySelector("#ts-subs-back").onclick = () => openGlassInfo(getRoomById(room.id) || room);
+        container.querySelector("#ts-subs-back").onclick = () => openChannelInfo(getChannelById(ch.id) || ch);
 
         const sEl = container.querySelector("#ts-subs-search");
         if (sEl) {
           sEl.oninput = (e) => {
             subSearch = e.target.value;
+            const pos = sEl.selectionStart;
             paintSubs();
             const again = container.querySelector("#ts-subs-search");
             if (again) {
               again.focus();
-              again.setSelectionRange(again.value.length, again.value.length);
+              try { again.setSelectionRange(pos, pos); } catch (_) {}
             }
           };
         }
 
-        container.querySelector("#ts-sub-add-btn").onclick = () => {
+        container.querySelector("#ts-add-sub-btn").onclick = () => {
           const val = (prompt("Enter subscriber name or user ID:") || "").trim();
           if (!val) return;
-          const added = {
+          list.push({
             id: /^[a-f\d]{24}$/i.test(val) ? val : "u_" + Date.now(),
             name: val,
             role: "Member",
             status: "online"
-          };
-          list.push(added);
-          room.members = list;
-          upsertRoom(room);
+          });
+          ch.members = list;
+          upsertChannel(ch);
           paintSubs();
         };
 
-        container.querySelector("#ts-sub-invite-btn").onclick = () => {
-          const link = telesuparInviteUrl(room);
-          if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).catch(() => {});
+        container.querySelector("#ts-copy-sub-link").onclick = async () => {
+          const link = telesuparInviteUrl(ch);
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link).catch(() => {});
           alert("Invite Link copied: " + link);
         };
-
-        container.querySelectorAll("[data-toggle-admin]").forEach((btn) => {
-          btn.onclick = (e) => {
-            e.stopPropagation();
-            const targetId = String(btn.dataset.toggleAdmin);
-            room.admins = Array.isArray(room.admins) ? room.admins.map(String) : [];
-            if (room.admins.includes(targetId)) {
-              room.admins = room.admins.filter((x) => x !== targetId);
-            } else {
-              room.admins.push(targetId);
-            }
-            upsertRoom(room);
-            paintSubs();
-          };
-        });
 
         container.querySelectorAll("[data-sub-uid]").forEach((row) => {
           row.onclick = () => openUserProfileWithPosts(container, row.dataset.subUid, row.dataset.subName);
@@ -1842,6 +1769,16 @@
       paintSubs();
     }
 
-    renderHome();
+    renderChannelList();
+
+    const params = new URLSearchParams(window.location.search || "");
+    const targetChId = params.get("channel");
+    if (targetChId) {
+      const targetCh = getChannelById(targetChId);
+      if (targetCh) {
+        if (isChannelUnlocked(targetCh)) openChannelFeed(targetCh);
+        else alert("Join the official TELESUPAR channel first to open this channel.");
+      }
+    }
   };
 })();
