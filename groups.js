@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "telesupar_glass_v6";
+  const STORAGE_KEY = "telesupar_glass_v7";
   const OFFICIAL_ID = "telesupar_official_channel";
 
   const style = document.createElement("style");
@@ -32,7 +32,7 @@
       position: sticky;
       top: 0;
       z-index: 25;
-      background: rgba(17, 25, 39, 0.78);
+      background: rgba(17, 25, 39, 0.82);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.09);
@@ -156,7 +156,7 @@
       margin: 8px 14px;
       padding: 11px 12px;
       border-radius: 16px;
-      background: rgba(23, 34, 52, 0.65);
+      background: rgba(23, 34, 52, 0.68);
       backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.07);
       cursor: pointer;
@@ -411,11 +411,8 @@
   const EMOJI_CHOICES = ["❤️", "👍", "👎", "🔥", "🥰", "👏", "😁"];
 
   function setNavHidden(hidden) {
-    if (hidden) {
-      document.body.classList.add("ts-room-immersive");
-    } else {
-      document.body.classList.remove("ts-room-immersive");
-    }
+    if (hidden) document.body.classList.add("ts-room-immersive");
+    else document.body.classList.remove("ts-room-immersive");
   }
 
   function esc(v) {
@@ -523,7 +520,7 @@
     const sz = sizePx || 48;
     const ch = esc((name || "T").charAt(0).toUpperCase());
     if (logoUrl) {
-      return `<div class="ts-logo-img ${extraClass || ""}" style="width:${sz}px; height:${sz}px; font-size:${Math.round(sz * 0.38)}px;"><img src="${esc(logoUrl)}" alt="${esc(name)}" style="width:100%; height:100%; object-fit:cover;" /></div>`;
+      return `<div class="ts-logo-img ${extraClass || ""}" style="width:${sz}px; height:${sz}px; font-size:${Math.round(sz * 0.38)}px;"><img src="${esc(logoUrl)}" alt="${esc(name)}" style="width:100%; height:100%; object-fit:cover; display:block;" /></div>`;
     }
     return `<div class="ts-logo-img ${extraClass || ""}" style="width:${sz}px; height:${sz}px; font-size:${Math.round(sz * 0.38)}px;">${ch}</div>`;
   }
@@ -644,9 +641,13 @@
       const merged = apiList.groups.some((r) => String(r.id) === OFFICIAL_ID)
         ? apiList.groups
         : [createOfficialChannel(), ...apiList.groups];
-      rooms = merged.map((r) =>
-        String(r.id) === OFFICIAL_ID ? { ...r, isMember: officialJoined || r.isMember } : r
-      );
+      rooms = merged.map((r) => {
+        const localMatch = rooms.find((x) => String(x.id) === String(r.id));
+        const logo = r.logo || localMatch?.logo || "";
+        return String(r.id) === OFFICIAL_ID
+          ? { ...r, logo, isMember: officialJoined || r.isMember }
+          : { ...r, logo };
+      });
       saveData(rooms, officialJoined);
     }
 
@@ -657,9 +658,20 @@
     function upsertRoom(updated) {
       if (!updated?.id) return;
       const idx = rooms.findIndex((r) => String(r.id) === String(updated.id));
-      if (idx >= 0) rooms[idx] = { ...rooms[idx], ...updated };
-      else rooms.unshift(updated);
+      if (idx >= 0) {
+        rooms[idx] = {
+          ...rooms[idx],
+          ...updated,
+          logo: updated.logo !== undefined ? updated.logo : rooms[idx].logo
+        };
+      } else {
+        rooms.unshift(updated);
+      }
       persist();
+    }
+
+    function getRoomById(id) {
+      return rooms.find((r) => String(r.id) === String(id)) || null;
     }
 
     function removeRoom(id) {
@@ -670,6 +682,21 @@
     function isRoomUnlocked(room) {
       if (String(room.id) === OFFICIAL_ID || room.isOfficial) return true;
       return Boolean(officialJoined);
+    }
+
+    function canManageRoom(room) {
+      const isOfficial = String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
+      if (isOfficial) return false;
+      const uid = meId();
+      const adminsArr = Array.isArray(room.admins) ? room.admins.map(String) : [];
+      return Boolean(room.isOwner || room.isAdmin || String(room.ownerId) === uid || adminsArr.includes(uid));
+    }
+
+    function canDeleteItem(room, item) {
+      if (canManageRoom(room)) return true;
+      const uid = meId();
+      const itemAuthorId = String(item?.senderId || item?.authorId || "");
+      return Boolean(item?.own || (itemAuthorId && itemAuthorId === uid));
     }
 
     function lastPreview(room) {
@@ -871,7 +898,7 @@
 
       container.querySelectorAll("[data-open-room]").forEach((card) => {
         card.onclick = () => {
-          const room = rooms.find((x) => String(x.id) === String(card.dataset.openRoom));
+          const room = getRoomById(card.dataset.openRoom);
           if (!room) return;
           if (!isRoomUnlocked(room)) {
             alert("Join the official TELESUPAR channel first to unlock other channels & groups.");
@@ -882,8 +909,16 @@
       });
     }
 
-    function openMessagePopup(room, item, isChannelPost) {
+    function openMessagePopup(roomId, itemId, isChannelPost) {
+      const room = getRoomById(roomId);
+      if (!room) return;
+      const collection = isChannelPost ? room.posts : room.messages;
+      const item = (collection || []).find((x) => String(x.id) === String(itemId));
+      if (!item) return;
+
       item.reactions = typeof item.reactions === "object" && item.reactions ? item.reactions : {};
+      const allowDelete = canDeleteItem(room, item);
+      const allowPin = canManageRoom(room);
 
       const old = document.getElementById("ts-msg-popup");
       if (old) old.remove();
@@ -894,11 +929,7 @@
       pop.innerHTML = `
         <div class="ts-emoji-strip">
           ${EMOJI_CHOICES
-            .map(
-              (em) => `
-            <button type="button" class="ts-emoji-pick" data-emoji="${esc(em)}">${esc(em)}</button>
-          `
-            )
+            .map((em) => `<button type="button" class="ts-emoji-pick" data-emoji="${esc(em)}">${esc(em)}</button>`)
             .join("")}
         </div>
 
@@ -908,8 +939,8 @@
           <button type="button" class="ts-sheet-row" data-act="link">🔗 Copy Link</button>
           <button type="button" class="ts-sheet-row" data-act="save">⬇ Save to Downloads</button>
           <button type="button" class="ts-sheet-row" data-act="share">📤 Share</button>
-          <button type="button" class="ts-sheet-row" data-act="pin">📌 Pin</button>
-          <button type="button" class="ts-sheet-row danger" data-act="delete">🗑 Delete</button>
+          ${allowPin ? `<button type="button" class="ts-sheet-row" data-act="pin">📌 Pin</button>` : ""}
+          ${allowDelete ? `<button type="button" class="ts-sheet-row danger" data-act="delete">🗑 Delete</button>` : ""}
         </div>
       `;
 
@@ -966,16 +997,13 @@
             a.download = `${room.name || "telesupar"}_message.txt`;
             a.click();
           } else if (act === "share") {
-            if (navigator.share) {
-              navigator.share({ title: room.name, text: textVal }).catch(() => {});
-            } else {
-              alert(textVal);
-            }
-          } else if (act === "pin") {
+            if (navigator.share) navigator.share({ title: room.name, text: textVal }).catch(() => {});
+            else alert(textVal);
+          } else if (act === "pin" && allowPin) {
             room.pinnedText = textVal;
             upsertRoom(room);
             alert("Pinned message");
-          } else if (act === "delete") {
+          } else if (act === "delete" && allowDelete) {
             if (isChannelPost) {
               room.posts = (room.posts || []).filter((x) => String(x.id) !== String(item.id));
             } else {
@@ -991,14 +1019,15 @@
       (container || document.body).appendChild(pop);
     }
 
-    function openRoomChat(room) {
+    function openRoomChat(roomInput) {
+      const room = getRoomById(roomInput.id) || roomInput;
       setNavHidden(true);
       room.posts = Array.isArray(room.posts) ? room.posts : [];
       room.messages = Array.isArray(room.messages) ? room.messages : [];
       room.members = Array.isArray(room.members) ? room.members : [];
 
       const isOfficial = String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
-      const isAdmin = !isOfficial && Boolean(room.isAdmin || room.isOwner || room.ownerId === meId());
+      const isAdmin = canManageRoom(room);
       const isMember = isOfficial ? officialJoined : Boolean(room.isMember || isAdmin);
       const allowMemberMessages = room.allowMemberMessages !== false;
       const memberCount = Math.max(room.members.length, 1);
@@ -1059,11 +1088,7 @@
                           ${
                             entries.length
                               ? entries
-                                  .map(
-                                    ([em, cnt]) => `
-                              <span class="ts-react-chip ${p.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>
-                            `
-                                  )
+                                  .map(([em, cnt]) => `<span class="ts-react-chip ${p.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>`)
                                   .join("")
                               : `<span style="font-size:11px; color:#64748b;">Tap post to react</span>`
                           }
@@ -1115,10 +1140,7 @@
         });
 
         container.querySelectorAll("[data-post-id]").forEach((card) => {
-          card.onclick = () => {
-            const postObj = room.posts.find((x) => String(x.id) === String(card.dataset.postId));
-            if (postObj) openMessagePopup(room, postObj, true);
-          };
+          card.onclick = () => openMessagePopup(room.id, card.dataset.postId, true);
         });
 
         if (isAdmin) {
@@ -1136,7 +1158,7 @@
             }
             if (res?.success && res.group) {
               upsertRoom(res.group);
-              openRoomChat(res.group);
+              openRoomChat(getRoomById(room.id));
               return;
             }
             room.posts.push({
@@ -1247,10 +1269,7 @@
         });
 
         container.querySelectorAll("[data-msg-id]").forEach((card) => {
-          card.onclick = () => {
-            const msgObj = room.messages.find((x) => String(x.id) === String(card.dataset.msgId));
-            if (msgObj) openMessagePopup(room, msgObj, false);
-          };
+          card.onclick = () => openMessagePopup(room.id, card.dataset.msgId, false);
         });
 
         const permBtn = container.querySelector("#ts-perm-btn");
@@ -1266,7 +1285,7 @@
               room.allowMemberMessages = next;
               upsertRoom(room);
             }
-            openRoomChat(room);
+            openRoomChat(getRoomById(room.id));
           };
         }
 
@@ -1296,7 +1315,7 @@
             }
             if (res?.success && res.group) {
               upsertRoom(res.group);
-              openRoomChat(res.group);
+              openRoomChat(getRoomById(room.id));
               return;
             }
             room.messages.push({
@@ -1325,38 +1344,39 @@
       }
     }
 
-    function openGlassInfo(room) {
+    function openGlassInfo(roomInput) {
+      const room = getRoomById(roomInput.id) || roomInput;
       setNavHidden(true);
       let activeTab = "media";
       let muted = false;
 
-      const isOfficial = String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
-      const isAdmin = !isOfficial && Boolean(room.isAdmin || room.isOwner || room.ownerId === meId());
+      const isAdmin = canManageRoom(room);
       const members = room.members.length
         ? room.members
         : [{ id: room.ownerId || meId(), name: meName(), role: "Owner", status: "online" }];
       const adminsCount = Math.max((room.admins || []).length, 1);
 
       function drawInfo() {
-        const mediaSource = room.type === "channel" ? room.posts : room.messages;
+        const current = getRoomById(room.id) || room;
+        const mediaSource = current.type === "channel" ? current.posts : current.messages;
 
         container.innerHTML = `
           <div class="ts-glass-app">
             <div class="ts-glass-top">
               <button type="button" class="ts-back-btn" id="ts-info-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">${room.type === "channel" ? "Channel Info" : "Group Info"}</span>
+              <span style="font-weight:700; font-size:15px;">${current.type === "channel" ? "Channel Info" : "Group Info"}</span>
               <div style="display:flex; gap:6px;">
-                ${isAdmin ? `<button type="button" class="ts-btn-glass" id="ts-edit-pencil-btn">✎ Edit</button>` : ""}
+                ${isAdmin ? `<button type="button" class="ts-btn-glass" id="ts-edit-pencil-btn">✎ Edit</button>` : `<span style="width:42px;"></span>`}
               </div>
             </div>
 
             <div class="ts-hero-glass">
               <div style="display:flex; justify-content:center; margin-bottom:10px;">
-                ${renderAvatar(room.name, room.logo, 82, room.type === "channel" ? "ch" : "")}
+                ${renderAvatar(current.name, current.logo, 82, current.type === "channel" ? "ch" : "")}
               </div>
-              <div style="font-size:20px; font-weight:800;">${esc(room.name)}</div>
+              <div style="font-size:20px; font-weight:800;">${esc(current.name)}</div>
               <div style="font-size:12px; color:#94a3b8; margin-top:3px;">
-                ${room.isPrivate ? "private" : "public"} ${room.type}
+                ${current.isPrivate ? "private" : "public"} ${current.type}
               </div>
 
               <div class="ts-quick-4">
@@ -1369,7 +1389,7 @@
 
             <div class="ts-group-box">
               <div class="ts-row-btn" id="ts-open-subscribers">
-                <span>👥 ${room.type === "channel" ? "Subscribers" : "Members"}</span>
+                <span>👥 ${current.type === "channel" ? "Subscribers" : "Members"}</span>
                 <span style="color:#38bdf8; font-weight:700;">${members.length} ›</span>
               </div>
               <div class="ts-row-btn" id="ts-open-admins">
@@ -1377,7 +1397,7 @@
                 <span style="color:#38bdf8; font-weight:700;">${adminsCount} ›</span>
               </div>
               <div class="ts-row-btn" id="ts-open-settings-row">
-                <span>⚙ ${room.type === "channel" ? "Channel Settings" : "Group Settings"}</span>
+                <span>⚙ ${current.type === "channel" ? "Channel Settings" : "Group Settings"}</span>
                 <span style="color:#94a3b8; font-size:12px;">›</span>
               </div>
             </div>
@@ -1395,11 +1415,7 @@
                     ${
                       mediaSource.length
                         ? mediaSource
-                            .map(
-                              (item) => `
-                        <div class="ts-media-tile">${esc((item.text || "").slice(0, 60))}</div>
-                      `
-                            )
+                            .map((item) => `<div class="ts-media-tile">${esc((item.text || "").slice(0, 60))}</div>`)
                             .join("")
                         : `<div style="grid-column:1/-1; text-align:center; padding:28px; color:#94a3b8; font-size:13px;">No media yet</div>`
                     }
@@ -1409,16 +1425,16 @@
           </div>
         `;
 
-        container.querySelector("#ts-info-back").onclick = () => openRoomChat(room);
-        container.querySelector("#ts-info-chat").onclick = () => openRoomChat(room);
+        container.querySelector("#ts-info-back").onclick = () => openRoomChat(current);
+        container.querySelector("#ts-info-chat").onclick = () => openRoomChat(current);
 
         const editP = container.querySelector("#ts-edit-pencil-btn");
-        if (editP) editP.onclick = () => openEditScreen(room);
+        if (editP) editP.onclick = () => openEditScreen(current);
 
         const setRow = container.querySelector("#ts-open-settings-row");
         if (setRow) {
           setRow.onclick = () => {
-            if (isAdmin) openEditScreen(room);
+            if (isAdmin) openEditScreen(current);
             else alert("Only channel/group admins can change settings.");
           };
         }
@@ -1429,7 +1445,7 @@
         };
 
         container.querySelector("#ts-info-link").onclick = () => {
-          const link = telesuparInviteUrl(room);
+          const link = telesuparInviteUrl(current);
           if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).catch(() => {});
           alert("TELESUPAR Invite Link: " + link);
         };
@@ -1440,14 +1456,14 @@
             return;
           }
           pickImageFile((dataUrl) => {
-            room.logo = dataUrl;
-            upsertRoom(room);
+            current.logo = dataUrl;
+            upsertRoom(current);
             drawInfo();
           });
         };
 
-        container.querySelector("#ts-open-subscribers").onclick = () => openSubscribersScreen(room, members);
-        container.querySelector("#ts-open-admins").onclick = () => openSubscribersScreen(room, members);
+        container.querySelector("#ts-open-subscribers").onclick = () => openSubscribersScreen(current, members);
+        container.querySelector("#ts-open-admins").onclick = () => openSubscribersScreen(current, members);
 
         container.querySelectorAll("[data-it]").forEach((btn) => {
           btn.onclick = () => {
@@ -1460,7 +1476,8 @@
       drawInfo();
     }
 
-    function openEditScreen(room) {
+    function openEditScreen(roomInput) {
+      const room = getRoomById(roomInput.id) || roomInput;
       setNavHidden(true);
       let nameVal = room.name || "";
       let descVal = room.description || "";
@@ -1548,19 +1565,25 @@
         </div>
       `;
 
-      container.querySelector("#ts-edit-back").onclick = () => openGlassInfo(room);
+      container.querySelector("#ts-edit-back").onclick = () => openGlassInfo(getRoomById(room.id) || room);
 
       container.querySelector("#ts-set-photo-row").onclick = () => {
         pickImageFile((dataUrl) => {
           logoVal = dataUrl;
+          room.logo = dataUrl;
+          upsertRoom(room);
           const prev = container.querySelector("#ts-edit-logo-preview");
           if (prev) prev.innerHTML = renderAvatar(nameVal, logoVal, 56);
         });
       };
 
       container.querySelector("#ts-edit-priv").onclick = () => {
-        isPriv = !isPriv;
-        openEditScreen({ ...room, name: container.querySelector("#ts-edit-name")?.value || nameVal, description: container.querySelector("#ts-edit-desc")?.value || descVal, logo: logoVal, isPrivate: isPriv, allowMemberMessages: allowChat });
+        room.name = container.querySelector("#ts-edit-name")?.value || nameVal;
+        room.description = container.querySelector("#ts-edit-desc")?.value || descVal;
+        room.logo = logoVal;
+        room.isPrivate = !isPriv;
+        upsertRoom(room);
+        openEditScreen(room);
       };
 
       const chatPerm = container.querySelector("#ts-edit-chat-perm");
@@ -1589,7 +1612,7 @@
         room.isPrivate = isPriv;
         room.allowMemberMessages = allowChat;
         upsertRoom(room);
-        openGlassInfo(room);
+        openGlassInfo(getRoomById(room.id) || room);
       };
 
       container.querySelector("#ts-edit-delete").onclick = () => {
@@ -1599,7 +1622,8 @@
       };
     }
 
-    function openSubscribersScreen(room, initialMembers) {
+    function openSubscribersScreen(roomInput, initialMembers) {
+      const room = getRoomById(roomInput.id) || roomInput;
       setNavHidden(true);
       let subSearch = "";
       let list = initialMembers.length
@@ -1660,7 +1684,7 @@
           </div>
         `;
 
-        container.querySelector("#ts-subs-back").onclick = () => openGlassInfo(room);
+        container.querySelector("#ts-subs-back").onclick = () => openGlassInfo(getRoomById(room.id) || room);
 
         const sEl = container.querySelector("#ts-subs-search");
         if (sEl) {
