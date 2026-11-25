@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "telesupar_tg_groups_v1";
+  const STORAGE_KEY = "telesupar_ts_groups_v2";
 
   const style = document.createElement("style");
   style.id = "telesupar-tg-groups-style";
@@ -163,6 +163,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
     .tg-back-btn {
@@ -173,12 +174,33 @@
       cursor: pointer;
       padding: 0 4px;
     }
+    .tg-perm-btn {
+      padding: 6px 11px;
+      border-radius: 99px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(20, 184, 166, 0.18);
+      color: #5eead4;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tg-perm-btn.locked {
+      background: rgba(244, 63, 94, 0.18);
+      color: #fda4af;
+    }
     .channel-post {
       background: #111827;
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
       padding: 14px;
       margin: 12px 14px;
+    }
+    .tg-post-author {
+      font-size: 11px;
+      font-weight: 700;
+      color: #818cf8;
+      margin-bottom: 6px;
     }
     .tg-post-meta {
       display: flex;
@@ -230,6 +252,15 @@
       background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(124, 58, 237, 0.35));
       border-color: rgba(129, 140, 248, 0.35);
     }
+    .tg-role-tag {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      background: rgba(129, 140, 248, 0.22);
+      color: #c7d2fe;
+      margin-left: 6px;
+      text-transform: uppercase;
+    }
     .tg-composer {
       position: sticky;
       bottom: 0;
@@ -239,6 +270,21 @@
       border-top: 1px solid rgba(255, 255, 255, 0.07);
       display: flex;
       gap: 8px;
+      align-items: center;
+    }
+    .tg-locked-bar {
+      position: sticky;
+      bottom: 0;
+      padding: 13px 16px;
+      background: rgba(17, 24, 39, 0.96);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     .tg-input {
       flex: 1;
@@ -255,7 +301,7 @@
       color: #fff;
       border: none;
       border-radius: 99px;
-      padding: 0 18px;
+      padding: 10px 18px;
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
@@ -265,49 +311,6 @@
   if (!document.getElementById(style.id)) {
     document.head.appendChild(style);
   }
-
-  const defaultData = [
-    {
-      id: "ch1",
-      type: "channel",
-      name: "TELESUPAR Official",
-      members: "14.2K subscribers",
-      posts: [
-        {
-          id: "p1",
-          text: "Welcome to TELESUPAR! Real-time stories, chats, and community channels in one place.",
-          views: 4120,
-          likes: 128,
-          fire: 64,
-          likedByMe: false,
-          firedByMe: false,
-          time: "Today"
-        },
-        {
-          id: "p2",
-          text: "Tip: Use the Explore tab to find friends and start instant messaging.",
-          views: 2940,
-          likes: 95,
-          fire: 41,
-          likedByMe: false,
-          firedByMe: false,
-          time: "Yesterday"
-        }
-      ],
-      messages: []
-    },
-    {
-      id: "grp1",
-      type: "group",
-      name: "Developers & Creators Hub",
-      members: "842 members • 63 online",
-      posts: [],
-      messages: [
-        { id: "m1", sender: "Aarav", text: "Anyone testing the new TELESUPAR build today?", own: false, time: "10:15 AM" },
-        { id: "m2", sender: "Priya", text: "Yes! Navigation and community views feel super clean.", own: false, time: "10:18 AM" }
-      ]
-    }
-  ];
 
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -330,6 +333,10 @@
     return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
+  function getCurrentUserId() {
+    return String(window.AppState?.user?.id || window.AppState?.user?._id || "");
+  }
+
   function getCurrentUserName() {
     return (
       window.AppState?.user?.displayName ||
@@ -341,11 +348,11 @@
   function loadLocalData() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return structuredClone(defaultData);
+      if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length ? parsed : structuredClone(defaultData);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (_) {
-      return structuredClone(defaultData);
+      return [];
     }
   }
 
@@ -359,8 +366,7 @@
     if (typeof window.api !== "function") return null;
     try {
       const res = await window.api(path, options);
-      if (res && res.success !== false) return res;
-      return null;
+      return res || null;
     } catch (_) {
       return null;
     }
@@ -374,22 +380,26 @@
     let searchQuery = "";
 
     const apiRooms = await tryApi("/api/groups");
-    if (Array.isArray(apiRooms?.groups) && apiRooms.groups.length) {
-      rooms = apiRooms.groups.map((g) => ({
-        id: String(g.id || g._id),
-        type: g.type === "channel" ? "channel" : "group",
-        name: g.name || "Untitled",
-        members: g.membersText || g.members || (g.type === "channel" ? "1 subscriber" : "1 member"),
-        posts: Array.isArray(g.posts) ? g.posts : [],
-        messages: Array.isArray(g.messages) ? g.messages : []
-      }));
+    if (apiRooms?.success && Array.isArray(apiRooms.groups)) {
+      rooms = apiRooms.groups;
+      saveLocalData(rooms);
+    }
+
+    function upsertRoom(updatedRoom) {
+      if (!updatedRoom?.id) return;
+      const idx = rooms.findIndex((r) => String(r.id) === String(updatedRoom.id));
+      if (idx >= 0) {
+        rooms[idx] = updatedRoom;
+      } else {
+        rooms.unshift(updatedRoom);
+      }
       saveLocalData(rooms);
     }
 
     function getPreviewText(room) {
       if (room.type === "channel") {
         const lastPost = room.posts?.[room.posts.length - 1];
-        return lastPost?.text || "No broadcasts yet";
+        return lastPost?.text || "Only admins can post";
       }
       const lastMsg = room.messages?.[room.messages.length - 1];
       return lastMsg ? `${lastMsg.sender}: ${lastMsg.text}` : "No messages yet";
@@ -412,7 +422,7 @@
             <div class="tg-top-row">
               <div>
                 <div class="tg-title">Channels & Groups</div>
-                <div class="tg-sub">Broadcast channels & community chats</div>
+                <div class="tg-sub">Admin-only channels & permission-controlled groups</div>
               </div>
               <button type="button" class="tg-create-btn" id="create-tg-btn">+ New</button>
             </div>
@@ -455,7 +465,7 @@
               `
                     )
                     .join("")
-                : `<div style="text-align:center; padding:44px 16px; color:#94a3b8; font-size:13px;">No channels or groups found.</div>`
+                : `<div style="text-align:center; padding:44px 16px; color:#94a3b8; font-size:13px;">No channels or groups yet. Tap "+ New" to create one.</div>`
             }
           </div>
         </div>
@@ -487,19 +497,43 @@
         if (!name) return;
 
         const isChannel = confirm(
-          "Click OK to create a Broadcast Channel (one-way posts), or Cancel for a Discussion Group (members can chat)."
+          "Click OK for Broadcast Channel (Only Owner/Admin can post)\nClick Cancel for Discussion Group (Members can chat when allowed)"
         );
         const type = isChannel ? "channel" : "group";
-        const newRoom = {
+        const allowMemberMessages = !isChannel
+          ? confirm("Allow all group members to send messages?\n(OK = Everyone can chat, Cancel = Only Admins can message)")
+          : false;
+
+        const myId = getCurrentUserId();
+        const created = await tryApi("/api/groups", {
+          method: "POST",
+          body: JSON.stringify({ name, type, allowMemberMessages })
+        });
+
+        if (created?.success && created.group) {
+          upsertRoom(created.group);
+          renderList();
+          return;
+        }
+
+        const fallbackRoom = {
           id: "tg_" + Date.now(),
           type,
           name,
+          ownerId: myId,
+          admins: [myId],
+          isOwner: true,
+          isAdmin: true,
+          isMember: true,
+          allowMemberMessages,
+          canPost: true,
           members: isChannel ? "1 subscriber" : "1 member",
           posts: isChannel
             ? [
                 {
-                  id: "init_" + Date.now(),
+                  id: "p_" + Date.now(),
                   text: `Channel "${name}" is live.`,
+                  authorName: getCurrentUserName(),
                   views: 1,
                   likes: 0,
                   fire: 0,
@@ -514,6 +548,8 @@
                 {
                   id: "m_" + Date.now(),
                   sender: getCurrentUserName(),
+                  senderId: myId,
+                  isAdminSender: true,
                   text: `Welcome to ${name}!`,
                   own: true,
                   time: formatTimeNow()
@@ -522,16 +558,7 @@
             : []
         };
 
-        const created = await tryApi("/api/groups", {
-          method: "POST",
-          body: JSON.stringify({ name, type })
-        });
-        if (created?.group?.id || created?.group?._id) {
-          newRoom.id = String(created.group.id || created.group._id);
-        }
-
-        rooms.unshift(newRoom);
-        saveLocalData(rooms);
+        upsertRoom(fallbackRoom);
         renderList();
       };
 
@@ -547,22 +574,28 @@
       if (!Array.isArray(item.posts)) item.posts = [];
       if (!Array.isArray(item.messages)) item.messages = [];
 
+      const isAdmin = Boolean(item.isAdmin || item.isOwner);
+      const isMember = Boolean(item.isMember || isAdmin);
+      const allowMemberMessages = item.allowMemberMessages !== false;
+
       if (item.type === "channel") {
-        item.posts.forEach((p) => {
-          p.views = (Number(p.views) || 0) + 1;
-        });
-        saveLocalData(rooms);
+        const canBroadcast = isAdmin;
 
         container.innerHTML = `
           <div class="tg-wrap">
             <div class="tg-room-header">
-              <div style="display:flex; align-items:center; gap:12px;">
+              <div style="display:flex; align-items:center; gap:12px; min-width:0;">
                 <button type="button" class="tg-back-btn" id="tg-back">←</button>
-                <div>
-                  <div style="font-weight:700; font-size:15px;">${escapeHtml(item.name)}</div>
-                  <div style="font-size:11px; color:#94a3b8;">${escapeHtml(item.members)} • Broadcast Channel</div>
+                <div style="min-width:0;">
+                  <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.name)}</div>
+                  <div style="font-size:11px; color:#94a3b8;">${escapeHtml(item.members)} • ${isAdmin ? "Admin" : "Subscriber"}</div>
                 </div>
               </div>
+              ${
+                !isMember
+                  ? `<button type="button" id="tg-join-btn" class="tg-perm-btn">Subscribe</button>`
+                  : `<span class="tg-badge">${isAdmin ? "Admin" : "Subscribed"}</span>`
+              }
             </div>
 
             <div id="channel-posts-list">
@@ -572,6 +605,7 @@
                       .map(
                         (p) => `
                   <div class="channel-post" data-post-id="${escapeHtml(p.id)}">
+                    <div class="tg-post-author">📢 ${escapeHtml(p.authorName || item.name)}</div>
                     <div style="font-size:14px; line-height:1.5; white-space:pre-wrap;">${escapeHtml(p.text)}</div>
                     <div class="tg-post-meta">
                       <div class="reaction-row">
@@ -591,23 +625,50 @@
                 `
                       )
                       .join("")
-                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8; font-size:13px;">No broadcasts yet. Post the first update below.</div>`
+                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8; font-size:13px;">No broadcasts yet.</div>`
               }
             </div>
 
-            <div class="tg-composer">
-              <input
-                id="ch-broadcast-input"
-                class="tg-input"
-                placeholder="Broadcast message to subscribers..."
-                autocomplete="off"
-              />
-              <button type="button" id="ch-broadcast-btn" class="tg-send-btn">Post</button>
-            </div>
+            ${
+              canBroadcast
+                ? `
+              <div class="tg-composer">
+                <input
+                  id="ch-broadcast-input"
+                  class="tg-input"
+                  placeholder="Broadcast message as admin..."
+                  autocomplete="off"
+                />
+                <button type="button" id="ch-broadcast-btn" class="tg-send-btn">Post</button>
+              </div>
+            `
+                : `
+              <div class="tg-locked-bar">
+                <span>🔒 Only channel owner & admins can post broadcasts</span>
+                ${!isMember ? `<button type="button" id="tg-join-bottom" class="tg-perm-btn">Subscribe</button>` : ""}
+              </div>
+            `
+            }
           </div>
         `;
 
         container.querySelector("#tg-back").onclick = renderList;
+
+        const handleJoin = async () => {
+          const joined = await tryApi(`/api/groups/${encodeURIComponent(item.id)}/join`, { method: "POST" });
+          if (joined?.success && joined.group) {
+            upsertRoom(joined.group);
+            openTgRoom(joined.group);
+          } else {
+            item.isMember = true;
+            upsertRoom(item);
+            openTgRoom(item);
+          }
+        };
+        const topJoin = container.querySelector("#tg-join-btn");
+        const botJoin = container.querySelector("#tg-join-bottom");
+        if (topJoin) topJoin.onclick = handleJoin;
+        if (botJoin) botJoin.onclick = handleJoin;
 
         container.querySelectorAll(".reaction-pill").forEach((pill) => {
           pill.onclick = async () => {
@@ -624,58 +685,85 @@
               target.fire = Math.max(0, (Number(target.fire) || 0) + (target.firedByMe ? 1 : -1));
             }
 
-            saveLocalData(rooms);
-            await tryApi(`/api/groups/${encodeURIComponent(item.id)}/posts/${encodeURIComponent(pid)}/react`, {
+            upsertRoom(item);
+            const res = await tryApi(`/api/groups/${encodeURIComponent(item.id)}/posts/${encodeURIComponent(pid)}/react`, {
               method: "POST",
               body: JSON.stringify({ reaction: kind })
             });
+            if (res?.success && res.group) {
+              upsertRoom(res.group);
+              openTgRoom(res.group);
+              return;
+            }
             openTgRoom(item);
           };
         });
 
-        const publishPost = async () => {
-          const input = container.querySelector("#ch-broadcast-input");
-          const val = (input?.value || "").trim();
-          if (!val) return;
+        if (canBroadcast) {
+          const publishPost = async () => {
+            const input = container.querySelector("#ch-broadcast-input");
+            const val = (input?.value || "").trim();
+            if (!val) return;
 
-          const newPost = {
-            id: "p_" + Date.now(),
-            text: val,
-            views: 1,
-            likes: 0,
-            fire: 0,
-            likedByMe: false,
-            firedByMe: false,
-            time: formatTimeNow()
+            const res = await tryApi(`/api/groups/${encodeURIComponent(item.id)}/posts`, {
+              method: "POST",
+              body: JSON.stringify({ text: val })
+            });
+
+            if (res && res.success === false) {
+              alert(res.message || "Only channel owner or admins can post.");
+              return;
+            }
+
+            if (res?.success && res.group) {
+              upsertRoom(res.group);
+              openTgRoom(res.group);
+              return;
+            }
+
+            item.posts.push({
+              id: "p_" + Date.now(),
+              text: val,
+              authorName: getCurrentUserName(),
+              views: 1,
+              likes: 0,
+              fire: 0,
+              likedByMe: false,
+              firedByMe: false,
+              time: formatTimeNow()
+            });
+            upsertRoom(item);
+            openTgRoom(item);
           };
 
-          item.posts.push(newPost);
-          saveLocalData(rooms);
-          await tryApi(`/api/groups/${encodeURIComponent(item.id)}/posts`, {
-            method: "POST",
-            body: JSON.stringify({ text: val })
-          });
-          openTgRoom(item);
-        };
-
-        container.querySelector("#ch-broadcast-btn").onclick = publishPost;
-        container.querySelector("#ch-broadcast-input").onkeydown = (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            publishPost();
-          }
-        };
+          container.querySelector("#ch-broadcast-btn").onclick = publishPost;
+          container.querySelector("#ch-broadcast-input").onkeydown = (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              publishPost();
+            }
+          };
+        }
       } else {
+        const canMessage = isAdmin || (isMember && allowMemberMessages);
+
         container.innerHTML = `
           <div class="tg-wrap">
             <div class="tg-room-header">
-              <div style="display:flex; align-items:center; gap:12px;">
+              <div style="display:flex; align-items:center; gap:12px; min-width:0;">
                 <button type="button" class="tg-back-btn" id="tg-back">←</button>
-                <div>
-                  <div style="font-weight:700; font-size:15px;">${escapeHtml(item.name)}</div>
-                  <div style="font-size:11px; color:#14b8a6;">${escapeHtml(item.members)}</div>
+                <div style="min-width:0;">
+                  <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.name)}</div>
+                  <div style="font-size:11px; color:#14b8a6;">${escapeHtml(item.members)} • ${allowMemberMessages ? "All members can chat" : "Admins only"}</div>
                 </div>
               </div>
+              ${
+                isAdmin
+                  ? `<button type="button" id="tg-perm-toggle" class="tg-perm-btn ${allowMemberMessages ? "" : "locked"}">
+                      ${allowMemberMessages ? "🔓 Chat: Everyone" : "🔒 Chat: Admins Only"}
+                    </button>`
+                  : (!isMember ? `<button type="button" id="tg-join-btn" class="tg-perm-btn">Join Group</button>` : "")
+              }
             </div>
 
             <div class="tg-chat-feed" id="tg-chat-feed">
@@ -687,6 +775,7 @@
                   <div class="tg-msg-bubble ${m.own ? "own" : ""}">
                     <div style="font-size:11px; font-weight:700; color:${m.own ? "#93c5fd" : "#c084fc"}; margin-bottom:3px;">
                       ${escapeHtml(m.sender || "Member")}
+                      ${m.isAdminSender ? `<span class="tg-role-tag">Admin</span>` : ""}
                     </div>
                     <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${escapeHtml(m.text)}</div>
                     <div style="font-size:10px; color:#94a3b8; text-align:right; margin-top:4px;">${escapeHtml(m.time || "")}</div>
@@ -698,15 +787,29 @@
               }
             </div>
 
-            <div class="tg-composer">
-              <input
-                id="grp-msg-input"
-                class="tg-input"
-                placeholder="Message group..."
-                autocomplete="off"
-              />
-              <button type="button" id="grp-send-btn" class="tg-send-btn">Send</button>
-            </div>
+            ${
+              canMessage
+                ? `
+              <div class="tg-composer">
+                <input
+                  id="grp-msg-input"
+                  class="tg-input"
+                  placeholder="Message group..."
+                  autocomplete="off"
+                />
+                <button type="button" id="grp-send-btn" class="tg-send-btn">Send</button>
+              </div>
+            `
+                : `
+              <div class="tg-locked-bar">
+                ${
+                  !isMember
+                    ? `<span>Join this group to participate in chat</span><button type="button" id="tg-join-bottom" class="tg-perm-btn">Join Group</button>`
+                    : `<span>🔒 Group admins have restricted messaging to admins only</span>`
+                }
+              </div>
+            `
+            }
           </div>
         `;
 
@@ -715,36 +818,85 @@
         const feedEl = container.querySelector("#tg-chat-feed");
         if (feedEl) feedEl.scrollTop = feedEl.scrollHeight;
 
-        const sendGroupMsg = async () => {
-          const input = container.querySelector("#grp-msg-input");
-          const val = (input?.value || "").trim();
-          if (!val) return;
+        const permToggle = container.querySelector("#tg-perm-toggle");
+        if (permToggle) {
+          permToggle.onclick = async () => {
+            const nextState = !allowMemberMessages;
+            const res = await tryApi(`/api/groups/${encodeURIComponent(item.id)}/settings`, {
+              method: "PATCH",
+              body: JSON.stringify({ allowMemberMessages: nextState })
+            });
+            if (res?.success && res.group) {
+              upsertRoom(res.group);
+              openTgRoom(res.group);
+            } else {
+              item.allowMemberMessages = nextState;
+              upsertRoom(item);
+              openTgRoom(item);
+            }
+          };
+        }
 
-          const senderName = getCurrentUserName();
-          item.messages.push({
-            id: "m_" + Date.now(),
-            sender: senderName,
-            text: val,
-            own: true,
-            time: formatTimeNow()
-          });
-          saveLocalData(rooms);
-
-          await tryApi(`/api/groups/${encodeURIComponent(item.id)}/messages`, {
-            method: "POST",
-            body: JSON.stringify({ sender: senderName, text: val })
-          });
-
-          openTgRoom(item);
-        };
-
-        container.querySelector("#grp-send-btn").onclick = sendGroupMsg;
-        container.querySelector("#grp-msg-input").onkeydown = (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            sendGroupMsg();
+        const handleGroupJoin = async () => {
+          const joined = await tryApi(`/api/groups/${encodeURIComponent(item.id)}/join`, { method: "POST" });
+          if (joined?.success && joined.group) {
+            upsertRoom(joined.group);
+            openTgRoom(joined.group);
+          } else {
+            item.isMember = true;
+            upsertRoom(item);
+            openTgRoom(item);
           }
         };
+        const topJoin = container.querySelector("#tg-join-btn");
+        const botJoin = container.querySelector("#tg-join-bottom");
+        if (topJoin) topJoin.onclick = handleGroupJoin;
+        if (botJoin) botJoin.onclick = handleGroupJoin;
+
+        if (canMessage) {
+          const sendGroupMsg = async () => {
+            const input = container.querySelector("#grp-msg-input");
+            const val = (input?.value || "").trim();
+            if (!val) return;
+
+            const senderName = getCurrentUserName();
+            const res = await tryApi(`/api/groups/${encodeURIComponent(item.id)}/messages`, {
+              method: "POST",
+              body: JSON.stringify({ sender: senderName, text: val })
+            });
+
+            if (res && res.success === false) {
+              alert(res.message || "You do not have permission to send messages here.");
+              return;
+            }
+
+            if (res?.success && res.group) {
+              upsertRoom(res.group);
+              openTgRoom(res.group);
+              return;
+            }
+
+            item.messages.push({
+              id: "m_" + Date.now(),
+              sender: senderName,
+              senderId: getCurrentUserId(),
+              isAdminSender: isAdmin,
+              text: val,
+              own: true,
+              time: formatTimeNow()
+            });
+            upsertRoom(item);
+            openTgRoom(item);
+          };
+
+          container.querySelector("#grp-send-btn").onclick = sendGroupMsg;
+          container.querySelector("#grp-msg-input").onkeydown = (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              sendGroupMsg();
+            }
+          };
+        }
       }
     }
 
