@@ -1,3 +1,9 @@
+(function () {
+  "use strict";
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
@@ -6,7 +12,10 @@
   }
 
   function nowStr() {
-    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
   }
 
   function compact(n) {
