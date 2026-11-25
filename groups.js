@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "telesupar_tg_ui_v3";
+  const STORAGE_KEY = "telesupar_tg_ui_v4";
 
   const style = document.createElement("style");
   style.id = "telesupar-tg-ui-style";
@@ -30,6 +30,22 @@
       font-weight: 700;
       letter-spacing: -0.2px;
     }
+    .tg-back-text-btn {
+      background: #242f3d;
+      color: #e8eef5;
+      border: none;
+      border-radius: 10px;
+      height: 34px;
+      padding: 0 11px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
     .tg-icon-btn {
       background: #242f3d;
       color: #e8eef5;
@@ -37,12 +53,14 @@
       border-radius: 999px;
       height: 34px;
       padding: 0 12px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .tg-search-wrap {
       background: #17212b;
@@ -118,7 +136,7 @@
       flex-shrink: 0;
     }
     .tg-avatar.grp {
-      background: linear-gradient(135deg, #00b894, #0984e3);
+      background: linear-gradient(135deg, #2b5278, #3b719f);
     }
     .tg-row-main {
       flex: 1;
@@ -203,25 +221,35 @@
     .tg-msg-card {
       background: #182533;
       border-radius: 14px;
-      padding: 11px 13px;
-      margin: 10px 12px;
-      max-width: 92%;
+      padding: 10px 13px;
+      margin: 8px 12px;
+      max-width: 88%;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
     .tg-msg-card.own {
       background: #2b5278;
       margin-left: auto;
     }
+    .tg-sender-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
     .tg-sender-link {
       font-size: 12px;
       font-weight: 700;
       color: #6ab2f2;
-      margin-bottom: 4px;
       cursor: pointer;
-      display: inline-block;
     }
     .tg-sender-link:hover {
       text-decoration: underline;
+    }
+    .tg-admin-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: #5eead4;
     }
     .tg-msg-foot {
       display: flex;
@@ -301,6 +329,9 @@
       font-weight: 800;
       color: #fff;
     }
+    .tg-info-avatar.grp {
+      background: linear-gradient(135deg, #2b5278, #3b719f);
+    }
     .tg-info-actions {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -317,9 +348,30 @@
       font-weight: 700;
       cursor: pointer;
     }
+    .tg-info-box {
+      background: #17212b;
+      padding: 12px 16px;
+      border-bottom: 8px solid #0e1621;
+    }
+    .tg-desc-text {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #e8eef5;
+      white-space: pre-wrap;
+    }
+    .tg-link-row {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
     .tg-info-list {
       background: #17212b;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .tg-info-item {
       display: flex;
@@ -334,16 +386,18 @@
       display: flex;
       background: #17212b;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      overflow-x: auto;
     }
     .tg-sub-tab {
       flex: 1;
-      padding: 11px 6px;
+      padding: 11px 8px;
       text-align: center;
       font-size: 13px;
       font-weight: 700;
       color: #8fa3b8;
       cursor: pointer;
       border-bottom: 2px solid transparent;
+      white-space: nowrap;
     }
     .tg-sub-tab.active {
       color: #6ab2f2;
@@ -356,6 +410,39 @@
       padding: 10px 16px;
       background: #17212b;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+    }
+    .tg-edit-card {
+      background: #17212b;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+    }
+    .tg-field-label {
+      font-size: 11px;
+      color: #8fa3b8;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .tg-field-input, .tg-field-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: #0e1621;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 9px 12px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+    .tg-danger-btn {
+      width: 100%;
+      background: #17212b;
+      color: #f87171;
+      border: none;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: left;
       cursor: pointer;
     }
     .tg-profile-overlay {
@@ -469,8 +556,8 @@
     modal.innerHTML = `
       <div class="tg-profile-sheet">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <span style="font-weight:700; font-size:15px;">User Info</span>
-          <button type="button" id="tg-close-prof" style="background:none; border:none; color:#8fa3b8; font-size:20px; cursor:pointer;">✕</button>
+          <span style="font-weight:700; font-size:15px;">User Profile</span>
+          <button type="button" id="tg-close-prof" class="tg-back-text-btn">← Back</button>
         </div>
         <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
           <div class="tg-avatar" style="width:62px; height:62px; font-size:24px;">
@@ -512,6 +599,11 @@
       saveRooms(rooms);
     }
 
+    function removeRoom(roomId) {
+      rooms = rooms.filter((r) => String(r.id) !== String(roomId));
+      saveRooms(rooms);
+    }
+
     function lastText(room) {
       if (room.type === "channel") {
         const p = room.posts?.[room.posts.length - 1];
@@ -536,7 +628,7 @@
         <div class="tg-app">
           <div class="tg-topbar">
             <div class="tg-topbar-title">Channels & Groups</div>
-            <button type="button" class="tg-icon-btn" id="tg-new-btn">＋ Create</button>
+            <button type="button" class="tg-icon-btn" id="tg-new-btn">＋ New</button>
           </div>
           <div class="tg-search-wrap">
             <input type="text" class="tg-search" id="tg-search-box" placeholder="Search Chats" value="${esc(query)}" />
@@ -576,7 +668,7 @@
               `
                     )
                     .join("")
-                : `<div style="text-align:center; padding:48px 16px; color:#7f91a4; font-size:14px;">No channels or groups yet. Tap "+ Create".</div>`
+                : `<div style="text-align:center; padding:48px 16px; color:#7f91a4; font-size:14px;">No channels or groups yet. Tap "+ New".</div>`
             }
           </div>
         </div>
@@ -626,10 +718,14 @@
         const room = {
           id: "room_" + Date.now(),
           type,
-          name,
+          isPrivate: false,
+          description: isChannel
+            ? `Official broadcasts from ${name}.`
+            : `Welcome to ${name} discussion group!`,
+          inviteSlug: name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 18) || "telesupar",
           ownerId: uid,
           admins: [uid],
-          members: [{ id: uid, name: myName(), role: "Owner", joinedAt: "Just now" }],
+          members: [{ id: uid, name: myName(), role: "Owner", status: "online" }],
           isOwner: true,
           isAdmin: true,
           isMember: true,
@@ -685,6 +781,7 @@
       const isAdmin = Boolean(room.isAdmin || room.isOwner || room.ownerId === myId());
       const isMember = Boolean(room.isMember || isAdmin);
       const allowMemberMessages = room.allowMemberMessages !== false;
+      const totalMembersCount = Math.max(room.members.length, 1);
 
       if (room.type === "channel") {
         const pinned = room.posts[0];
@@ -692,28 +789,28 @@
           <div class="tg-app">
             <div class="tg-room-head">
               <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
-                <button type="button" class="tg-icon-btn" id="tg-back-home" style="padding:0 10px;">←</button>
+                <button type="button" class="tg-back-text-btn" id="tg-back-home">← Back</button>
                 <div class="tg-room-meta-click" id="tg-open-info">
                   <div class="tg-avatar" style="width:38px; height:38px; font-size:15px;">
                     ${esc((room.name || "C").charAt(0).toUpperCase())}
                   </div>
                   <div style="min-width:0;">
                     <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(room.name)}</div>
-                    <div style="font-size:11px; color:#8fa3b8;">${esc(room.membersCountText || `${Math.max(room.members.length, 1)} subscribers`)}</div>
+                    <div style="font-size:11px; color:#8fa3b8;">${totalMembersCount} subscribers</div>
                   </div>
                 </div>
               </div>
               ${
                 !isMember
                   ? `<button type="button" class="tg-icon-btn" id="tg-sub-btn" style="background:#5288c1;">Subscribe</button>`
-                  : `<button type="button" class="tg-icon-btn" id="tg-info-dot">⋮</button>`
+                  : `<button type="button" class="tg-icon-btn" id="tg-info-dot">Info</button>`
               }
             </div>
 
             ${
               pinned
-                ? `<div class="tg-pinned" id="tg-pin-jump">
-                    <div style="color:#6ab2f2; font-weight:700;">Pinned Broadcast</div>
+                ? `<div class="tg-pinned">
+                    <div style="color:#6ab2f2; font-weight:700;">Pinned Message</div>
                     <div style="color:#dce8f5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(pinned.text)}</div>
                   </div>`
                 : ""
@@ -726,8 +823,11 @@
                       .map(
                         (p) => `
                   <div class="tg-msg-card">
-                    <div class="tg-sender-link" data-uid="${esc(p.authorId || "")}" data-uname="${esc(p.authorName || room.name)}">
-                      ${esc(p.authorName || room.name)}
+                    <div class="tg-sender-row">
+                      <span class="tg-sender-link" data-uid="${esc(p.authorId || "")}" data-uname="${esc(p.authorName || room.name)}">
+                        ${esc(p.authorName || room.name)}
+                      </span>
+                      <span class="tg-admin-tag">Admin</span>
                     </div>
                     <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(p.text)}</div>
                     <div class="tg-msg-foot">
@@ -853,27 +953,38 @@
         }
       } else {
         const canChat = isAdmin || (isMember && allowMemberMessages);
+        const pinnedMsg = room.messages[0];
+
         container.innerHTML = `
           <div class="tg-app">
             <div class="tg-room-head">
               <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
-                <button type="button" class="tg-icon-btn" id="tg-back-home" style="padding:0 10px;">←</button>
+                <button type="button" class="tg-back-text-btn" id="tg-back-home">← Back</button>
                 <div class="tg-room-meta-click" id="tg-open-info">
                   <div class="tg-avatar grp" style="width:38px; height:38px; font-size:15px;">
                     ${esc((room.name || "G").charAt(0).toUpperCase())}
                   </div>
                   <div style="min-width:0;">
                     <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(room.name)}</div>
-                    <div style="font-size:11px; color:#8fa3b8;">${allowMemberMessages ? "All members can chat" : "Admins only"}</div>
+                    <div style="font-size:11px; color:#8fa3b8;">${totalMembersCount} members</div>
                   </div>
                 </div>
               </div>
               ${
                 isAdmin
-                  ? `<button type="button" class="tg-icon-btn" id="tg-perm-btn">${allowMemberMessages ? "🔓 Open" : "🔒 Admin Only"}</button>`
+                  ? `<button type="button" class="tg-icon-btn" id="tg-perm-btn">${allowMemberMessages ? "🔓 Open Chat" : "🔒 Admin Only"}</button>`
                   : (!isMember ? `<button type="button" class="tg-icon-btn" id="tg-join-grp" style="background:#5288c1;">Join</button>` : "")
               }
             </div>
+
+            ${
+              pinnedMsg
+                ? `<div class="tg-pinned">
+                    <div style="color:#6ab2f2; font-weight:700;">Pinned Message</div>
+                    <div style="color:#dce8f5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(pinnedMsg.text)}</div>
+                  </div>`
+                : ""
+            }
 
             <div class="tg-chat-bg">
               ${
@@ -882,8 +993,11 @@
                       .map(
                         (m) => `
                   <div class="tg-msg-card ${m.own ? "own" : ""}">
-                    <div class="tg-sender-link" data-uid="${esc(m.senderId || "")}" data-uname="${esc(m.sender || "Member")}">
-                      ${esc(m.sender || "Member")}
+                    <div class="tg-sender-row">
+                      <span class="tg-sender-link" data-uid="${esc(m.senderId || "")}" data-uname="${esc(m.sender || "Member")}">
+                        ${esc(m.sender || "Member")}
+                      </span>
+                      ${m.isAdminSender ? `<span class="tg-admin-tag">Admin</span>` : ""}
                     </div>
                     <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(m.text)}</div>
                     <div style="font-size:10px; color:#a8bdd1; text-align:right; margin-top:4px;">${esc(m.time || "")}</div>
@@ -994,18 +1108,33 @@
     function openRoomInfo(room) {
       let tab = "members";
       let muted = false;
+      let showFullDesc = false;
 
+      const isAdmin = Boolean(room.isAdmin || room.isOwner || room.ownerId === myId());
       const memberItems = room.members.length
         ? room.members
-        : [{ id: room.ownerId || myId(), name: myName(), role: "Owner", joinedAt: "Active" }];
+        : [{ id: room.ownerId || myId(), name: myName(), role: "Owner", status: "online" }];
+
+      const fullDesc =
+        room.description ||
+        (room.type === "channel"
+          ? `Official channel for ${room.name}. Updates, announcements, and community posts.`
+          : `Discussion group for ${room.name}. Members can chat when permissions are allowed.`);
+
+      const shortDesc = fullDesc.length > 110 ? fullDesc.slice(0, 110) + "..." : fullDesc;
+      const inviteUrl = `t.me/${room.inviteSlug || "telesupar_" + String(room.id).slice(-6)}`;
 
       function paintInfo() {
         container.innerHTML = `
           <div class="tg-app">
             <div class="tg-room-head">
-              <button type="button" class="tg-icon-btn" id="tg-back-room" style="padding:0 10px;">←</button>
+              <button type="button" class="tg-back-text-btn" id="tg-back-room">← Back</button>
               <span style="font-weight:700; font-size:15px;">${room.type === "channel" ? "Channel Info" : "Group Info"}</span>
-              <span style="width:34px;"></span>
+              ${
+                isAdmin
+                  ? `<button type="button" class="tg-icon-btn" id="tg-open-edit">Edit</button>`
+                  : `<span style="width:42px;"></span>`
+              }
             </div>
 
             <div class="tg-info-hero">
@@ -1014,29 +1143,47 @@
               </div>
               <div style="font-size:20px; font-weight:800;">${esc(room.name)}</div>
               <div style="font-size:12px; color:#8fa3b8; margin-top:3px;">
-                ${room.type === "channel" ? "Broadcast channel" : "Discussion group"} • ${memberItems.length} ${room.type === "channel" ? "subscribers" : "members"}
+                ${Math.max(memberItems.length, 1)} ${room.type === "channel" ? "subscribers" : "members"}
               </div>
               <div class="tg-info-actions">
+                <button type="button" class="tg-info-act-btn" id="tg-go-chat">💬 Message</button>
                 <button type="button" class="tg-info-act-btn" id="tg-mute-toggle">${muted ? "🔔 Unmute" : "🔕 Mute"}</button>
-                <button type="button" class="tg-info-act-btn" id="tg-go-chat">💬 Open Chat</button>
-                <button type="button" class="tg-info-act-btn" id="tg-share-link">🔗 Invite</button>
+                <button type="button" class="tg-info-act-btn" id="tg-leave-btn">🚪 Leave</button>
+              </div>
+            </div>
+
+            <div class="tg-info-box">
+              <div class="tg-desc-text">
+                ${esc(showFullDesc ? fullDesc : shortDesc)}
+                ${
+                  fullDesc.length > 110
+                    ? `<button type="button" id="tg-desc-more" style="background:none; border:none; color:#6ab2f2; font-weight:700; cursor:pointer; padding:0 4px;">${showFullDesc ? "less" : "more"}</button>`
+                    : ""
+                }
+              </div>
+              <div style="font-size:11px; color:#7f91a4; margin-top:4px;">Description</div>
+
+              <div class="tg-link-row" id="tg-copy-invite">
+                <div>
+                  <div style="font-size:14px; color:#6ab2f2; font-weight:600;">${esc(inviteUrl)}</div>
+                  <div style="font-size:11px; color:#7f91a4;">Invite Link (tap to copy)</div>
+                </div>
+                <span style="font-size:12px; color:#8fa3b8;">Copy</span>
               </div>
             </div>
 
             <div class="tg-info-list">
-              <div class="tg-info-item" id="tg-jump-members">
-                <span>${room.type === "channel" ? "Subscribers" : "Members"}</span>
-                <span style="color:#6ab2f2; font-weight:700;">${memberItems.length}</span>
-              </div>
-              <div class="tg-info-item">
-                <span>Administrators</span>
-                <span style="color:#6ab2f2; font-weight:700;">${Math.max((room.admins || []).length, 1)}</span>
+              <div class="tg-info-item" id="tg-add-member-row">
+                <span style="color:#6ab2f2; font-weight:700;">＋ Add ${room.type === "channel" ? "Subscribers" : "Members"}</span>
+                <span style="color:#8fa3b8; font-size:12px;">Invite</span>
               </div>
             </div>
 
             <div class="tg-sub-tabs">
               <div class="tg-sub-tab ${tab === "members" ? "active" : ""}" data-t="members">${room.type === "channel" ? "Subscribers" : "Members"}</div>
-              <div class="tg-sub-tab ${tab === "media" ? "active" : ""}" data-t="media">Posts</div>
+              <div class="tg-sub-tab ${tab === "media" ? "active" : ""}" data-t="media">Media</div>
+              <div class="tg-sub-tab ${tab === "files" ? "active" : ""}" data-t="files">Files</div>
+              <div class="tg-sub-tab ${tab === "links" ? "active" : ""}" data-t="links">Links</div>
             </div>
 
             <div>
@@ -1044,7 +1191,9 @@
                 tab === "members"
                   ? memberItems
                       .map((m, i) => {
-                        const mObj = typeof m === "object" ? m : { id: m, name: `Member ${i + 1}`, role: i === 0 ? "Owner" : "Member" };
+                        const mObj = typeof m === "object"
+                          ? m
+                          : { id: m, name: `Member ${i + 1}`, role: i === 0 ? "Owner" : "Member", status: "online" };
                         const label = mObj.name || mObj.displayName || mObj.username || `Member ${i + 1}`;
                         return `
                     <div class="tg-member-row" data-puid="${esc(mObj.id || "")}" data-puname="${esc(label)}">
@@ -1052,24 +1201,15 @@
                         <div class="tg-avatar" style="width:42px; height:42px; font-size:16px;">${esc(label.charAt(0).toUpperCase())}</div>
                         <div>
                           <div style="font-weight:700; font-size:14px;">${esc(label)}</div>
-                          <div style="font-size:11px; color:#8fa3b8;">${esc(mObj.joinedAt || "Member")}</div>
+                          <div style="font-size:11px; color:${mObj.status === "online" ? "#6ab2f2" : "#8fa3b8"};">${esc(mObj.status || "member")}</div>
                         </div>
                       </div>
-                      <span style="font-size:11px; color:#6ab2f2; font-weight:700;">${esc(mObj.role || (i === 0 ? "Owner" : "Member"))}</span>
+                      <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(mObj.role || (i === 0 ? "Owner" : "Member"))}</span>
                     </div>
                   `;
                       })
                       .join("")
-                  : (room.posts || [])
-                      .map(
-                        (p) => `
-                    <div class="tg-msg-card">
-                      <div style="font-size:13px;">${esc(p.text)}</div>
-                      <div style="font-size:11px; color:#7f91a4; margin-top:4px;">${esc(p.time || "")}</div>
-                    </div>
-                  `
-                      )
-                      .join("") || `<div style="text-align:center; padding:24px; color:#7f91a4;">No items</div>`
+                  : `<div style="text-align:center; padding:34px 16px; color:#7f91a4; font-size:13px;">No ${esc(tab)} shared yet.</div>`
               }
             </div>
           </div>
@@ -1077,25 +1217,164 @@
 
         container.querySelector("#tg-back-room").onclick = () => openRoom(room);
         container.querySelector("#tg-go-chat").onclick = () => openRoom(room);
+        const editBtn = container.querySelector("#tg-open-edit");
+        if (editBtn) editBtn.onclick = () => openRoomEdit(room);
+
         container.querySelector("#tg-mute-toggle").onclick = () => {
           muted = !muted;
           paintInfo();
         };
-        container.querySelector("#tg-share-link").onclick = () => {
-          alert(`Invite ID for ${room.name}: ${room.id}`);
+
+        container.querySelector("#tg-leave-btn").onclick = async () => {
+          if (!confirm(`Leave ${room.name}?`)) return;
+          room.isMember = false;
+          syncRoom(room);
+          renderHome();
         };
+
+        const moreBtn = container.querySelector("#tg-desc-more");
+        if (moreBtn) {
+          moreBtn.onclick = () => {
+            showFullDesc = !showFullDesc;
+            paintInfo();
+          };
+        }
+
+        container.querySelector("#tg-copy-invite").onclick = () => {
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(inviteUrl).catch(() => {});
+          }
+          alert(`Copied invite link: ${inviteUrl}`);
+        };
+
+        container.querySelector("#tg-add-member-row").onclick = async () => {
+          const newMemberName = (prompt("Enter member display name or user ID:") || "").trim();
+          if (!newMemberName) return;
+          room.members.push({
+            id: /^[a-f\d]{24}$/i.test(newMemberName) ? newMemberName : "u_" + Date.now(),
+            name: newMemberName,
+            role: "Member",
+            status: "online"
+          });
+          syncRoom(room);
+          paintInfo();
+        };
+
         container.querySelectorAll("[data-t]").forEach((st) => {
           st.onclick = () => {
             tab = st.dataset.t;
             paintInfo();
           };
         });
+
         container.querySelectorAll(".tg-member-row").forEach((mr) => {
           mr.onclick = () => openUserProfileView(container, mr.dataset.puid, mr.dataset.puname);
         });
       }
 
       paintInfo();
+    }
+
+    function openRoomEdit(room) {
+      let currentName = room.name || "";
+      let currentDesc = room.description || "";
+      let currentPrivate = Boolean(room.isPrivate);
+      let currentAllowChat = room.allowMemberMessages !== false;
+
+      container.innerHTML = `
+        <div class="tg-app">
+          <div class="tg-room-head">
+            <button type="button" class="tg-back-text-btn" id="tg-edit-back">← Back</button>
+            <span style="font-weight:700; font-size:15px;">Edit ${room.type === "channel" ? "Channel" : "Group"}</span>
+            <button type="button" class="tg-send-circle" id="tg-edit-save">Save</button>
+          </div>
+
+          <div class="tg-edit-card">
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
+              <div class="tg-info-avatar ${room.type === "group" ? "grp" : ""}" style="width:64px; height:64px; font-size:24px; margin:0;">
+                ${esc((currentName || "C").charAt(0).toUpperCase())}
+              </div>
+              <div style="flex:1;">
+                <label class="tg-field-label">Name</label>
+                <input type="text" class="tg-field-input" id="tg-edit-name" value="${esc(currentName)}" />
+              </div>
+            </div>
+            <label class="tg-field-label">Description (optional)</label>
+            <textarea rows="4" class="tg-field-textarea" id="tg-edit-desc">${esc(currentDesc)}</textarea>
+          </div>
+
+          <div class="tg-info-list">
+            <div class="tg-info-item" id="tg-toggle-privacy">
+              <span>${room.type === "channel" ? "Channel Type" : "Group Type"}</span>
+              <span style="color:#6ab2f2; font-weight:700;">${currentPrivate ? "Private" : "Public"}</span>
+            </div>
+            ${
+              room.type === "group"
+                ? `<div class="tg-info-item" id="tg-toggle-chat-perm">
+                    <span>Member Chat Permission</span>
+                    <span style="color:${currentAllowChat ? "#5eead4" : "#fda4af"}; font-weight:700;">${currentAllowChat ? "Allowed" : "Admins Only"}</span>
+                  </div>`
+                : ""
+            }
+            <div class="tg-info-item">
+              <span>Administrators</span>
+              <span style="color:#6ab2f2; font-weight:700;">${Math.max((room.admins || []).length, 1)}</span>
+            </div>
+            <div class="tg-info-item">
+              <span>${room.type === "channel" ? "Subscribers" : "Members"}</span>
+              <span style="color:#6ab2f2; font-weight:700;">${Math.max((room.members || []).length, 1)}</span>
+            </div>
+          </div>
+
+          <button type="button" class="tg-danger-btn" id="tg-delete-room">Delete ${room.type === "channel" ? "Channel" : "and leave group"}</button>
+        </div>
+      `;
+
+      container.querySelector("#tg-edit-back").onclick = () => openRoomInfo(room);
+
+      const privRow = container.querySelector("#tg-toggle-privacy");
+      if (privRow) {
+        privRow.onclick = () => {
+          currentPrivate = !currentPrivate;
+          privRow.querySelector("span:last-child").textContent = currentPrivate ? "Private" : "Public";
+        };
+      }
+
+      const chatPermRow = container.querySelector("#tg-toggle-chat-perm");
+      if (chatPermRow) {
+        chatPermRow.onclick = async () => {
+          currentAllowChat = !currentAllowChat;
+          const res = await apiCall(`/api/groups/${encodeURIComponent(room.id)}/settings`, {
+            method: "PATCH",
+            body: JSON.stringify({ allowMemberMessages: currentAllowChat })
+          });
+          if (res?.success && res.group) {
+            room = res.group;
+          } else {
+            room.allowMemberMessages = currentAllowChat;
+          }
+          syncRoom(room);
+          openRoomEdit(room);
+        };
+      }
+
+      container.querySelector("#tg-edit-save").onclick = () => {
+        const nextName = (container.querySelector("#tg-edit-name")?.value || "").trim();
+        const nextDesc = (container.querySelector("#tg-edit-desc")?.value || "").trim();
+        if (!nextName) return;
+        room.name = nextName;
+        room.description = nextDesc;
+        room.isPrivate = currentPrivate;
+        room.allowMemberMessages = currentAllowChat;
+        syncRoom(room);
+        openRoomInfo(room);
+      };
+
+      container.querySelector("#tg-delete-room").onclick = () => {
+        if (!confirm(`Delete "${room.name}" permanently?`)) return;
+        removeRoom(room.id);
+        renderHome();
+      };
     }
 
     renderHome();
