@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "telesupar_ig_channels_v2";
+  const STORAGE_KEY = "telesupar_ig_channels_v4";
   const OFFICIAL_ID = "telesupar_official_channel";
   const EMOJI_CHOICES = ["❤️", "👍", "👎", "🔥", "🥰", "👏", "😁"];
 
@@ -184,13 +184,16 @@
       box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.35);
     }
 
-    .ts-bc-img {
+    .ts-bc-img,
+    .ts-bc-vid {
       width: 100%;
       max-height: 280px;
       object-fit: cover;
       border-radius: 14px;
       margin-bottom: 8px;
       display: block;
+      background: #0b101b;
+      cursor: zoom-in;
     }
 
     .ts-poll-box {
@@ -373,15 +376,32 @@
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.07);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 6px;
-      font-size: 11px;
-      color: #cbd5e1;
       overflow: hidden;
+      position: relative;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-align: center;
+      cursor: zoom-in;
+    }
+
+    .ts-media-tile img,
+    .ts-media-tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .ts-vid-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
     }
 
     .ts-overlay {
@@ -465,6 +485,75 @@
       border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: 16px;
     }
+
+    .ts-create-modal {
+      background: rgba(16, 23, 38, 0.97);
+      backdrop-filter: blur(22px);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px 24px 0 0;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .ts-field-lbl {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin: 12px 0 6px;
+    }
+
+    .ts-sub-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(236, 72, 153, 0.18);
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      font-size: 12px;
+      color: #fbcfe8;
+      margin: 4px 6px 0 0;
+    }
+
+    .ts-fullscreen-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(2, 5, 10, 0.97);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ts-fs-top {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(15, 21, 34, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ts-fs-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .ts-fs-stage img,
+    .ts-fs-stage video {
+      width: 100%;
+      height: 100%;
+      max-width: 100vw;
+      max-height: calc(100vh - 70px);
+      object-fit: contain;
+      border-radius: 10px;
+    }
   `;
 
   if (!document.getElementById(style.id)) {
@@ -519,35 +608,20 @@
       isOfficial: true,
       isPrivate: false,
       muted: false,
-      pinnedPostId: "off_p_1",
-      pinnedText: "Welcome to TELESUPAR Broadcast Channels! Join Official TELESUPAR to explore channels.",
+      pinnedPostId: "",
+      pinnedText: "",
       name: "TELESUPAR",
       logo: "",
       description: "Official TELESUPAR broadcast channel. Join to unlock all channels.",
       ownerId: "telesupar_system",
       admins: ["telesupar_system"],
-      members: [
-        { id: "telesupar_system", name: "TELESUPAR Official", role: "Official", status: "online" }
-      ],
+      members: [],
+      memberCount: 0,
       isOwner: false,
       isAdmin: false,
       isMember: false,
-      lastTime: "Now",
-      posts: [
-        {
-          id: "off_p_1",
-          text: "Welcome to TELESUPAR Broadcast Channels! Join Official TELESUPAR to explore channels.",
-          image: "",
-          silent: false,
-          poll: null,
-          authorName: "TELESUPAR Official",
-          authorId: "telesupar_system",
-          views: 120,
-          reactions: { "❤️": 18, "🔥": 12 },
-          myReaction: "",
-          time: nowStr()
-        }
-      ]
+      lastTime: "",
+      posts: []
     };
   }
 
@@ -629,20 +703,55 @@
     `;
   }
 
-  function pickImageFile(onPicked) {
+  function pickMediaFile(acceptType, onPicked) {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/*";
+    input.accept = acceptType || "image/*,video/*";
     input.onchange = () => {
       const file = input.files && input.files[0];
       if (!file) return;
+      const isVid = file.type.startsWith("video/");
       const reader = new FileReader();
       reader.onload = () => {
-        if (typeof reader.result === "string") onPicked(reader.result);
+        if (typeof reader.result === "string") {
+          onPicked({ url: reader.result, kind: isVid ? "video" : "image" });
+        }
       };
       reader.readAsDataURL(file);
     };
     input.click();
+  }
+
+  function openFullscreenMedia(parentEl, src, kind, title) {
+    if (!src) return;
+    const old = document.getElementById("ts-fs-media-viewer");
+    if (old) old.remove();
+
+    const viewer = document.createElement("div");
+    viewer.id = "ts-fs-media-viewer";
+    viewer.className = "ts-fullscreen-viewer";
+    viewer.innerHTML = `
+      <div class="ts-fs-top">
+        <button type="button" class="ts-back-btn" id="ts-fs-back">← Back</button>
+        <span style="font-size:13px; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(title || "Media")}</span>
+        <button type="button" class="ts-glass-btn" id="ts-fs-close">✕</button>
+      </div>
+      <div class="ts-fs-stage">
+        ${
+          kind === "video"
+            ? `<video src="${esc(src)}" controls autoplay playsinline></video>`
+            : `<img src="${esc(src)}" alt="${esc(title || "Photo")}" />`
+        }
+      </div>
+    `;
+
+    const closeViewer = () => viewer.remove();
+    viewer.querySelector("#ts-fs-back").onclick = closeViewer;
+    viewer.querySelector("#ts-fs-close").onclick = closeViewer;
+    viewer.querySelector(".ts-fs-stage").onclick = (e) => {
+      if (e.target === viewer.querySelector(".ts-fs-stage")) closeViewer();
+    };
+    (parentEl || document.body).appendChild(viewer);
   }
 
   async function fetchMemberPosts(uid, uname) {
@@ -745,9 +854,21 @@
         const muted = localMatch?.muted !== undefined ? Boolean(localMatch.muted) : Boolean(c.muted);
         const pinnedPostId = localMatch?.pinnedPostId || c.pinnedPostId || "";
         const pinnedText = localMatch?.pinnedText || c.pinnedText || "";
+        const posts = (Array.isArray(c.posts) ? c.posts : []).map((p) => {
+          const localPost = Array.isArray(localMatch?.posts)
+            ? localMatch.posts.find((lp) => String(lp.id) === String(p.id))
+            : null;
+          return {
+            ...p,
+            views: Number(p.views) || 0,
+            reactions: typeof p.reactions === "object" && p.reactions ? p.reactions : {},
+            image: p.image || localPost?.image || "",
+            video: p.video || localPost?.video || ""
+          };
+        });
         return String(c.id) === OFFICIAL_ID
-          ? { ...c, type: "channel", logo, muted, pinnedPostId, pinnedText, isMember: officialJoined || c.isMember }
-          : { ...c, type: "channel", logo, muted, pinnedPostId, pinnedText };
+          ? { ...c, type: "channel", logo, muted, pinnedPostId, pinnedText, posts, isMember: officialJoined || c.isMember }
+          : { ...c, type: "channel", logo, muted, pinnedPostId, pinnedText, posts };
       });
       saveData(channels, officialJoined);
     }
@@ -802,6 +923,192 @@
       return Boolean(authorId && authorId === uid);
     }
 
+    function openCreateChannelPopup() {
+      if (!officialJoined) {
+        alert("Please join the official TELESUPAR channel first.");
+        return;
+      }
+
+      const old = document.getElementById("ts-create-channel-popup");
+      if (old) old.remove();
+
+      const uid = meId();
+      const uname = meName();
+      let draftLogo = "";
+      let draftSubs = [{ id: uid, name: uname, role: "Creator", status: "online" }];
+
+      const modalWrap = document.createElement("div");
+      modalWrap.id = "ts-create-channel-popup";
+      modalWrap.className = "ts-overlay";
+
+      function drawPopup() {
+        const nameCur = modalWrap.querySelector("#ts-cr-name")?.value ?? "";
+        const descCur = modalWrap.querySelector("#ts-cr-desc")?.value ?? "";
+
+        modalWrap.innerHTML = `
+          <div class="ts-create-modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <span style="font-size:16px; font-weight:800;">Create Broadcast Channel</span>
+              <button type="button" class="ts-back-btn" id="ts-cr-close">✕</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+              <div id="ts-cr-dp-preview">${renderAvatar(nameCur || "C", draftLogo, 58)}</div>
+              <button type="button" class="ts-glass-btn" id="ts-cr-pick-dp">📷 Choose DP</button>
+              ${
+                draftLogo
+                  ? `<button type="button" class="ts-glass-btn" id="ts-cr-clear-dp" style="color:#f87171;">Remove</button>`
+                  : ""
+              }
+            </div>
+
+            <label class="ts-field-lbl" for="ts-cr-name">Channel Name</label>
+            <input type="text" class="ts-search-input" id="ts-cr-name" value="${esc(nameCur)}" placeholder="Enter channel name" />
+
+            <label class="ts-field-lbl" for="ts-cr-desc">Description</label>
+            <input type="text" class="ts-search-input" id="ts-cr-desc" value="${esc(descCur)}" placeholder="What is this channel about?" />
+
+            <label class="ts-field-lbl" for="ts-cr-sub-input">Add Contact / Subscribers</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" class="ts-composer-input" id="ts-cr-sub-input" placeholder="Name or user ID" />
+              <button type="button" class="ts-glass-btn" id="ts-cr-add-sub">Add</button>
+            </div>
+
+            <div style="margin-top:8px;">
+              ${draftSubs
+                .map(
+                  (s, i) => `
+                <span class="ts-sub-pill">
+                  <span>${esc(s.name)}</span>
+                  ${i > 0 ? `<button type="button" data-rm-sub="${i}" style="background:none;border:none;color:#f87171;cursor:pointer;font-weight:700;">✕</button>` : ""}
+                </span>
+              `
+                )
+                .join("")}
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+              <button type="button" class="ts-glass-btn" id="ts-cr-cancel">Cancel</button>
+              <button type="button" class="ts-ig-btn" id="ts-cr-submit">Create Channel</button>
+            </div>
+          </div>
+        `;
+
+        modalWrap.querySelector("#ts-cr-close").onclick = () => modalWrap.remove();
+        modalWrap.querySelector("#ts-cr-cancel").onclick = () => modalWrap.remove();
+
+        modalWrap.querySelector("#ts-cr-pick-dp").onclick = () => {
+          pickMediaFile("image/*", (picked) => {
+            draftLogo = picked.url;
+            drawPopup();
+          });
+        };
+
+        const clearDp = modalWrap.querySelector("#ts-cr-clear-dp");
+        if (clearDp) {
+          clearDp.onclick = () => {
+            draftLogo = "";
+            drawPopup();
+          };
+        }
+
+        const addSubAction = () => {
+          const inp = modalWrap.querySelector("#ts-cr-sub-input");
+          const val = (inp?.value || "").trim();
+          if (!val) return;
+          draftSubs.push({
+            id: /^[a-f\d]{24}$/i.test(val) ? val : "u_" + Date.now() + "_" + draftSubs.length,
+            name: val,
+            role: "Member",
+            status: "online"
+          });
+          drawPopup();
+        };
+
+        modalWrap.querySelector("#ts-cr-add-sub").onclick = addSubAction;
+        modalWrap.querySelector("#ts-cr-sub-input").onkeydown = (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addSubAction();
+          }
+        };
+
+        modalWrap.querySelectorAll("[data-rm-sub]").forEach((btn) => {
+          btn.onclick = () => {
+            const idx = Number(btn.dataset.rmSub);
+            if (idx > 0) draftSubs.splice(idx, 1);
+            drawPopup();
+          };
+        });
+
+        modalWrap.querySelector("#ts-cr-submit").onclick = async () => {
+          const finalName = (modalWrap.querySelector("#ts-cr-name")?.value || "").trim();
+          const finalDesc = (modalWrap.querySelector("#ts-cr-desc")?.value || "").trim();
+          if (!finalName) {
+            alert("Please enter a channel name.");
+            return;
+          }
+
+          const apiRes = await apiReq("/api/groups", {
+            method: "POST",
+            body: JSON.stringify({
+              name: finalName,
+              description: finalDesc,
+              type: "channel",
+              allowMemberMessages: false,
+              logo: draftLogo,
+              members: draftSubs
+            })
+          });
+
+          if (apiRes?.success && apiRes.group) {
+            upsertChannel({
+              ...apiRes.group,
+              type: "channel",
+              name: apiRes.group.name || finalName,
+              description: apiRes.group.description ?? finalDesc,
+              logo: apiRes.group.logo || draftLogo,
+              members: Array.isArray(apiRes.group.members) && apiRes.group.members.length ? apiRes.group.members : draftSubs,
+              memberCount: Math.max(Number(apiRes.group.memberCount) || 0, draftSubs.length)
+            });
+            modalWrap.remove();
+            renderChannelList();
+            return;
+          }
+
+          upsertChannel({
+            id: "ch_" + Date.now(),
+            type: "channel",
+            isPrivate: false,
+            muted: false,
+            pinnedPostId: "",
+            pinnedText: "",
+            name: finalName,
+            logo: draftLogo,
+            description: finalDesc,
+            ownerId: uid,
+            admins: [uid],
+            members: draftSubs,
+            memberCount: draftSubs.length,
+            isOwner: true,
+            isAdmin: true,
+            isMember: true,
+            lastTime: "",
+            posts: []
+          });
+          modalWrap.remove();
+          renderChannelList();
+        };
+      }
+
+      modalWrap.onclick = (e) => {
+        if (e.target === modalWrap) modalWrap.remove();
+      };
+
+      drawPopup();
+      (container || document.body).appendChild(modalWrap);
+    }
+
     function renderChannelList() {
       setNavHidden(false);
       const q = searchQuery.trim().toLowerCase();
@@ -842,7 +1149,7 @@
               .map((ch) => {
                 const unlocked = isChannelUnlocked(ch);
                 const lastObj = ch.posts?.[ch.posts.length - 1];
-                const lastPost = lastObj?.text || (lastObj?.image ? "📷 Photo broadcast" : "Broadcast channel");
+                const lastPost = lastObj?.text || (lastObj?.video ? "🎬 Video broadcast" : (lastObj?.image ? "📷 Photo broadcast" : "Broadcast channel"));
                 return `
                   <div class="ts-channel-row ${unlocked ? "" : "locked"}" data-open-ch="${esc(ch.id)}">
                     ${renderAvatar(ch.name, ch.logo, 52)}
@@ -896,74 +1203,7 @@
         };
       }
 
-      container.querySelector("#ts-new-channel-btn").onclick = async () => {
-        if (!officialJoined) {
-          alert("Please join the official TELESUPAR channel first.");
-          return;
-        }
-        const name = (prompt("Enter Broadcast Channel Name:") || "").trim();
-        if (!name) return;
-
-        let logoData = "";
-        if (confirm("Set a logo/DP image for this channel?")) {
-          await new Promise((resolve) => {
-            pickImageFile((dataUrl) => {
-              logoData = dataUrl;
-              resolve();
-            });
-          });
-        }
-
-        const uid = meId();
-        const uname = meName();
-        const apiRes = await apiReq("/api/groups", {
-          method: "POST",
-          body: JSON.stringify({ name, type: "channel", allowMemberMessages: false, logo: logoData })
-        });
-
-        if (apiRes?.success && apiRes.group) {
-          upsertChannel({ ...apiRes.group, type: "channel", logo: apiRes.group.logo || logoData });
-          renderChannelList();
-          return;
-        }
-
-        const firstPostId = "p_" + Date.now();
-        const welcomeText = `Welcome to ${name} broadcast channel!`;
-        upsertChannel({
-          id: "ch_" + Date.now(),
-          type: "channel",
-          isPrivate: false,
-          muted: false,
-          pinnedPostId: firstPostId,
-          pinnedText: welcomeText,
-          name,
-          logo: logoData,
-          description: `${name} broadcast channel on TELESUPAR.`,
-          ownerId: uid,
-          admins: [uid],
-          members: [{ id: uid, name: uname, role: "Creator", status: "online" }],
-          isOwner: true,
-          isAdmin: true,
-          isMember: true,
-          lastTime: nowStr(),
-          posts: [
-            {
-              id: firstPostId,
-              text: welcomeText,
-              image: "",
-              silent: false,
-              poll: null,
-              authorName: uname,
-              authorId: uid,
-              views: 1,
-              reactions: { "❤️": 1 },
-              myReaction: "",
-              time: nowStr()
-            }
-          ]
-        });
-        renderChannelList();
-      };
+      container.querySelector("#ts-new-channel-btn").onclick = openCreateChannelPopup;
 
       container.querySelectorAll("[data-open-ch]").forEach((row) => {
         row.onclick = () => {
@@ -1070,15 +1310,16 @@
             }
           } else if (act === "pin" && allowPin) {
             ch.pinnedPostId = post.id;
-            ch.pinnedText = textVal || "Pinned Broadcast";
+            ch.pinnedText = textVal || (post.video ? "🎬 Video broadcast" : "📷 Photo broadcast");
             upsertChannel(ch);
             alert("Pinned broadcast");
           } else if (act === "delete" && allowDelete) {
             if (!confirm("Delete this broadcast?")) return;
             ch.posts = ch.posts.filter((x) => String(x.id) !== String(post.id));
             if (String(ch.pinnedPostId) === String(post.id)) {
-              ch.pinnedPostId = ch.posts[0]?.id || "";
-              ch.pinnedText = ch.posts[0]?.text || "";
+              const nextP = ch.posts[0];
+              ch.pinnedPostId = nextP?.id || "";
+              ch.pinnedText = nextP?.text || (nextP?.video ? "🎬 Video broadcast" : (nextP?.image ? "📷 Photo broadcast" : ""));
             }
             upsertChannel(ch);
           }
@@ -1096,21 +1337,18 @@
       ch.posts = Array.isArray(ch.posts) ? ch.posts : [];
       ch.members = Array.isArray(ch.members) ? ch.members : [];
 
-      let pendingImage = "";
+      let pendingMedia = null;
       let silentMode = false;
 
       const isOfficial = String(ch.id) === OFFICIAL_ID || Boolean(ch.isOfficial);
       const isAdmin = canManageChannel(ch);
       const isMember = isOfficial ? officialJoined : Boolean(ch.isMember || isAdmin);
-      const subCount = Math.max(Number(ch.memberCount ?? ch.members.length), 1);
-
-      const pinnedPost = ch.posts.find((p) => String(p.id) === String(ch.pinnedPostId)) || ch.posts[0] || null;
-      const pinnedText = ch.pinnedText || pinnedPost?.text || (pinnedPost?.image ? "📷 Photo broadcast" : "");
+      const subCount = Number(ch.memberCount ?? ch.members.length);
 
       function drawFeed() {
         const current = getChannelById(ch.id) || ch;
-        const pPost = current.posts.find((p) => String(p.id) === String(current.pinnedPostId)) || current.posts[0] || null;
-        const pText = current.pinnedText || pPost?.text || (pPost?.image ? "📷 Photo broadcast" : "");
+        const pPost = current.posts.find((p) => String(p.id) === String(current.pinnedPostId)) || null;
+        const pText = current.pinnedText || pPost?.text || (pPost?.video ? "🎬 Video broadcast" : (pPost?.image ? "📷 Photo broadcast" : ""));
 
         container.innerHTML = `
           <div class="ts-ig-app">
@@ -1153,11 +1391,13 @@
                       .map((p) => {
                         const rx = typeof p.reactions === "object" && p.reactions ? p.reactions : {};
                         const entries = Object.entries(rx).filter(([, cnt]) => Number(cnt) > 0);
+                        const viewsVal = Number(p.views) || 0;
+
                         let pollHtml = "";
                         if (p.poll && Array.isArray(p.poll.options)) {
                           const totalVotes = p.poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
                           pollHtml = `
-                            <div class="ts-poll-box" data-stop-pop="1">
+                            <div class="ts-poll-box">
                               <div style="font-size:13px; font-weight:700; color:#fbcfe8;">📊 ${esc(p.poll.question)}</div>
                               ${p.poll.options
                                 .map((opt, idx) => {
@@ -1192,7 +1432,8 @@
                                 ${p.silent ? "🔕 Silent • " : ""}Creator
                               </span>
                             </div>
-                            ${p.image ? `<img src="${esc(p.image)}" alt="broadcast" class="ts-bc-img" />` : ""}
+                            ${p.image ? `<img src="${esc(p.image)}" alt="broadcast" class="ts-bc-img" data-fs-kind="image" data-fs-src="${esc(p.image)}" />` : ""}
+                            ${p.video ? `<video src="${esc(p.video)}" playsinline class="ts-bc-vid" data-fs-kind="video" data-fs-src="${esc(p.video)}"></video>` : ""}
                             ${p.text ? `<div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(p.text)}</div>` : ""}
                             ${pollHtml}
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap;">
@@ -1205,7 +1446,9 @@
                                     : `<span style="font-size:11px; color:#64748b;">Tap to react</span>`
                                 }
                               </div>
-                              <span style="font-size:11px; color:#94a3b8;">👁 ${compact((Number(p.views) || 0) + 1)} • ${esc(p.time || "")}</span>
+                              <span style="font-size:11px; color:#94a3b8;">
+                                ${viewsVal > 0 ? `👁 ${compact(viewsVal)}` : "👁 0"}${p.time ? ` • ${esc(p.time)}` : ""}
+                              </span>
                             </div>
                           </div>
                         `;
@@ -1219,15 +1462,15 @@
               isAdmin
                 ? `<div class="ts-composer-wrap">
                     ${
-                      pendingImage
+                      pendingMedia
                         ? `<div class="ts-attach-preview">
-                            <span>📷 Photo attached</span>
-                            <button type="button" id="ts-clear-img" style="background:none;border:none;color:#f87171;font-weight:700;cursor:pointer;">✕ Remove</button>
+                            <span>${pendingMedia.kind === "video" ? "🎬 Video attached" : "📷 Photo attached"}</span>
+                            <button type="button" id="ts-clear-media" style="background:none;border:none;color:#f87171;font-weight:700;cursor:pointer;">✕ Remove</button>
                           </div>`
                         : ""
                     }
                     <div class="ts-composer-bar">
-                      <button type="button" class="ts-glass-btn" id="ts-bc-photo" title="Attach Photo">🖼</button>
+                      <button type="button" class="ts-glass-btn" id="ts-bc-media" title="Attach Photo or Video">🎬</button>
                       <button type="button" class="ts-glass-btn" id="ts-bc-poll" title="Create Poll">📊</button>
                       <button type="button" class="ts-glass-btn" id="ts-bc-silent" title="Silent Mode">${silentMode ? "🔕" : "🔔"}</button>
                       <input type="text" class="ts-composer-input" id="ts-bc-input" placeholder="Broadcast update..." autocomplete="off" />
@@ -1245,6 +1488,13 @@
         container.querySelector("#ts-open-info").onclick = () => openChannelInfo(current);
         const infoBtn = container.querySelector("#ts-info-ch-btn");
         if (infoBtn) infoBtn.onclick = () => openChannelInfo(current);
+
+        container.querySelectorAll("[data-fs-src]").forEach((mediaEl) => {
+          mediaEl.onclick = (e) => {
+            e.stopPropagation();
+            openFullscreenMedia(container, mediaEl.dataset.fsSrc, mediaEl.dataset.fsKind, current.name);
+          };
+        });
 
         const pinBar = container.querySelector("#ts-pin-jump-bar");
         if (pinBar) {
@@ -1304,20 +1554,20 @@
         });
 
         if (isAdmin) {
-          const photoBtn = container.querySelector("#ts-bc-photo");
-          if (photoBtn) {
-            photoBtn.onclick = () => {
-              pickImageFile((dataUrl) => {
-                pendingImage = dataUrl;
+          const mediaBtn = container.querySelector("#ts-bc-media");
+          if (mediaBtn) {
+            mediaBtn.onclick = () => {
+              pickMediaFile("image/*,video/*", (picked) => {
+                pendingMedia = picked;
                 drawFeed();
               });
             };
           }
 
-          const clearImgBtn = container.querySelector("#ts-clear-img");
-          if (clearImgBtn) {
-            clearImgBtn.onclick = () => {
-              pendingImage = "";
+          const clearMediaBtn = container.querySelector("#ts-clear-media");
+          if (clearMediaBtn) {
+            clearMediaBtn.onclick = () => {
+              pendingMedia = null;
               drawFeed();
             };
           }
@@ -1345,6 +1595,7 @@
                 id: "p_" + Date.now(),
                 text: "",
                 image: "",
+                video: "",
                 silent: silentMode,
                 poll: {
                   question,
@@ -1353,7 +1604,7 @@
                 },
                 authorName: meName(),
                 authorId: meId(),
-                views: 1,
+                views: 0,
                 reactions: {},
                 myReaction: "",
                 time: nowStr()
@@ -1367,14 +1618,17 @@
           const publish = async () => {
             const inp = container.querySelector("#ts-bc-input");
             const txt = (inp?.value || "").trim();
-            if (!txt && !pendingImage) return;
+            if (!txt && !pendingMedia) return;
+
+            const imgUrl = pendingMedia?.kind === "image" ? pendingMedia.url : "";
+            const vidUrl = pendingMedia?.kind === "video" ? pendingMedia.url : "";
 
             const res = await apiReq(`/api/groups/${encodeURIComponent(current.id)}/posts`, {
               method: "POST",
-              body: JSON.stringify({ text: txt, image: pendingImage, silent: silentMode })
+              body: JSON.stringify({ text: txt, image: imgUrl, video: vidUrl, silent: silentMode })
             });
             if (res?.success && res.group) {
-              pendingImage = "";
+              pendingMedia = null;
               upsertChannel({ ...res.group, type: "channel" });
               openChannelFeed(getChannelById(current.id) || current);
               return;
@@ -1383,17 +1637,18 @@
             current.posts.push({
               id: "p_" + Date.now(),
               text: txt,
-              image: pendingImage,
+              image: imgUrl,
+              video: vidUrl,
               silent: silentMode,
               poll: null,
               authorName: meName(),
               authorId: meId(),
-              views: 1,
+              views: 0,
               reactions: {},
               myReaction: "",
               time: nowStr()
             });
-            pendingImage = "";
+            pendingMedia = null;
             current.lastTime = nowStr();
             upsertChannel(current);
             drawFeed();
@@ -1420,14 +1675,56 @@
       const isOfficial = String(ch.id) === OFFICIAL_ID || Boolean(ch.isOfficial);
       const isAdmin = canManageChannel(ch);
       const isMember = isOfficial ? officialJoined : Boolean(ch.isMember || isAdmin);
-      const members = ch.members.length
-        ? ch.members
-        : [{ id: ch.ownerId || meId(), name: meName(), role: "Creator", status: "online" }];
-      const adminsCount = Math.max((ch.admins || []).length, 1);
+      const members = Array.isArray(ch.members) ? ch.members : [];
+      const adminsList = Array.isArray(ch.admins) ? ch.admins : [];
 
       function drawInfo() {
         const current = getChannelById(ch.id) || ch;
         const posts = Array.isArray(current.posts) ? current.posts : [];
+        const mediaItems = posts.filter((p) => Boolean(p.image || p.video));
+        const linkItems = posts.filter((p) => /https?:\/\/\S+/i.test(String(p.text || "")));
+        const pollItems = posts.filter((p) => Boolean(p.poll));
+
+        function renderTabContent() {
+          if (activeTab === "media") {
+            if (!mediaItems.length) {
+              return `<div style="text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px;">No photos or videos yet</div>`;
+            }
+            return `
+              <div class="ts-media-grid">
+                ${mediaItems
+                  .map((p) =>
+                    p.video
+                      ? `<div class="ts-media-tile" data-fs-kind="video" data-fs-src="${esc(p.video)}"><video src="${esc(p.video)}" muted playsinline></video><span class="ts-vid-badge">VIDEO</span></div>`
+                      : `<div class="ts-media-tile" data-fs-kind="image" data-fs-src="${esc(p.image)}"><img src="${esc(p.image)}" alt="media" /></div>`
+                  )
+                  .join("")}
+              </div>
+            `;
+          }
+          if (activeTab === "links") {
+            if (!linkItems.length) {
+              return `<div style="text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px;">No links yet</div>`;
+            }
+            return `
+              <div class="ts-group-box">
+                ${linkItems
+                  .map((p) => `<div class="ts-row-btn" style="font-size:12px; color:#f472b6;">${esc((p.text || "").match(/https?:\/\/\S+/i)?.[0] || p.text)}</div>`)
+                  .join("")}
+              </div>
+            `;
+          }
+          if (!pollItems.length) {
+            return `<div style="text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px;">No polls yet</div>`;
+          }
+          return `
+            <div class="ts-group-box">
+              ${pollItems
+                .map((p) => `<div class="ts-row-btn" style="font-size:13px;">📊 ${esc(p.poll.question)}</div>`)
+                .join("")}
+            </div>
+          `;
+        }
 
         container.innerHTML = `
           <div class="ts-ig-app">
@@ -1461,29 +1758,32 @@
               </div>
             </div>
 
-            <div class="ts-group-box">
-              <div class="ts-row-btn" id="ts-open-subs">
-                <span>👥 Subscribers</span>
-                <span style="color:#f472b6; font-weight:700;">${members.length} ›</span>
-              </div>
-              <div class="ts-row-btn" id="ts-open-admins">
-                <span>🛡 Administrators</span>
-                <span style="color:#f472b6; font-weight:700;">${adminsCount} ›</span>
-              </div>
-              <div class="ts-row-btn" id="ts-open-edit-row">
-                <span>⚙ Channel Settings</span>
-                <span style="color:#94a3b8; font-size:12px;">›</span>
-              </div>
-              ${
-                !isOfficial && !isAdmin
-                  ? `<div class="ts-row-btn" id="ts-toggle-join-row">
-                      <span style="color:${isMember ? "#f87171" : "#5eead4"}; font-weight:700;">
-                        ${isMember ? "🚪 Leave Channel" : "＋ Join Channel"}
-                      </span>
-                    </div>`
-                  : ""
-              }
-            </div>
+            ${
+              isAdmin
+                ? `<div class="ts-group-box">
+                    <div class="ts-row-btn" id="ts-open-subs">
+                      <span>👥 Subscribers</span>
+                      <span style="color:#f472b6; font-weight:700;">${members.length} ›</span>
+                    </div>
+                    <div class="ts-row-btn" id="ts-open-admins">
+                      <span>🛡 Administrators</span>
+                      <span style="color:#f472b6; font-weight:700;">${adminsList.length} ›</span>
+                    </div>
+                    <div class="ts-row-btn" id="ts-open-edit-row">
+                      <span>⚙ Channel Settings</span>
+                      <span style="color:#94a3b8; font-size:12px;">›</span>
+                    </div>
+                  </div>`
+                : (!isOfficial
+                    ? `<div class="ts-group-box">
+                        <div class="ts-row-btn" id="ts-toggle-join-row">
+                          <span style="color:${isMember ? "#f87171" : "#5eead4"}; font-weight:700;">
+                            ${isMember ? "🚪 Leave Channel" : "＋ Join Channel"}
+                          </span>
+                        </div>
+                      </div>`
+                    : "")
+            }
 
             <div class="ts-chip-row">
               <button type="button" class="ts-chip ${activeTab === "media" ? "active" : ""}" data-t="media">Media</button>
@@ -1491,34 +1791,22 @@
               <button type="button" class="ts-chip ${activeTab === "polls" ? "active" : ""}" data-t="polls">Polls</button>
             </div>
 
-            ${
-              activeTab === "media"
-                ? `<div class="ts-media-grid">
-                    ${
-                      posts.length
-                        ? posts.map((p) => `
-                            <div class="ts-media-tile">
-                              ${p.image ? `<img src="${esc(p.image)}" alt="media" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />` : esc((p.text || p.poll?.question || "").slice(0, 60))}
-                            </div>
-                          `).join("")
-                        : `<div style="grid-column:1/-1; text-align:center; padding:28px; color:#94a3b8; font-size:13px;">No broadcasts yet</div>`
-                    }
-                  </div>`
-                : `<div style="text-align:center; padding:32px 16px; color:#94a3b8; font-size:13px;">No ${esc(activeTab)} yet.</div>`
-            }
+            ${renderTabContent()}
           </div>
         `;
 
         container.querySelector("#ts-info-back").onclick = () => openChannelFeed(current);
         container.querySelector("#ts-info-feed").onclick = () => openChannelFeed(current);
 
+        container.querySelectorAll(".ts-media-tile[data-fs-src]").forEach((tile) => {
+          tile.onclick = () => openFullscreenMedia(container, tile.dataset.fsSrc, tile.dataset.fsKind, current.name);
+        });
+
         const editBtn = container.querySelector("#ts-edit-btn");
         if (editBtn) editBtn.onclick = () => openEditChannel(current);
 
-        container.querySelector("#ts-open-edit-row").onclick = () => {
-          if (isAdmin) openEditChannel(current);
-          else alert("Only channel owner/admins can edit channel settings.");
-        };
+        const editRow = container.querySelector("#ts-open-edit-row");
+        if (editRow) editRow.onclick = () => openEditChannel(current);
 
         container.querySelector("#ts-info-mute").onclick = () => {
           current.muted = !current.muted;
@@ -1546,15 +1834,18 @@
             alert("Only channel owner/admin can change logo.");
             return;
           }
-          pickImageFile((dataUrl) => {
-            current.logo = dataUrl;
+          pickMediaFile("image/*", (picked) => {
+            current.logo = picked.url;
             upsertChannel(current);
             drawInfo();
           });
         };
 
-        container.querySelector("#ts-open-subs").onclick = () => openSubscribersScreen(current, members);
-        container.querySelector("#ts-open-admins").onclick = () => openSubscribersScreen(current, members);
+        const subsRow = container.querySelector("#ts-open-subs");
+        if (subsRow) subsRow.onclick = () => openSubscribersScreen(current, members, false);
+
+        const adminsRow = container.querySelector("#ts-open-admins");
+        if (adminsRow) adminsRow.onclick = () => openSubscribersScreen(current, members, true);
 
         container.querySelectorAll("[data-t]").forEach((b) => {
           b.onclick = () => {
@@ -1569,6 +1860,10 @@
 
     function openEditChannel(chInput) {
       const ch = getChannelById(chInput.id) || chInput;
+      if (!canManageChannel(ch)) {
+        alert("Only channel owner/admins can edit this channel.");
+        return;
+      }
       setNavHidden(true);
 
       let nameVal = ch.name || "";
@@ -1605,7 +1900,7 @@
             </div>
             <div class="ts-row-btn" id="ts-edit-subs-link">
               <span>Subscribers</span>
-              <span style="color:#f472b6; font-weight:700;">${Math.max((ch.members || []).length, 1)} ›</span>
+              <span style="color:#f472b6; font-weight:700;">${(ch.members || []).length} ›</span>
             </div>
           </div>
 
@@ -1620,9 +1915,9 @@
       container.querySelector("#ts-edit-back").onclick = () => openChannelInfo(getChannelById(ch.id) || ch);
 
       container.querySelector("#ts-pick-logo-row").onclick = () => {
-        pickImageFile((dataUrl) => {
-          logoVal = dataUrl;
-          ch.logo = dataUrl;
+        pickMediaFile("image/*", (picked) => {
+          logoVal = picked.url;
+          ch.logo = picked.url;
           upsertChannel(ch);
           const box = container.querySelector("#ts-edit-logo-box");
           if (box) box.innerHTML = renderAvatar(nameVal, logoVal, 58);
@@ -1641,7 +1936,7 @@
         openEditChannel(ch);
       };
 
-      container.querySelector("#ts-edit-subs-link").onclick = () => openSubscribersScreen(ch, ch.members || []);
+      container.querySelector("#ts-edit-subs-link").onclick = () => openSubscribersScreen(ch, ch.members || [], false);
 
       container.querySelector("#ts-edit-save").onclick = () => {
         const nextName = (container.querySelector("#ts-edit-name")?.value || "").trim();
@@ -1662,20 +1957,31 @@
       };
     }
 
-    function openSubscribersScreen(chInput, initialMembers) {
+    function openSubscribersScreen(chInput, initialMembers, onlyAdmins = false) {
       const ch = getChannelById(chInput.id) || chInput;
+      if (!canManageChannel(ch)) {
+        alert("Only channel owner/admins can view subscribers and administrators.");
+        return;
+      }
       setNavHidden(true);
 
       let subSearch = "";
-      let list = initialMembers.length
-        ? initialMembers
-        : [{ id: ch.ownerId || meId(), name: meName(), role: "Creator", status: "online" }];
+      let list = Array.isArray(initialMembers) ? initialMembers : [];
+      if (onlyAdmins) {
+        const adminIds = new Set((ch.admins || []).map(String));
+        if (ch.ownerId) adminIds.add(String(ch.ownerId));
+        list = list.filter((m, idx) => {
+          const id = typeof m === "object" ? String(m.id || "") : String(m || "");
+          const role = typeof m === "object" ? String(m.role || "").toLowerCase() : "";
+          return adminIds.has(id) || role.includes("admin") || role.includes("creator") || role.includes("owner") || idx === 0;
+        });
+      }
 
       function paintSubs() {
         const q = subSearch.trim().toLowerCase();
         const visible = list.filter((m, idx) => {
-          const obj = typeof m === "object" ? m : { id: m, name: `Subscriber ${idx + 1}`, role: "Member" };
-          const label = obj.name || obj.displayName || obj.username || `Subscriber ${idx + 1}`;
+          const obj = typeof m === "object" ? m : { id: m, name: `User ${idx + 1}`, role: "Member" };
+          const label = obj.name || obj.displayName || obj.username || `User ${idx + 1}`;
           return !q || label.toLowerCase().includes(q);
         });
 
@@ -1683,44 +1989,52 @@
           <div class="ts-ig-app">
             <div class="ts-ig-top">
               <button type="button" class="ts-back-btn" id="ts-subs-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">Subscribers</span>
+              <span style="font-weight:700; font-size:15px;">${onlyAdmins ? "Administrators" : "Subscribers"}</span>
               <span style="font-size:12px; color:#f472b6; font-weight:700;">${list.length}</span>
             </div>
 
             <div class="ts-search-box">
-              <input type="text" class="ts-search-input" id="ts-subs-search" placeholder="Search subscribers..." value="${esc(subSearch)}" />
+              <input type="text" class="ts-search-input" id="ts-subs-search" placeholder="Search..." value="${esc(subSearch)}" />
             </div>
 
-            <div class="ts-group-box">
-              <div class="ts-row-btn" id="ts-add-sub-btn">
-                <span style="color:#f472b6; font-weight:700;">＋ Add subscriber</span>
-              </div>
-              <div class="ts-row-btn" id="ts-copy-sub-link">
-                <span style="color:#f472b6; font-weight:700;">🔗 Invite via Link</span>
-              </div>
-            </div>
-
-            <div class="ts-group-box">
-              ${visible
-                .map((m, i) => {
-                  const obj = typeof m === "object"
-                    ? m
-                    : { id: m, name: `Subscriber ${i + 1}`, role: i === 0 ? "Creator" : "Member", status: "online" };
-                  const label = obj.name || obj.displayName || obj.username || `Subscriber ${i + 1}`;
-                  return `
-                    <div class="ts-row-btn" data-sub-uid="${esc(obj.id || "")}" data-sub-name="${esc(label)}">
-                      <div style="display:flex; align-items:center; gap:12px;">
-                        ${renderAvatar(label, obj.avatar || "", 44)}
-                        <div>
-                          <div style="font-weight:700; font-size:14px;">${esc(label)}</div>
-                          <div style="font-size:11px; color:#94a3b8;">${esc(obj.status || "subscriber")}</div>
-                        </div>
-                      </div>
-                      <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(obj.role || (i === 0 ? "Creator" : "Member"))}</span>
+            ${
+              !onlyAdmins
+                ? `<div class="ts-group-box">
+                    <div class="ts-row-btn" id="ts-add-sub-btn">
+                      <span style="color:#f472b6; font-weight:700;">＋ Add subscriber</span>
                     </div>
-                  `;
-                })
-                .join("")}
+                    <div class="ts-row-btn" id="ts-copy-sub-link">
+                      <span style="color:#f472b6; font-weight:700;">🔗 Invite via Link</span>
+                    </div>
+                  </div>`
+                : ""
+            }
+
+            <div class="ts-group-box">
+              ${
+                visible.length
+                  ? visible
+                      .map((m, i) => {
+                        const obj = typeof m === "object"
+                          ? m
+                          : { id: m, name: `User ${i + 1}`, role: i === 0 ? "Creator" : "Member", status: "online" };
+                        const label = obj.name || obj.displayName || obj.username || `User ${i + 1}`;
+                        return `
+                          <div class="ts-row-btn" data-sub-uid="${esc(obj.id || "")}" data-sub-name="${esc(label)}">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                              ${renderAvatar(label, obj.avatar || "", 44)}
+                              <div>
+                                <div style="font-weight:700; font-size:14px;">${esc(label)}</div>
+                                <div style="font-size:11px; color:#94a3b8;">${esc(obj.status || "subscriber")}</div>
+                              </div>
+                            </div>
+                            <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(obj.role || (onlyAdmins ? "Admin" : "Member"))}</span>
+                          </div>
+                        `;
+                      })
+                      .join("")
+                  : `<div style="text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px;">No users found.</div>`
+              }
             </div>
           </div>
         `;
@@ -1741,25 +2055,35 @@
           };
         }
 
-        container.querySelector("#ts-add-sub-btn").onclick = () => {
-          const val = (prompt("Enter subscriber name or user ID:") || "").trim();
-          if (!val) return;
-          list.push({
-            id: /^[a-f\d]{24}$/i.test(val) ? val : "u_" + Date.now(),
-            name: val,
-            role: "Member",
-            status: "online"
-          });
-          ch.members = list;
-          upsertChannel(ch);
-          paintSubs();
-        };
+        const addSubBtn = container.querySelector("#ts-add-sub-btn");
+        if (addSubBtn) {
+          addSubBtn.onclick = () => {
+            const val = (prompt("Enter subscriber name or user ID:") || "").trim();
+            if (!val) return;
+            const added = {
+              id: /^[a-f\d]{24}$/i.test(val) ? val : "u_" + Date.now(),
+              name: val,
+              role: "Member",
+              status: "online"
+            };
+            const allMembers = Array.isArray(ch.members) ? ch.members : [];
+            allMembers.push(added);
+            ch.members = allMembers;
+            ch.memberCount = allMembers.length;
+            upsertChannel(ch);
+            list = allMembers;
+            paintSubs();
+          };
+        }
 
-        container.querySelector("#ts-copy-sub-link").onclick = async () => {
-          const link = telesuparInviteUrl(ch);
-          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link).catch(() => {});
-          alert("Invite Link copied: " + link);
-        };
+        const copyLinkBtn = container.querySelector("#ts-copy-sub-link");
+        if (copyLinkBtn) {
+          copyLinkBtn.onclick = async () => {
+            const link = telesuparInviteUrl(ch);
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link).catch(() => {});
+            alert("Invite Link copied: " + link);
+          };
+        }
 
         container.querySelectorAll("[data-sub-uid]").forEach((row) => {
           row.onclick = () => openUserProfileWithPosts(container, row.dataset.subUid, row.dataset.subName);
