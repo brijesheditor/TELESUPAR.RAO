@@ -1,423 +1,3 @@
-(function () {
-  "use strict";
-
-  const STORAGE_KEY = "telesupar_glass_v7";
-  const OFFICIAL_ID = "telesupar_official_channel";
-
-  const style = document.createElement("style");
-  style.id = "telesupar-glass-style";
-  style.textContent = `
-    body.ts-room-immersive nav,
-    body.ts-room-immersive footer,
-    body.ts-room-immersive .bottom-nav,
-    body.ts-room-immersive .navbar,
-    body.ts-room-immersive .nav-bar,
-    body.ts-room-immersive [data-bottom-nav],
-    body.ts-room-immersive [data-navbar] {
-      display: none !important;
-    }
-
-    .ts-glass-app {
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.16), transparent 42%),
-        radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.16), transparent 45%),
-        #090e16;
-      color: #f8fafc;
-      padding-bottom: 88px;
-      font-family: inherit;
-    }
-
-    .ts-glass-top {
-      position: sticky;
-      top: 0;
-      z-index: 25;
-      background: rgba(17, 25, 39, 0.82);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .ts-back-btn {
-      background: rgba(255, 255, 255, 0.09);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      color: #f8fafc;
-      border-radius: 12px;
-      height: 34px;
-      padding: 0 12px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .ts-btn-primary {
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
-      border: none;
-      color: #fff;
-      border-radius: 999px;
-      height: 34px;
-      padding: 0 14px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .ts-btn-glass {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #e2e8f0;
-      border-radius: 999px;
-      height: 34px;
-      padding: 0 12px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .ts-glass-card {
-      background: rgba(23, 34, 52, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 16px;
-    }
-
-    .ts-search-box {
-      padding: 8px 14px 10px;
-      background: rgba(15, 23, 36, 0.65);
-      backdrop-filter: blur(12px);
-    }
-
-    .ts-search-input {
-      width: 100%;
-      box-sizing: border-box;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 18px;
-      padding: 9px 14px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .ts-chip-row {
-      display: flex;
-      gap: 8px;
-      padding: 4px 14px 12px;
-      overflow-x: auto;
-    }
-
-    .ts-chip {
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      color: #94a3b8;
-      border-radius: 999px;
-      padding: 6px 13px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .ts-chip.active {
-      background: rgba(56, 189, 248, 0.22);
-      border-color: rgba(56, 189, 248, 0.5);
-      color: #fff;
-    }
-
-    .ts-gate-banner {
-      margin: 10px 14px;
-      padding: 14px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(139, 92, 246, 0.22));
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(125, 211, 252, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .ts-chat-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 8px 14px;
-      padding: 11px 12px;
-      border-radius: 16px;
-      background: rgba(23, 34, 52, 0.68);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      cursor: pointer;
-    }
-
-    .ts-chat-item.locked {
-      opacity: 0.52;
-    }
-
-    .ts-logo-img {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      font-size: 18px;
-      color: #fff;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .ts-pinned-bar {
-      margin: 8px 14px 0;
-      padding: 9px 12px;
-      border-radius: 12px;
-      background: rgba(23, 34, 52, 0.78);
-      backdrop-filter: blur(14px);
-      border-left: 3px solid #38bdf8;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
-      border-right: 1px solid rgba(255, 255, 255, 0.07);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-      font-size: 12px;
-    }
-
-    .ts-bubble-card {
-      margin: 10px 14px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: rgba(24, 37, 58, 0.78);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      cursor: pointer;
-    }
-
-    .ts-bubble-card.own {
-      background: rgba(37, 99, 235, 0.34);
-      border-color: rgba(96, 165, 250, 0.35);
-      margin-left: 44px;
-    }
-
-    .ts-react-chip {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #f1f5f9;
-      border-radius: 999px;
-      padding: 3px 9px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .ts-react-chip.active {
-      background: rgba(56, 189, 248, 0.25);
-      border-color: #38bdf8;
-      color: #fff;
-      font-weight: 700;
-    }
-
-    .ts-composer-bar {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 30;
-      background: rgba(15, 23, 36, 0.88);
-      backdrop-filter: blur(18px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 8px 12px;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .ts-composer-input {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-      padding: 9px 14px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .ts-hero-glass {
-      margin: 12px 14px;
-      padding: 20px 16px;
-      border-radius: 22px;
-      background: rgba(23, 34, 52, 0.74);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.11);
-      text-align: center;
-    }
-
-    .ts-quick-4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .ts-quick-box {
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 14px;
-      padding: 10px 4px;
-      color: #e2e8f0;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .ts-group-box {
-      margin: 10px 14px;
-      border-radius: 18px;
-      overflow: hidden;
-      background: rgba(23, 34, 52, 0.72);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-    }
-
-    .ts-row-btn {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 13px 15px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .ts-row-btn:last-child {
-      border-bottom: none;
-    }
-
-    .ts-media-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      padding: 10px 14px;
-    }
-
-    .ts-media-tile {
-      aspect-ratio: 1 / 1;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 8px;
-      font-size: 11px;
-      color: #cbd5e1;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .ts-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 65;
-      background: rgba(4, 8, 15, 0.72);
-      backdrop-filter: blur(8px);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-
-    .ts-emoji-strip {
-      margin: 0 12px 10px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(25, 39, 61, 0.92);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .ts-emoji-pick {
-      background: none;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 50%;
-    }
-
-    .ts-action-sheet {
-      margin: 0 12px 14px;
-      border-radius: 20px;
-      background: rgba(20, 31, 49, 0.94);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      overflow: hidden;
-    }
-
-    .ts-sheet-row {
-      width: 100%;
-      background: none;
-      border: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      color: #f8fafc;
-      padding: 13px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: left;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .ts-sheet-row:last-child {
-      border-bottom: none;
-    }
-
-    .ts-sheet-row.danger {
-      color: #f87171;
-    }
-
-    .ts-profile-modal {
-      background: rgba(17, 26, 42, 0.96);
-      backdrop-filter: blur(22px);
-      border-top: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 24px 24px 0 0;
-      max-height: 85vh;
-      overflow-y: auto;
-      padding: 16px;
-    }
-  `;
-
-  if (!document.getElementById(style.id)) {
-    document.head.appendChild(style);
-  }
-
-  const EMOJI_CHOICES = ["❤️", "👍", "👎", "🔥", "🥰", "👏", "😁"];
-
-  function setNavHidden(hidden) {
-    if (hidden) document.body.classList.add("ts-room-immersive");
-    else document.body.classList.remove("ts-room-immersive");
-  }
-
-  function esc(v) {
-    return String(v ?? "").replace(/[&<>"']/g, (c) => ({
-      "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
@@ -451,51 +31,14 @@
     return `${origin}/?room=${encodeURIComponent(room.id)}`;
   }
 
-  function createOfficialChannel() {
-    return {
-      id: OFFICIAL_ID,
-      type: "channel",
-      isOfficial: true,
-      isPrivate: false,
-      name: "TELESUPAR",
-      logo: "",
-      description: "Official TELESUPAR broadcast channel. Join to unlock all channels & groups.",
-      ownerId: "telesupar_system",
-      admins: ["telesupar_system"],
-      members: [
-        { id: "telesupar_system", name: "TELESUPAR Official", role: "Official", status: "online" }
-      ],
-      isOwner: false,
-      isAdmin: false,
-      isMember: false,
-      allowMemberMessages: false,
-      lastTime: "Now",
-      posts: [
-        {
-          id: "off_p_1",
-          text: "Welcome to TELESUPAR! Tap Join below to enter all Channels & Groups.",
-          authorName: "TELESUPAR Official",
-          authorId: "telesupar_system",
-          views: 120,
-          reactions: { "❤️": 18, "🔥": 12 },
-          myReaction: "",
-          time: nowStr()
-        }
-      ],
-      messages: []
-    };
-  }
-
   function loadData() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
       const list = Array.isArray(raw?.rooms) ? raw.rooms : [];
       const officialJoined = Boolean(raw?.officialJoined);
-      const hasOfficial = list.some((r) => String(r.id) === OFFICIAL_ID);
-      const merged = hasOfficial ? list : [createOfficialChannel(), ...list];
-      return { rooms: merged, officialJoined };
+      return { rooms: list, officialJoined };
     } catch (_) {
-      return { rooms: [createOfficialChannel()], officialJoined: false };
+      return { rooms: [], officialJoined: false };
     }
   }
 
@@ -503,6 +46,40 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ rooms, officialJoined: Boolean(officialJoined) }));
     } catch (_) {}
+  }
+
+  function ensureStandaloneContext() {
+    if (!window.TS_ROOM_PAGE || typeof window.api === "function") return true;
+    const token = localStorage.getItem("ts_token");
+    if (!token) {
+      window.location.replace("index.html");
+      return false;
+    }
+    let savedUser = {};
+    try { savedUser = JSON.parse(localStorage.getItem("ts_user") || "{}"); } catch (_) {}
+    window.API_BASE = window.API_BASE || "https://telesupar.onrender.com";
+    window.AppState = window.AppState || {};
+    window.AppState.token = token;
+    window.AppState.user = window.AppState.user || savedUser;
+    window.api = async function (url, opts = {}) {
+      const options = { ...opts };
+      options.headers = {
+        ...(options.headers || {}),
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      };
+      const response = await fetch(window.API_BASE + url, options);
+      let data = {};
+      try { data = await response.json(); } catch (_) {}
+      if (response.status === 401) {
+        localStorage.removeItem("ts_token");
+        window.location.replace("index.html");
+        throw new Error("Session expired. Please login again.");
+      }
+      if (!response.ok) throw new Error(data.message || "API request failed");
+      return data;
+    };
+    return true;
   }
 
   async function apiReq(url, opts) {
@@ -558,11 +135,6 @@
         }
       }
     }
-    if (!collected.length && Array.isArray(window.AppState?.posts)) {
-      for (const p of window.AppState.posts) {
-        if (uid && String(p.userId || p.authorId || "") === String(uid)) collected.push(p);
-      }
-    }
     return collected;
   }
 
@@ -589,7 +161,7 @@
       <div class="ts-profile-modal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
           <span style="font-weight:700; font-size:15px;">Profile & Posts</span>
-          <button type="button" id="ts-prof-back" class="ts-back-btn">← Back</button>
+          <button type="button" id="ts-prof-back" class="ts-back-btn">Back</button>
         </div>
 
         <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
@@ -630,23 +202,18 @@
   }
 
   window.renderGroups = async function (container) {
-    if (!container) return;
+    if (!container || !ensureStandaloneContext()) return;
 
+    const pageType = window.TS_ROOM_PAGE === "channel" ? "channel" : "group";
+    const pageLabel = pageType === "channel" ? "Channels" : "Groups";
     let { rooms, officialJoined } = loadData();
-    let activeFilter = "all";
     let searchQuery = "";
 
     const apiList = await apiReq("/api/groups");
     if (apiList?.success && Array.isArray(apiList.groups)) {
-      const merged = apiList.groups.some((r) => String(r.id) === OFFICIAL_ID)
-        ? apiList.groups
-        : [createOfficialChannel(), ...apiList.groups];
-      rooms = merged.map((r) => {
+      rooms = apiList.groups.map((r) => {
         const localMatch = rooms.find((x) => String(x.id) === String(r.id));
-        const logo = r.logo || localMatch?.logo || "";
-        return String(r.id) === OFFICIAL_ID
-          ? { ...r, logo, isMember: officialJoined || r.isMember }
-          : { ...r, logo };
+        return { ...r, logo: r.logo || localMatch?.logo || "" };
       });
       saveData(rooms, officialJoined);
     }
@@ -681,7 +248,8 @@
 
     function isRoomUnlocked(room) {
       if (String(room.id) === OFFICIAL_ID || room.isOfficial) return true;
-      return Boolean(officialJoined);
+      const officialExists = rooms.some((r) => String(r.id) === OFFICIAL_ID || r.isOfficial);
+      return !officialExists || Boolean(officialJoined);
     }
 
     function canManageRoom(room) {
@@ -711,34 +279,30 @@
     function renderHome() {
       setNavHidden(false);
       const q = searchQuery.trim().toLowerCase();
-      const chCount = rooms.filter((r) => r.type === "channel").length;
-      const grpCount = rooms.filter((r) => r.type === "group").length;
-
-      const filtered = rooms.filter((r) => {
-        const okType = activeFilter === "all" || r.type === activeFilter;
-        const okQ = !q || r.name.toLowerCase().includes(q) || lastPreview(r).toLowerCase().includes(q);
-        return okType && okQ;
+      const pageRooms = rooms.filter((r) => r.type === pageType);
+      const filtered = pageRooms.filter((r) => {
+        const name = String(r.name || "").toLowerCase();
+        const preview = String(lastPreview(r) || "").toLowerCase();
+        return !q || name.includes(q) || preview.includes(q);
       });
 
       container.innerHTML = `
         <div class="ts-glass-app">
           <div class="ts-glass-top">
-            <div style="font-size:18px; font-weight:800;">TELESUPAR</div>
-            <button type="button" class="ts-btn-primary" id="ts-new-room-btn">＋ New</button>
+            <div><div style="font-size:11px;color:#38bdf8;font-weight:800;letter-spacing:1.4px;">TELESUPAR</div><div style="font-size:19px;font-weight:800;">${pageLabel}</div></div>
+            <button type="button" class="ts-btn-primary" id="ts-new-room-btn">＋ Create ${pageType === "channel" ? "Channel" : "Group"}</button>
           </div>
 
           <div class="ts-search-box">
-            <input type="text" class="ts-search-input" id="ts-home-search" placeholder="Search Channels & Groups" value="${esc(searchQuery)}" />
+            <input type="text" class="ts-search-input" id="ts-home-search" placeholder="Search ${pageLabel}" value="${esc(searchQuery)}" />
           </div>
 
           <div class="ts-chip-row">
-            <button type="button" class="ts-chip ${activeFilter === "all" ? "active" : ""}" data-f="all">All (${rooms.length})</button>
-            <button type="button" class="ts-chip ${activeFilter === "channel" ? "active" : ""}" data-f="channel">Channels (${chCount})</button>
-            <button type="button" class="ts-chip ${activeFilter === "group" ? "active" : ""}" data-f="group">Groups (${grpCount})</button>
+            <span class="ts-chip active">${pageLabel} (${pageRooms.length})</span>
           </div>
 
           ${
-            !officialJoined
+            !officialJoined && rooms.some((r) => String(r.id) === OFFICIAL_ID)
               ? `<div class="ts-gate-banner">
                   <div>
                     <div style="font-weight:800; font-size:14px;">Official TELESUPAR Channel</div>
@@ -782,21 +346,17 @@
 
       const joinOffBtn = container.querySelector("#ts-join-official-btn");
       if (joinOffBtn) {
-        joinOffBtn.onclick = () => {
+        joinOffBtn.onclick = async () => {
+          const result = await apiReq(`/api/groups/${encodeURIComponent(OFFICIAL_ID)}/join`, { method: "POST" });
+          if (!result?.success) {
+            alert(result?.message || "Could not join the official channel.");
+            return;
+          }
           officialJoined = true;
-          const off = rooms.find((x) => String(x.id) === OFFICIAL_ID);
-          if (off) off.isMember = true;
           persist();
           renderHome();
         };
       }
-
-      container.querySelectorAll("[data-f]").forEach((b) => {
-        b.onclick = () => {
-          activeFilter = b.dataset.f;
-          renderHome();
-        };
-      });
 
       const sInp = container.querySelector("#ts-home-search");
       if (sInp) {
@@ -812,14 +372,15 @@
       }
 
       container.querySelector("#ts-new-room-btn").onclick = async () => {
-        if (!officialJoined) {
+        const officialExists = rooms.some((r) => String(r.id) === OFFICIAL_ID || r.isOfficial);
+        if (officialExists && !officialJoined) {
           alert("Please join the official TELESUPAR channel first.");
           return;
         }
-        const name = (prompt("Enter Channel or Group Name:") || "").trim();
+        const type = pageType;
+        const isCh = type === "channel";
+        const name = (prompt(`Enter ${isCh ? "Channel" : "Group"} Name:`) || "").trim();
         if (!name) return;
-        const isCh = confirm("OK = Channel (Only Admin/Owner broadcasts)\nCancel = Group (Members chat when allowed)");
-        const type = isCh ? "channel" : "group";
         const allowMemberMessages = !isCh
           ? confirm("Allow all group members to message?\nOK = Everyone can chat, Cancel = Admins only")
           : false;
@@ -834,65 +395,17 @@
           });
         }
 
-        const uid = meId();
-        const uname = meName();
         const apiRes = await apiReq("/api/groups", {
           method: "POST",
           body: JSON.stringify({ name, type, allowMemberMessages, logo: logoData })
         });
 
-        if (apiRes?.success && apiRes.group) {
-          upsertRoom({ ...apiRes.group, logo: apiRes.group.logo || logoData });
-          renderHome();
+        if (!apiRes?.success || !apiRes.group) {
+          alert(apiRes?.message || "Could not create room. Please try again.");
           return;
         }
 
-        const newRoom = {
-          id: "room_" + Date.now(),
-          type,
-          isPrivate: false,
-          name,
-          logo: logoData,
-          description: isCh
-            ? `Official ${name} broadcast channel on TELESUPAR.`
-            : `${name} group on TELESUPAR.`,
-          ownerId: uid,
-          admins: [uid],
-          members: [{ id: uid, name: uname, role: "Owner", status: "online" }],
-          isOwner: true,
-          isAdmin: true,
-          isMember: true,
-          allowMemberMessages,
-          lastTime: nowStr(),
-          posts: isCh
-            ? [
-                {
-                  id: "p_" + Date.now(),
-                  text: `${name} channel is live on TELESUPAR.`,
-                  authorName: uname,
-                  authorId: uid,
-                  views: 1,
-                  reactions: { "👍": 1 },
-                  myReaction: "",
-                  time: nowStr()
-                }
-              ]
-            : [],
-          messages: !isCh
-            ? [
-                {
-                  id: "m_" + Date.now(),
-                  sender: uname,
-                  senderId: uid,
-                  isAdminSender: true,
-                  text: `Welcome to ${name}!`,
-                  own: true,
-                  time: nowStr()
-                }
-              ]
-            : []
-        };
-        upsertRoom(newRoom);
+        upsertRoom({ ...apiRes.group, logo: apiRes.group.logo || logoData });
         renderHome();
       };
 
@@ -909,14 +422,14 @@
       });
     }
 
-    function openMessagePopup(roomId, itemId, isChannelPost) {
+        function openMessagePopup(roomId, itemId, isChannelPost) {
       const room = getRoomById(roomId);
       if (!room) return;
+
       const collection = isChannelPost ? room.posts : room.messages;
       const item = (collection || []).find((x) => String(x.id) === String(itemId));
       if (!item) return;
 
-      item.reactions = typeof item.reactions === "object" && item.reactions ? item.reactions : {};
       const allowDelete = canDeleteItem(room, item);
       const allowPin = canManageRoom(room);
 
@@ -926,11 +439,12 @@
       const pop = document.createElement("div");
       pop.id = "ts-msg-popup";
       pop.className = "ts-overlay";
+
       pop.innerHTML = `
         <div class="ts-emoji-strip">
-          ${EMOJI_CHOICES
-            .map((em) => `<button type="button" class="ts-emoji-pick" data-emoji="${esc(em)}">${esc(em)}</button>`)
-            .join("")}
+          ${EMOJI_CHOICES.map((em) =>
+            `<button type="button" class="ts-emoji-pick" data-emoji="${esc(em)}">${esc(em)}</button>`
+          ).join("")}
         </div>
 
         <div class="ts-action-sheet">
@@ -950,33 +464,48 @@
 
       pop.querySelectorAll("[data-emoji]").forEach((eb) => {
         eb.onclick = async () => {
-          const emoji = eb.dataset.emoji;
-          if (item.myReaction === emoji) {
-            item.reactions[emoji] = Math.max(0, (Number(item.reactions[emoji]) || 1) - 1);
-            item.myReaction = "";
-          } else {
-            if (item.myReaction) {
-              item.reactions[item.myReaction] = Math.max(0, (Number(item.reactions[item.myReaction]) || 1) - 1);
-            }
-            item.reactions[emoji] = (Number(item.reactions[emoji]) || 0) + 1;
-            item.myReaction = emoji;
+          if (!isChannelPost) {
+            alert("Message reactions are not available on the current server API.");
+            return;
           }
-          upsertRoom(room);
-          if (isChannelPost) {
-            await apiReq(`/api/groups/${encodeURIComponent(room.id)}/posts/${encodeURIComponent(item.id)}/react`, {
+
+          const emoji = eb.dataset.emoji;
+          const result = await apiReq(
+            `/api/groups/${encodeURIComponent(room.id)}/posts/${encodeURIComponent(item.id)}/react`,
+            {
               method: "POST",
               body: JSON.stringify({ reaction: emoji })
-            });
+            }
+          );
+
+          if (!result?.success) {
+            alert(result?.message || "Reaction could not be saved.");
+            return;
           }
+
+          if (result.group) upsertRoom(result.group);
+          else if (result.post) {
+            const index = room.posts.findIndex((p) => String(p.id) === String(item.id));
+            if (index >= 0) room.posts[index] = result.post;
+            upsertRoom(room);
+          } else {
+            const refreshed = await apiReq("/api/groups");
+            if (refreshed?.success && Array.isArray(refreshed.groups)) {
+              const updatedRoom = refreshed.groups.find((g) => String(g.id) === String(room.id));
+              if (updatedRoom) upsertRoom(updatedRoom);
+            }
+          }
+
           pop.remove();
-          openRoomChat(room);
+          openRoomChat(getRoomById(room.id) || room);
         };
       });
 
       pop.querySelectorAll("[data-act]").forEach((ab) => {
-        ab.onclick = () => {
+        ab.onclick = async () => {
           const act = ab.dataset.act;
           const textVal = item.text || "";
+
           if (act === "reply") {
             const inp = container.querySelector("#ts-room-input");
             if (inp) {
@@ -984,35 +513,64 @@
               inp.focus();
             }
           } else if (act === "copy") {
-            if (navigator.clipboard?.writeText) navigator.clipboard.writeText(textVal).catch(() => {});
-            alert("Copied to clipboard");
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(textVal).catch(() => {});
+              alert("Copied to clipboard");
+            } else {
+              alert("Clipboard is not available in this browser.");
+            }
           } else if (act === "link") {
             const url = telesuparInviteUrl(room);
-            if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).catch(() => {});
-            alert("Copied TELESUPAR link: " + url);
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(url).catch(() => {});
+              alert("TELESUPAR link copied.");
+            } else {
+              alert(url);
+            }
           } else if (act === "save") {
             const blob = new Blob([textVal], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
+            a.href = url;
             a.download = `${room.name || "telesupar"}_message.txt`;
             a.click();
+            URL.revokeObjectURL(url);
           } else if (act === "share") {
-            if (navigator.share) navigator.share({ title: room.name, text: textVal }).catch(() => {});
-            else alert(textVal);
-          } else if (act === "pin" && allowPin) {
-            room.pinnedText = textVal;
-            upsertRoom(room);
-            alert("Pinned message");
-          } else if (act === "delete" && allowDelete) {
-            if (isChannelPost) {
-              room.posts = (room.posts || []).filter((x) => String(x.id) !== String(item.id));
+            if (navigator.share) {
+              await navigator.share({ title: room.name, text: textVal }).catch(() => {});
+            } else if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(textVal).catch(() => {});
+              alert("Message copied. You can share it now.");
             } else {
-              room.messages = (room.messages || []).filter((x) => String(x.id) !== String(item.id));
+              alert(textVal);
             }
-            upsertRoom(room);
+          } else if (act === "pin" && allowPin) {
+            const result = await apiReq(
+              `/api/groups/${encodeURIComponent(room.id)}/settings`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({ pinnedText: textVal })
+              }
+            );
+
+            if (!result?.success) {
+              alert(result?.message || "Could not pin this message.");
+              return;
+            }
+
+            if (result.group) upsertRoom(result.group);
+          } else if (act === "delete" && allowDelete) {
+            if (!confirm("Delete this message?")) return;
+
+            alert("Message deletion is not connected to the server API yet.");
+            return;
           }
+
           pop.remove();
-          openRoomChat(room);
+
+          if (act === "pin") {
+            openRoomChat(getRoomById(room.id) || room);
+          }
         };
       });
 
@@ -1021,20 +579,30 @@
 
     function openRoomChat(roomInput) {
       const room = getRoomById(roomInput.id) || roomInput;
+
       setNavHidden(true);
+
       room.posts = Array.isArray(room.posts) ? room.posts : [];
       room.messages = Array.isArray(room.messages) ? room.messages : [];
       room.members = Array.isArray(room.members) ? room.members : [];
 
-      const isOfficial = String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
+      const isOfficial =
+        String(room.id) === OFFICIAL_ID || Boolean(room.isOfficial);
+
       const isAdmin = canManageRoom(room);
-      const isMember = isOfficial ? officialJoined : Boolean(room.isMember || isAdmin);
+      const isMember = isOfficial
+        ? officialJoined
+        : Boolean(room.isMember || isAdmin);
+
       const allowMemberMessages = room.allowMemberMessages !== false;
-      const memberCount = Math.max(room.members.length, 1);
+
+      const memberCount = Number(room.memberCount ?? room.members.length);
 
       const pinnedText =
         room.pinnedText ||
-        (room.type === "channel" ? room.posts[0]?.text : room.messages[0]?.text) ||
+        (room.type === "channel"
+          ? room.posts[0]?.text
+          : room.messages[0]?.text) ||
         "";
 
       if (room.type === "channel") {
@@ -1042,15 +610,23 @@
           <div class="ts-glass-app">
             <div class="ts-glass-top">
               <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
-                <button type="button" class="ts-back-btn" id="ts-chat-back">← Back</button>
+                <button type="button" class="ts-back-btn" id="ts-chat-back">Back</button>
+
                 <div id="ts-open-ch-info" style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
                   ${renderAvatar(room.name, room.logo, 38, "ch")}
+
                   <div style="min-width:0;">
-                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(room.name)} ${isOfficial ? "✓" : ""}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${memberCount} subscribers</div>
+                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${esc(room.name)} ${isOfficial ? "✓" : ""}
+                    </div>
+
+                    <div style="font-size:11px; color:#94a3b8;">
+                      ${Number.isFinite(memberCount) ? compact(memberCount) : "—"} subscribers
+                    </div>
                   </div>
                 </div>
               </div>
+
               ${
                 !isMember
                   ? `<button type="button" class="ts-btn-primary" id="ts-join-room-btn">Join</button>`
@@ -1062,7 +638,9 @@
               pinnedText
                 ? `<div class="ts-pinned-bar">
                     <div style="color:#38bdf8; font-weight:700;">Pinned Message</div>
-                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(pinnedText)}</div>
+                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${esc(pinnedText)}
+                    </div>
                   </div>`
                 : ""
             }
@@ -1070,43 +648,75 @@
             <div style="padding-bottom:76px;">
               ${
                 room.posts.length
-                  ? room.posts
-                      .map((p) => {
-                        const rx = typeof p.reactions === "object" && p.reactions ? p.reactions : {};
-                        const entries = Object.entries(rx).filter(([, cnt]) => Number(cnt) > 0);
-                        return `
-                    <div class="ts-bubble-card" data-post-id="${esc(p.id)}">
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <span class="ts-author-click" data-uid="${esc(p.authorId || "")}" data-uname="${esc(p.authorName || room.name)}" style="font-size:12px; font-weight:700; color:#38bdf8; cursor:pointer;">
-                          ${esc(p.authorName || room.name)}
-                        </span>
-                        <span style="font-size:10px; color:#5eead4; font-weight:700;">Admin</span>
-                      </div>
-                      <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(p.text)}</div>
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
-                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                          ${
-                            entries.length
-                              ? entries
-                                  .map(([em, cnt]) => `<span class="ts-react-chip ${p.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>`)
-                                  .join("")
-                              : `<span style="font-size:11px; color:#64748b;">Tap post to react</span>`
-                          }
+                  ? room.posts.map((p) => {
+                      const rx = typeof p.reactions === "object" && p.reactions
+                        ? p.reactions
+                        : {};
+
+                      const entries = Object.entries(rx).filter(
+                        ([, count]) => Number(count) > 0
+                      );
+
+                      return `
+                        <div class="ts-bubble-card" data-post-id="${esc(p.id)}">
+                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                            <span
+                              class="ts-author-click"
+                              data-uid="${esc(p.authorId || "")}"
+                              data-uname="${esc(p.authorName || room.name)}"
+                              style="font-size:12px; font-weight:700; color:#38bdf8; cursor:pointer;"
+                            >
+                              ${esc(p.authorName || room.name)}
+                            </span>
+
+                            <span style="font-size:10px; color:#5eead4; font-weight:700;">
+                              Admin
+                            </span>
+                          </div>
+
+                          <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">
+                            ${esc(p.text)}
+                          </div>
+
+                          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                              ${
+                                entries.length
+                                  ? entries.map(([emoji, count]) =>
+                                      `<span class="ts-react-chip ${p.myReaction === emoji ? "active" : ""}">
+                                        ${esc(emoji)} ${Number(count)}
+                                      </span>`
+                                    ).join("")
+                                  : `<span style="font-size:11px; color:#64748b;">Tap post to react</span>`
+                              }
+                            </div>
+
+                            <span style="font-size:11px; color:#94a3b8;">
+                              ${p.views !== undefined && p.views !== null
+                                ? `👁 ${compact(p.views)}`
+                                : ""}
+                              ${p.time ? ` • ${esc(p.time)}` : ""}
+                            </span>
+                          </div>
                         </div>
-                        <span style="font-size:11px; color:#94a3b8;">👁 ${compact((Number(p.views) || 0) + 1)} • ${esc(p.time || "")}</span>
-                      </div>
-                    </div>
-                  `;
-                      })
-                      .join("")
-                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8;">No broadcasts yet.</div>`
+                      `;
+                    }).join("")
+                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8;">
+                      No broadcasts yet.
+                    </div>`
               }
             </div>
 
             ${
               isAdmin
                 ? `<div class="ts-composer-bar">
-                    <input type="text" class="ts-composer-input" id="ts-room-input" placeholder="Broadcast message..." autocomplete="off" />
+                    <input
+                      type="text"
+                      class="ts-composer-input"
+                      id="ts-room-input"
+                      placeholder="Broadcast message..."
+                      autocomplete="off"
+                    />
                     <button type="button" class="ts-btn-primary" id="ts-room-send">Post</button>
                   </div>`
                 : `<div class="ts-composer-bar" style="justify-content:center; color:#94a3b8; font-size:12px;">
@@ -1117,65 +727,82 @@
         `;
 
         container.querySelector("#ts-chat-back").onclick = renderHome;
-        container.querySelector("#ts-open-ch-info").onclick = () => openGlassInfo(room);
-        const iBtn = container.querySelector("#ts-ch-info-btn");
-        if (iBtn) iBtn.onclick = () => openGlassInfo(room);
 
-        const jBtn = container.querySelector("#ts-join-room-btn");
-        if (jBtn) {
-          jBtn.onclick = async () => {
+        container.querySelector("#ts-open-ch-info").onclick = () => {
+          openGlassInfo(room);
+        };
+
+        const infoBtn = container.querySelector("#ts-ch-info-btn");
+        if (infoBtn) {
+          infoBtn.onclick = () => openGlassInfo(room);
+        }
+
+        const joinBtn = container.querySelector("#ts-join-room-btn");
+
+        if (joinBtn) {
+          joinBtn.onclick = async () => {
+            const result = await apiReq(
+              `/api/groups/${encodeURIComponent(room.id)}/join`,
+              { method: "POST" }
+            );
+
+            if (!result?.success) {
+              alert(result?.message || "Could not join this channel.");
+              return;
+            }
+
+            if (result.group) upsertRoom(result.group);
+
             if (isOfficial) officialJoined = true;
-            room.isMember = true;
-            upsertRoom(room);
-            await apiReq(`/api/groups/${encodeURIComponent(room.id)}/join`, { method: "POST" });
-            openRoomChat(room);
+
+            persist();
+            openRoomChat(getRoomById(room.id) || room);
           };
         }
 
         container.querySelectorAll(".ts-author-click").forEach((el) => {
           el.onclick = (e) => {
             e.stopPropagation();
-            openUserProfileWithPosts(container, el.dataset.uid, el.dataset.uname);
+            openUserProfileWithPosts(
+              container,
+              el.dataset.uid,
+              el.dataset.uname
+            );
           };
         });
 
         container.querySelectorAll("[data-post-id]").forEach((card) => {
-          card.onclick = () => openMessagePopup(room.id, card.dataset.postId, true);
+          card.onclick = () => {
+            openMessagePopup(room.id, card.dataset.postId, true);
+          };
         });
 
         if (isAdmin) {
           const publish = async () => {
-            const inp = container.querySelector("#ts-room-input");
-            const txt = (inp?.value || "").trim();
-            if (!txt) return;
-            const res = await apiReq(`/api/groups/${encodeURIComponent(room.id)}/posts`, {
-              method: "POST",
-              body: JSON.stringify({ text: txt })
-            });
-            if (res && res.success === false) {
-              alert(res.message || "Only admins can broadcast");
+            const input = container.querySelector("#ts-room-input");
+            const textValue = (input?.value || "").trim();
+
+            if (!textValue) return;
+
+            const result = await apiReq(
+              `/api/groups/${encodeURIComponent(room.id)}/posts`,
+              {
+                method: "POST",
+                body: JSON.stringify({ text: textValue })
+              }
+            );
+
+            if (!result?.success || !result.group) {
+              alert(result?.message || "Post could not be published.");
               return;
             }
-            if (res?.success && res.group) {
-              upsertRoom(res.group);
-              openRoomChat(getRoomById(room.id));
-              return;
-            }
-            room.posts.push({
-              id: "p_" + Date.now(),
-              text: txt,
-              authorName: meName(),
-              authorId: meId(),
-              views: 1,
-              reactions: {},
-              myReaction: "",
-              time: nowStr()
-            });
-            room.lastTime = nowStr();
-            upsertRoom(room);
-            openRoomChat(room);
+
+            upsertRoom(result.group);
+            openRoomChat(getRoomById(room.id) || result.group);
           };
+
           container.querySelector("#ts-room-send").onclick = publish;
+
           container.querySelector("#ts-room-input").onkeydown = (e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -1185,23 +812,36 @@
         }
       } else {
         const canChat = isAdmin || (isMember && allowMemberMessages);
+
         container.innerHTML = `
           <div class="ts-glass-app">
             <div class="ts-glass-top">
               <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
-                <button type="button" class="ts-back-btn" id="ts-chat-back">← Back</button>
+                <button type="button" class="ts-back-btn" id="ts-chat-back">Back</button>
+
                 <div id="ts-open-grp-info" style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
                   ${renderAvatar(room.name, room.logo, 38)}
+
                   <div style="min-width:0;">
-                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(room.name)}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${memberCount} members</div>
+                    <div style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${esc(room.name)}
+                    </div>
+
+                    <div style="font-size:11px; color:#94a3b8;">
+                      ${Number.isFinite(memberCount) ? compact(memberCount) : "—"} members
+                    </div>
                   </div>
                 </div>
               </div>
+
               ${
                 isAdmin
-                  ? `<button type="button" class="ts-btn-glass" id="ts-perm-btn">${allowMemberMessages ? "🔓 Open" : "🔒 Admin"}</button>`
-                  : (!isMember ? `<button type="button" class="ts-btn-primary" id="ts-join-grp">Join</button>` : "")
+                  ? `<button type="button" class="ts-btn-glass" id="ts-perm-btn">
+                      ${allowMemberMessages ? "🔓 Open" : "🔒 Admin"}
+                    </button>`
+                  : (!isMember
+                      ? `<button type="button" class="ts-btn-primary" id="ts-join-grp">Join</button>`
+                      : "")
               }
             </div>
 
@@ -1209,7 +849,9 @@
               pinnedText
                 ? `<div class="ts-pinned-bar">
                     <div style="color:#38bdf8; font-weight:700;">Pinned Message</div>
-                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(pinnedText)}</div>
+                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${esc(pinnedText)}
+                    </div>
                   </div>`
                 : ""
             }
@@ -1217,38 +859,70 @@
             <div style="padding-bottom:76px;">
               ${
                 room.messages.length
-                  ? room.messages
-                      .map((m) => {
-                        const senderLabel = m.sender || "Member";
-                        const rx = typeof m.reactions === "object" && m.reactions ? m.reactions : {};
-                        const entries = Object.entries(rx).filter(([, cnt]) => Number(cnt) > 0);
-                        return `
-                    <div class="ts-bubble-card ${m.own ? "own" : ""}" data-msg-id="${esc(m.id)}">
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                        <span class="ts-author-click" data-uid="${esc(m.senderId || "")}" data-uname="${esc(senderLabel)}" style="font-size:12px; font-weight:700; color:#38bdf8; cursor:pointer;">
-                          ${esc(senderLabel)}
-                        </span>
-                        ${m.isAdminSender ? `<span style="font-size:10px; color:#5eead4; font-weight:700;">Admin</span>` : ""}
-                      </div>
-                      <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">${esc(m.text)}</div>
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px;">
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                          ${entries.map(([em, cnt]) => `<span class="ts-react-chip ${m.myReaction === em ? "active" : ""}">${esc(em)} ${Number(cnt)}</span>`).join("")}
+                  ? room.messages.map((m) => {
+                      const senderLabel = m.sender || "Member";
+
+                      const rx = typeof m.reactions === "object" && m.reactions
+                        ? m.reactions
+                        : {};
+
+                      const entries = Object.entries(rx).filter(
+                        ([, count]) => Number(count) > 0
+                      );
+
+                      return `
+                        <div class="ts-bubble-card ${m.own ? "own" : ""}" data-msg-id="${esc(m.id)}">
+                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <span
+                              class="ts-author-click"
+                              data-uid="${esc(m.senderId || "")}"
+                              data-uname="${esc(senderLabel)}"
+                              style="font-size:12px; font-weight:700; color:#38bdf8; cursor:pointer;"
+                            >
+                              ${esc(senderLabel)}
+                            </span>
+
+                            ${m.isAdminSender
+                              ? `<span style="font-size:10px; color:#5eead4; font-weight:700;">Admin</span>`
+                              : ""}
+                          </div>
+
+                          <div style="font-size:14px; line-height:1.45; white-space:pre-wrap;">
+                            ${esc(m.text)}
+                          </div>
+
+                          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px;">
+                            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                              ${entries.map(([emoji, count]) =>
+                                `<span class="ts-react-chip ${m.myReaction === emoji ? "active" : ""}">
+                                  ${esc(emoji)} ${Number(count)}
+                                </span>`
+                              ).join("")}
+                            </div>
+
+                            <span style="font-size:10px; color:#cbd5e1;">
+                              ${esc(m.time || "")}
+                            </span>
+                          </div>
                         </div>
-                        <span style="font-size:10px; color:#cbd5e1;">${esc(m.time || "")}</span>
-                      </div>
-                    </div>
-                  `;
-                      })
-                      .join("")
-                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8;">No group messages yet.</div>`
+                      `;
+                    }).join("")
+                  : `<div style="text-align:center; padding:44px 16px; color:#94a3b8;">
+                      No group messages yet.
+                    </div>`
               }
             </div>
 
             ${
               canChat
                 ? `<div class="ts-composer-bar">
-                    <input type="text" class="ts-composer-input" id="ts-room-input" placeholder="Message" autocomplete="off" />
+                    <input
+                      type="text"
+                      class="ts-composer-input"
+                      id="ts-room-input"
+                      placeholder="Message"
+                      autocomplete="off"
+                    />
                     <button type="button" class="ts-btn-primary" id="ts-room-send">Send</button>
                   </div>`
                 : `<div class="ts-composer-bar" style="justify-content:center; color:#94a3b8; font-size:12px;">
@@ -1259,81 +933,98 @@
         `;
 
         container.querySelector("#ts-chat-back").onclick = renderHome;
-        container.querySelector("#ts-open-grp-info").onclick = () => openGlassInfo(room);
+
+        container.querySelector("#ts-open-grp-info").onclick = () => {
+          openGlassInfo(room);
+        };
 
         container.querySelectorAll(".ts-author-click").forEach((el) => {
           el.onclick = (e) => {
             e.stopPropagation();
-            openUserProfileWithPosts(container, el.dataset.uid, el.dataset.uname);
+            openUserProfileWithPosts(
+              container,
+              el.dataset.uid,
+              el.dataset.uname
+            );
           };
         });
 
         container.querySelectorAll("[data-msg-id]").forEach((card) => {
-          card.onclick = () => openMessagePopup(room.id, card.dataset.msgId, false);
+          card.onclick = () => {
+            openMessagePopup(room.id, card.dataset.msgId, false);
+          };
         });
 
         const permBtn = container.querySelector("#ts-perm-btn");
+
         if (permBtn) {
           permBtn.onclick = async () => {
             const next = !allowMemberMessages;
-            const res = await apiReq(`/api/groups/${encodeURIComponent(room.id)}/settings`, {
-              method: "PATCH",
-              body: JSON.stringify({ allowMemberMessages: next })
-            });
-            if (res?.success && res.group) upsertRoom(res.group);
-            else {
-              room.allowMemberMessages = next;
-              upsertRoom(room);
+
+            const result = await apiReq(
+              `/api/groups/${encodeURIComponent(room.id)}/settings`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({ allowMemberMessages: next })
+              }
+            );
+
+            if (!result?.success || !result.group) {
+              alert(result?.message || "Could not update group settings.");
+              return;
             }
-            openRoomChat(getRoomById(room.id));
+
+            upsertRoom(result.group);
+            openRoomChat(getRoomById(room.id) || result.group);
           };
         }
 
         const joinBtn = container.querySelector("#ts-join-grp");
+
         if (joinBtn) {
           joinBtn.onclick = async () => {
-            room.isMember = true;
-            upsertRoom(room);
-            await apiReq(`/api/groups/${encodeURIComponent(room.id)}/join`, { method: "POST" });
-            openRoomChat(room);
+            const result = await apiReq(
+              `/api/groups/${encodeURIComponent(room.id)}/join`,
+              { method: "POST" }
+            );
+
+            if (!result?.success) {
+              alert(result?.message || "Could not join this group.");
+              return;
+            }
+
+            if (result.group) upsertRoom(result.group);
+
+            openRoomChat(getRoomById(room.id) || room);
           };
         }
 
         if (canChat) {
           const send = async () => {
-            const inp = container.querySelector("#ts-room-input");
-            const txt = (inp?.value || "").trim();
-            if (!txt) return;
-            const uname = meName();
-            const res = await apiReq(`/api/groups/${encodeURIComponent(room.id)}/messages`, {
-              method: "POST",
-              body: JSON.stringify({ sender: uname, text: txt })
-            });
-            if (res && res.success === false) {
-              alert(res.message || "Permission denied");
+            const input = container.querySelector("#ts-room-input");
+            const textValue = (input?.value || "").trim();
+
+            if (!textValue) return;
+
+            const result = await apiReq(
+              `/api/groups/${encodeURIComponent(room.id)}/messages`,
+              {
+                method: "POST",
+                body: JSON.stringify({ sender: meName(), text: textValue })
+              }
+            );
+
+            if (!result?.success || !result.group) {
+              alert(result?.message || "Message could not be sent.");
               return;
             }
-            if (res?.success && res.group) {
-              upsertRoom(res.group);
-              openRoomChat(getRoomById(room.id));
-              return;
-            }
-            room.messages.push({
-              id: "m_" + Date.now(),
-              sender: uname,
-              senderId: meId(),
-              isAdminSender: isAdmin,
-              text: txt,
-              own: true,
-              reactions: {},
-              myReaction: "",
-              time: nowStr()
-            });
-            room.lastTime = nowStr();
-            upsertRoom(room);
-            openRoomChat(room);
+
+            upsertRoom(result.group);
+            openRoomChat(getRoomById(room.id) || result.group);
           };
+
           container.querySelector("#ts-room-send").onclick = send;
+
           container.querySelector("#ts-room-input").onkeydown = (e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -1344,44 +1035,76 @@
       }
     }
 
-    function openGlassInfo(roomInput) {
+        function openGlassInfo(roomInput) {
       const room = getRoomById(roomInput.id) || roomInput;
       setNavHidden(true);
+
       let activeTab = "media";
       let muted = false;
 
       const isAdmin = canManageRoom(room);
-      const members = room.members.length
-        ? room.members
-        : [{ id: room.ownerId || meId(), name: meName(), role: "Owner", status: "online" }];
-      const adminsCount = Math.max((room.admins || []).length, 1);
+
+      const members = Array.isArray(room.members) ? room.members : [];
+      const adminsCount = Array.isArray(room.admins)
+        ? room.admins.length
+        : null;
 
       function drawInfo() {
         const current = getRoomById(room.id) || room;
-        const mediaSource = current.type === "channel" ? current.posts : current.messages;
+
+        const mediaSource = current.type === "channel"
+          ? (Array.isArray(current.posts) ? current.posts : [])
+          : (Array.isArray(current.messages) ? current.messages : []);
+
+        const memberCount = Number.isFinite(Number(current.memberCount))
+          ? compact(current.memberCount)
+          : (Array.isArray(current.members) ? current.members.length : "—");
+
+        const adminCount = Array.isArray(current.admins)
+          ? current.admins.length
+          : "—";
 
         container.innerHTML = `
           <div class="ts-glass-app">
             <div class="ts-glass-top">
-              <button type="button" class="ts-back-btn" id="ts-info-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">${current.type === "channel" ? "Channel Info" : "Group Info"}</span>
+              <button type="button" class="ts-back-btn" id="ts-info-back">Back</button>
+
+              <span style="font-weight:700; font-size:15px;">
+                ${current.type === "channel" ? "Channel Info" : "Group Info"}
+              </span>
+
               <div style="display:flex; gap:6px;">
-                ${isAdmin ? `<button type="button" class="ts-btn-glass" id="ts-edit-pencil-btn">✎ Edit</button>` : `<span style="width:42px;"></span>`}
+                ${
+                  isAdmin
+                    ? `<button type="button" class="ts-btn-glass" id="ts-edit-pencil-btn">✎ Edit</button>`
+                    : `<span style="width:42px;"></span>`
+                }
               </div>
             </div>
 
             <div class="ts-hero-glass">
               <div style="display:flex; justify-content:center; margin-bottom:10px;">
-                ${renderAvatar(current.name, current.logo, 82, current.type === "channel" ? "ch" : "")}
+                ${renderAvatar(
+                  current.name,
+                  current.logo,
+                  82,
+                  current.type === "channel" ? "ch" : ""
+                )}
               </div>
-              <div style="font-size:20px; font-weight:800;">${esc(current.name)}</div>
+
+              <div style="font-size:20px; font-weight:800;">
+                ${esc(current.name)}
+              </div>
+
               <div style="font-size:12px; color:#94a3b8; margin-top:3px;">
-                ${current.isPrivate ? "private" : "public"} ${current.type}
+                ${current.isPrivate ? "Private" : "Public"} ${current.type}
               </div>
 
               <div class="ts-quick-4">
                 <button type="button" class="ts-quick-box" id="ts-info-chat">💬 Chat</button>
-                <button type="button" class="ts-quick-box" id="ts-info-mute">${muted ? "🔔 Unmute" : "🔕 Mute"}</button>
+                <button type="button" class="ts-quick-box" id="ts-info-mute">
+                  ${muted ? "🔔 Unmute" : "🔕 Mute"}
+                </button>
                 <button type="button" class="ts-quick-box" id="ts-info-link">🔗 Invite</button>
                 <button type="button" class="ts-quick-box" id="ts-info-logo">🖼 Logo</button>
               </div>
@@ -1390,12 +1113,14 @@
             <div class="ts-group-box">
               <div class="ts-row-btn" id="ts-open-subscribers">
                 <span>👥 ${current.type === "channel" ? "Subscribers" : "Members"}</span>
-                <span style="color:#38bdf8; font-weight:700;">${members.length} ›</span>
+                <span style="color:#38bdf8; font-weight:700;">${memberCount} ›</span>
               </div>
+
               <div class="ts-row-btn" id="ts-open-admins">
                 <span>🛡 Administrators</span>
-                <span style="color:#38bdf8; font-weight:700;">${adminsCount} ›</span>
+                <span style="color:#38bdf8; font-weight:700;">${adminCount} ›</span>
               </div>
+
               <div class="ts-row-btn" id="ts-open-settings-row">
                 <span>⚙ ${current.type === "channel" ? "Channel Settings" : "Group Settings"}</span>
                 <span style="color:#94a3b8; font-size:12px;">›</span>
@@ -1414,28 +1139,46 @@
                 ? `<div class="ts-media-grid">
                     ${
                       mediaSource.length
-                        ? mediaSource
-                            .map((item) => `<div class="ts-media-tile">${esc((item.text || "").slice(0, 60))}</div>`)
-                            .join("")
-                        : `<div style="grid-column:1/-1; text-align:center; padding:28px; color:#94a3b8; font-size:13px;">No media yet</div>`
+                        ? mediaSource.map((item) => `
+                            <div class="ts-media-tile">
+                              ${esc((item.text || "").slice(0, 60))}
+                            </div>
+                          `).join("")
+                        : `<div style="grid-column:1/-1; text-align:center; padding:28px; color:#94a3b8; font-size:13px;">
+                            No media yet
+                          </div>`
                     }
                   </div>`
-                : `<div style="text-align:center; padding:32px 16px; color:#94a3b8; font-size:13px;">No ${esc(activeTab)} yet.</div>`
+                : `<div style="text-align:center; padding:32px 16px; color:#94a3b8; font-size:13px;">
+                    No ${esc(activeTab)} yet.
+                  </div>`
             }
           </div>
         `;
 
-        container.querySelector("#ts-info-back").onclick = () => openRoomChat(current);
-        container.querySelector("#ts-info-chat").onclick = () => openRoomChat(current);
+        container.querySelector("#ts-info-back").onclick = () => {
+          openRoomChat(current);
+        };
 
-        const editP = container.querySelector("#ts-edit-pencil-btn");
-        if (editP) editP.onclick = () => openEditScreen(current);
+        container.querySelector("#ts-info-chat").onclick = () => {
+          openRoomChat(current);
+        };
 
-        const setRow = container.querySelector("#ts-open-settings-row");
-        if (setRow) {
-          setRow.onclick = () => {
-            if (isAdmin) openEditScreen(current);
-            else alert("Only channel/group admins can change settings.");
+        const editButton = container.querySelector("#ts-edit-pencil-btn");
+
+        if (editButton) {
+          editButton.onclick = () => openEditScreen(current);
+        }
+
+        const settingsRow = container.querySelector("#ts-open-settings-row");
+
+        if (settingsRow) {
+          settingsRow.onclick = () => {
+            if (isAdmin) {
+              openEditScreen(current);
+            } else {
+              alert("Only channel/group admins can change settings.");
+            }
           };
         }
 
@@ -1444,10 +1187,15 @@
           drawInfo();
         };
 
-        container.querySelector("#ts-info-link").onclick = () => {
+        container.querySelector("#ts-info-link").onclick = async () => {
           const link = telesuparInviteUrl(current);
-          if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).catch(() => {});
-          alert("TELESUPAR Invite Link: " + link);
+
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(link).catch(() => {});
+            alert("TELESUPAR Invite Link copied.");
+          } else {
+            alert(link);
+          }
         };
 
         container.querySelector("#ts-info-logo").onclick = () => {
@@ -1455,6 +1203,7 @@
             alert("Only admin/owner can update logo.");
             return;
           }
+
           pickImageFile((dataUrl) => {
             current.logo = dataUrl;
             upsertRoom(current);
@@ -1462,12 +1211,21 @@
           });
         };
 
-        container.querySelector("#ts-open-subscribers").onclick = () => openSubscribersScreen(current, members);
-        container.querySelector("#ts-open-admins").onclick = () => openSubscribersScreen(current, members);
+        container.querySelector("#ts-open-subscribers").onclick = () => {
+          openSubscribersScreen(current, members);
+        };
 
-        container.querySelectorAll("[data-it]").forEach((btn) => {
-          btn.onclick = () => {
-            activeTab = btn.dataset.it;
+        container.querySelector("#ts-open-admins").onclick = () => {
+          const admins = Array.isArray(current.admins)
+            ? current.admins
+            : [];
+
+          openSubscribersScreen(current, admins, true);
+        };
+
+        container.querySelectorAll("[data-it]").forEach((button) => {
+          button.onclick = () => {
+            activeTab = button.dataset.it;
             drawInfo();
           };
         });
@@ -1478,7 +1236,9 @@
 
     function openEditScreen(roomInput) {
       const room = getRoomById(roomInput.id) || roomInput;
+
       setNavHidden(true);
+
       let nameVal = room.name || "";
       let descVal = room.description || "";
       let logoVal = room.logo || "";
@@ -1488,43 +1248,69 @@
       container.innerHTML = `
         <div class="ts-glass-app">
           <div class="ts-glass-top">
-            <button type="button" class="ts-back-btn" id="ts-edit-back">← Back</button>
+            <button type="button" class="ts-back-btn" id="ts-edit-back">Back</button>
+
             <span style="font-weight:700; font-size:15px;">Edit</span>
+
             <button type="button" class="ts-btn-primary" id="ts-edit-save">Save</button>
           </div>
 
           <div class="ts-group-box">
             <div style="padding:14px 15px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06);">
-              <div id="ts-edit-logo-preview">${renderAvatar(nameVal, logoVal, 56)}</div>
-              <input type="text" class="ts-search-input" id="ts-edit-name" value="${esc(nameVal)}" placeholder="Name" />
+              <div id="ts-edit-logo-preview">
+                ${renderAvatar(nameVal, logoVal, 56)}
+              </div>
+
+              <input
+                type="text"
+                class="ts-search-input"
+                id="ts-edit-name"
+                value="${esc(nameVal)}"
+                placeholder="Name"
+              />
             </div>
+
             <div class="ts-row-btn" id="ts-set-photo-row">
               <span style="color:#38bdf8; font-weight:700;">📷 Set New Photo</span>
               <span style="font-size:12px; color:#94a3b8;">Logo</span>
             </div>
+
             <div style="padding:10px 15px;">
-              <input type="text" class="ts-search-input" id="ts-edit-desc" value="${esc(descVal)}" placeholder="Description (optional)" />
+              <input
+                type="text"
+                class="ts-search-input"
+                id="ts-edit-desc"
+                value="${esc(descVal)}"
+                placeholder="Description (optional)"
+              />
             </div>
           </div>
 
           <div class="ts-group-box">
             <div class="ts-row-btn" id="ts-edit-priv">
               <span>${room.type === "channel" ? "Channel Type" : "Group Type"}</span>
-              <span style="color:#38bdf8; font-weight:700;">${isPriv ? "Private" : "Public"}</span>
+              <span style="color:#38bdf8; font-weight:700;">
+                ${isPriv ? "Private" : "Public"}
+              </span>
             </div>
+
             <div class="ts-row-btn">
               <span>Discussion</span>
               <span style="color:#38bdf8; font-weight:700;">TELESUPAR</span>
             </div>
+
             <div class="ts-row-btn">
               <span>Direct Messages</span>
               <span style="color:#fbbf24; font-weight:700;">★ On</span>
             </div>
+
             ${
               room.type === "group"
                 ? `<div class="ts-row-btn" id="ts-edit-chat-perm">
                     <span>Member Chat Permission</span>
-                    <span style="color:${allowChat ? "#5eead4" : "#fda4af"}; font-weight:700;">${allowChat ? "Allowed" : "Admins Only"}</span>
+                    <span style="color:${allowChat ? "#5eead4" : "#fda4af"}; font-weight:700;">
+                      ${allowChat ? "Allowed" : "Admins Only"}
+                    </span>
                   </div>`
                 : ""
             }
@@ -1535,25 +1321,34 @@
               <span>Reactions</span>
               <span style="color:#38bdf8; font-weight:700;">All</span>
             </div>
+
             <div class="ts-row-btn">
               <span>Welcome Message</span>
               <span style="color:#94a3b8;">Off</span>
             </div>
+
             <div class="ts-row-btn">
               <span>Administrators</span>
-              <span style="color:#38bdf8; font-weight:700;">${Math.max((room.admins || []).length, 1)}</span>
+              <span style="color:#38bdf8; font-weight:700;">
+                ${Array.isArray(room.admins) ? room.admins.length : "—"}
+              </span>
             </div>
+
             <div class="ts-row-btn" id="ts-edit-subs-row">
               <span>${room.type === "channel" ? "Subscribers" : "Members"}</span>
-              <span style="color:#38bdf8; font-weight:700;">${Math.max((room.members || []).length, 1)}</span>
+              <span style="color:#38bdf8; font-weight:700;">
+                ${Array.isArray(room.members) ? room.members.length : "—"}
+              </span>
             </div>
+
             <div class="ts-row-btn">
               <span>Invite Links</span>
-              <span style="color:#38bdf8; font-weight:700;">1</span>
+              <span style="color:#38bdf8; font-weight:700;">—</span>
             </div>
+
             <div class="ts-row-btn">
               <span>Recent Actions</span>
-              <span style="color:#94a3b8;">›</span>
+              <span style="color:#94a3b8;">—</span>
             </div>
           </div>
 
@@ -1562,172 +1357,310 @@
               <span>Delete ${room.type === "channel" ? "Channel" : "Group"}</span>
             </div>
           </div>
+
+          <div style="padding:10px 14px; color:#94a3b8; font-size:11px; line-height:1.5;">
+            Note: Name, description, privacy and logo changes are currently saved locally in this browser.
+          </div>
         </div>
       `;
 
-      container.querySelector("#ts-edit-back").onclick = () => openGlassInfo(getRoomById(room.id) || room);
+      container.querySelector("#ts-edit-back").onclick = () => {
+        openGlassInfo(getRoomById(room.id) || room);
+      };
 
       container.querySelector("#ts-set-photo-row").onclick = () => {
         pickImageFile((dataUrl) => {
           logoVal = dataUrl;
           room.logo = dataUrl;
           upsertRoom(room);
-          const prev = container.querySelector("#ts-edit-logo-preview");
-          if (prev) prev.innerHTML = renderAvatar(nameVal, logoVal, 56);
+
+          const preview = container.querySelector("#ts-edit-logo-preview");
+
+          if (preview) {
+            preview.innerHTML = renderAvatar(nameVal, logoVal, 56);
+          }
         });
       };
 
       container.querySelector("#ts-edit-priv").onclick = () => {
-        room.name = container.querySelector("#ts-edit-name")?.value || nameVal;
-        room.description = container.querySelector("#ts-edit-desc")?.value || descVal;
+        const nameInput = container.querySelector("#ts-edit-name");
+        const descInput = container.querySelector("#ts-edit-desc");
+
+        nameVal = nameInput?.value || nameVal;
+        descVal = descInput?.value || descVal;
+        isPriv = !isPriv;
+
+        room.name = nameVal;
+        room.description = descVal;
         room.logo = logoVal;
-        room.isPrivate = !isPriv;
+        room.isPrivate = isPriv;
+
         upsertRoom(room);
         openEditScreen(room);
       };
 
       const chatPerm = container.querySelector("#ts-edit-chat-perm");
+
       if (chatPerm) {
         chatPerm.onclick = async () => {
-          allowChat = !allowChat;
-          await apiReq(`/api/groups/${encodeURIComponent(room.id)}/settings`, {
-            method: "PATCH",
-            body: JSON.stringify({ allowMemberMessages: allowChat })
-          });
-          room.allowMemberMessages = allowChat;
-          upsertRoom(room);
-          openEditScreen(room);
+          const next = !allowChat;
+
+          const result = await apiReq(
+            `/api/groups/${encodeURIComponent(room.id)}/settings`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({ allowMemberMessages: next })
+            }
+          );
+
+          if (!result?.success || !result.group) {
+            alert(result?.message || "Could not update member chat permission.");
+            return;
+          }
+
+          allowChat = next;
+          upsertRoom(result.group);
+          openEditScreen(getRoomById(room.id) || room);
         };
       }
 
-      container.querySelector("#ts-edit-subs-row").onclick = () => openSubscribersScreen(room, room.members || []);
+      container.querySelector("#ts-edit-subs-row").onclick = () => {
+        openSubscribersScreen(room, room.members || []);
+      };
 
       container.querySelector("#ts-edit-save").onclick = () => {
-        const nextName = (container.querySelector("#ts-edit-name")?.value || "").trim();
-        const nextDesc = (container.querySelector("#ts-edit-desc")?.value || "").trim();
-        if (!nextName) return;
+        const nextName = (
+          container.querySelector("#ts-edit-name")?.value || ""
+        ).trim();
+
+        const nextDesc = (
+          container.querySelector("#ts-edit-desc")?.value || ""
+        ).trim();
+
+        if (!nextName) {
+          alert("Please enter a name.");
+          return;
+        }
+
         room.name = nextName;
         room.description = nextDesc;
         room.logo = logoVal;
         room.isPrivate = isPriv;
         room.allowMemberMessages = allowChat;
+
         upsertRoom(room);
         openGlassInfo(getRoomById(room.id) || room);
       };
 
       container.querySelector("#ts-edit-delete").onclick = () => {
-        if (!confirm(`Delete "${room.name}"?`)) return;
-        removeRoom(room.id);
-        renderHome();
+        alert("Delete is not connected to the server API yet. No data was deleted.");
       };
     }
 
-    function openSubscribersScreen(roomInput, initialMembers) {
+        function openSubscribersScreen(roomInput, initialMembers, isAdminList = false) {
       const room = getRoomById(roomInput.id) || roomInput;
+
       setNavHidden(true);
+
       let subSearch = "";
-      let list = initialMembers.length
+
+      let list = Array.isArray(initialMembers)
         ? initialMembers
-        : [{ id: room.ownerId || meId(), name: meName(), role: "Owner", status: "online" }];
+        : [];
 
       function paintSubs() {
         const q = subSearch.trim().toLowerCase();
-        const visible = list.filter((m, idx) => {
-          const obj = typeof m === "object" ? m : { id: m, name: `Member ${idx + 1}`, role: "Member" };
-          const n = obj.name || obj.displayName || obj.username || `Member ${idx + 1}`;
-          return !q || n.toLowerCase().includes(q);
+
+        const visible = list.filter((member) => {
+          const obj = typeof member === "object" && member !== null
+            ? member
+            : { id: member, name: String(member || "") };
+
+          const name = obj.name || obj.displayName || obj.username || "";
+
+          return !q || name.toLowerCase().includes(q);
         });
+
+        const title = isAdminList
+          ? "Administrators"
+          : room.type === "channel"
+            ? "Subscribers"
+            : "Members";
 
         container.innerHTML = `
           <div class="ts-glass-app">
+
             <div class="ts-glass-top">
-              <button type="button" class="ts-back-btn" id="ts-subs-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">${room.type === "channel" ? "Subscribers" : "Members"}</span>
-              <span style="font-size:12px; color:#38bdf8; font-weight:700;">${list.length}</span>
+              <button type="button" class="ts-back-btn" id="ts-subs-back">
+                Back
+              </button>
+
+              <span style="font-weight:700; font-size:15px;">
+                ${title}
+              </span>
+
+              <span style="font-size:12px; color:#38bdf8; font-weight:700;">
+                ${list.length}
+              </span>
             </div>
 
             <div class="ts-search-box">
-              <input type="text" class="ts-search-input" id="ts-subs-search" placeholder="Search subscribers..." value="${esc(subSearch)}" />
+              <input
+                type="text"
+                class="ts-search-input"
+                id="ts-subs-search"
+                placeholder="Search ${isAdminList ? "admins" : "members"}..."
+                value="${esc(subSearch)}"
+              />
             </div>
 
-            <div class="ts-group-box">
-              <div class="ts-row-btn" id="ts-sub-add-btn">
-                <span style="color:#38bdf8; font-weight:700;">👤+ Add ${room.type === "channel" ? "subscribers" : "members"}</span>
-              </div>
-              <div class="ts-row-btn" id="ts-sub-invite-btn">
-                <span style="color:#38bdf8; font-weight:700;">🔗 Invite via Link</span>
-              </div>
-            </div>
-
-            <div class="ts-group-box">
-              ${visible
-                .map((m, i) => {
-                  const obj = typeof m === "object"
-                    ? m
-                    : { id: m, name: `Member ${i + 1}`, role: i === 0 ? "Owner" : "Member", status: "online" };
-                  const label = obj.name || obj.displayName || obj.username || `Member ${i + 1}`;
-                  return `
-                    <div class="ts-row-btn" data-sub-uid="${esc(obj.id || "")}" data-sub-name="${esc(label)}">
-                      <div style="display:flex; align-items:center; gap:12px;">
-                        ${renderAvatar(label, obj.avatar || "", 42)}
-                        <div>
-                          <div style="font-weight:700; font-size:14px;">${esc(label)}</div>
-                          <div style="font-size:11px; color:#94a3b8;">${esc(obj.status || "member")}</div>
-                        </div>
-                      </div>
-                      <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(obj.role || (i === 0 ? "Owner" : "Member"))}</span>
+            ${
+              !isAdminList
+                ? `<div class="ts-group-box">
+                    <div class="ts-row-btn" id="ts-sub-invite-btn">
+                      <span style="color:#38bdf8; font-weight:700;">
+                        🔗 Invite via Link
+                      </span>
                     </div>
-                  `;
-                })
-                .join("")}
+                  </div>`
+                : ""
+            }
+
+            <div class="ts-group-box" id="ts-subs-list">
+
+              ${
+                visible.length
+                  ? visible.map((member) => {
+                      const obj = typeof member === "object" && member !== null
+                        ? member
+                        : { id: member, name: String(member || "") };
+
+                      const label =
+                        obj.name ||
+                        obj.displayName ||
+                        obj.username ||
+                        "Unknown User";
+
+                      const userId = obj.id || obj.userId || obj._id || "";
+
+                      const role = obj.role || (
+                        isAdminList ? "Administrator" : "Member"
+                      );
+
+                      return `
+                        <div
+                          class="ts-row-btn"
+                          data-sub-uid="${esc(userId)}"
+                          data-sub-name="${esc(label)}"
+                        >
+                          <div style="display:flex; align-items:center; gap:12px;">
+
+                            ${renderAvatar(label, obj.avatar || "", 42)}
+
+                            <div>
+                              <div style="font-weight:700; font-size:14px;">
+                                ${esc(label)}
+                              </div>
+
+                              <div style="font-size:11px; color:#94a3b8;">
+                                ${esc(obj.status || "Member")}
+                              </div>
+                            </div>
+
+                          </div>
+
+                          <span style="font-size:11px; color:#5eead4; font-weight:700;">
+                            ${esc(role)}
+                          </span>
+                        </div>
+                      `;
+                    }).join("")
+                  : `<div style="text-align:center; padding:30px 16px; color:#94a3b8; font-size:13px;">
+                      ${
+                        q
+                          ? "No matching users found."
+                          : isAdminList
+                            ? "No administrator data available."
+                            : "No member data available."
+                      }
+                    </div>`
+              }
+
             </div>
+
           </div>
         `;
 
-        container.querySelector("#ts-subs-back").onclick = () => openGlassInfo(getRoomById(room.id) || room);
+        container.querySelector("#ts-subs-back").onclick = () => {
+          openGlassInfo(getRoomById(room.id) || room);
+        };
 
-        const sEl = container.querySelector("#ts-subs-search");
-        if (sEl) {
-          sEl.oninput = (e) => {
-            subSearch = e.target.value;
+        const searchInput = container.querySelector("#ts-subs-search");
+
+        if (searchInput) {
+          searchInput.oninput = (event) => {
+            subSearch = event.target.value;
+
+            const cursorPosition = searchInput.selectionStart;
+
             paintSubs();
-            const again = container.querySelector("#ts-subs-search");
-            if (again) {
-              again.focus();
-              again.setSelectionRange(again.value.length, again.value.length);
+
+            const nextInput = container.querySelector("#ts-subs-search");
+
+            if (nextInput) {
+              nextInput.focus();
+
+              try {
+                nextInput.setSelectionRange(cursorPosition, cursorPosition);
+              } catch (error) {}
             }
           };
         }
 
-        container.querySelector("#ts-sub-add-btn").onclick = () => {
-          const val = (prompt("Enter subscriber name or user ID:") || "").trim();
-          if (!val) return;
-          const added = {
-            id: /^[a-f\d]{24}$/i.test(val) ? val : "u_" + Date.now(),
-            name: val,
-            role: "Member",
-            status: "online"
-          };
-          list.push(added);
-          room.members = list;
-          upsertRoom(room);
-          paintSubs();
-        };
+        const inviteButton = container.querySelector("#ts-sub-invite-btn");
 
-        container.querySelector("#ts-sub-invite-btn").onclick = () => {
-          const link = telesuparInviteUrl(room);
-          if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).catch(() => {});
-          alert("Invite Link copied: " + link);
-        };
+        if (inviteButton) {
+          inviteButton.onclick = async () => {
+            const link = telesuparInviteUrl(room);
+
+            if (navigator.clipboard?.writeText) {
+              try {
+                await navigator.clipboard.writeText(link);
+                alert("Invite link copied.");
+              } catch (error) {
+                alert(link);
+              }
+            } else {
+              alert(link);
+            }
+          };
+        }
 
         container.querySelectorAll("[data-sub-uid]").forEach((row) => {
-          row.onclick = () => openUserProfileWithPosts(container, row.dataset.subUid, row.dataset.subName);
+          row.onclick = () => {
+            const userId = row.dataset.subUid;
+            const userName = row.dataset.subName;
+
+            if (!userId) {
+              alert("User profile ID is not available.");
+              return;
+            }
+
+            openUserProfileWithPosts(
+              container,
+              userId,
+              userName
+            );
+          };
         });
       }
 
       paintSubs();
     }
 
+    // Initial page render
     renderHome();
+
   };
+
 })();
