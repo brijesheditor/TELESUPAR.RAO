@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#090e16">
+  <title>TELESUPAR Channels</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: #090e16;
+      color: #f8fafc;
+      font-family: Arial, sans-serif;
+    }
+
+    #channels-root {
+      min-height: 100vh;
+    }
+
+    #channel-loading {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      color: #94a3b8;
+    }
+
+    #channel-loading strong {
+      color: #f8fafc;
+      font-size: 19px;
+      margin-bottom: 9px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main id="channels-root">
+    <div id="channel-loading">
+      <strong>TELESUPAR</strong>
+      Loading Channels...
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const API_BASE = "https://telesupar.onrender.com";
+
+      const token = localStorage.getItem("ts_token");
+
+      let savedUser = {};
+      try {
+        savedUser = JSON.parse(
+          localStorage.getItem("ts_user") || "{}"
+        );
+      } catch (e) {
+        savedUser = {};
+      }
+
+      if (!token) {
+        window.location.replace("index.html");
+        return;
+      }
+
+      window.TS_ROOM_PAGE = "channel";
+      window.API_BASE = API_BASE;
+
+      window.AppState = window.AppState || {};
+      window.AppState.token = token;
+      window.AppState.user = savedUser;
+
+      // API connection
+      window.api = async function (url, options = {}) {
+        const requestOptions = { ...options };
+
+        requestOptions.headers = {
+          ...(requestOptions.headers || {}),
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        };
+
+        // Channels page: only fetch channels
+        if (
+          url === "/api/groups" &&
+          (!requestOptions.method || requestOptions.method.toUpperCase() === "GET")
+        ) {
+          const response = await fetch(API_BASE + url, requestOptions);
+          const data = await response.json();
+
+          if (Array.isArray(data.groups)) {
+            data.groups = data.groups.filter(
+              room => room.type === "channel"
+            );
+          }
+
+          return data;
+        }
+
+        // Channels page: force newly created room to be a channel
+        if (
+          url === "/api/groups" &&
+          requestOptions.method &&
+          requestOptions.method.toUpperCase() === "POST"
+        ) {
+          try {
+            const body = JSON.parse(requestOptions.body || "{}");
+            body.type = "channel";
+            body.allowMemberMessages = false;
+            requestOptions.body = JSON.stringify(body);
+          } catch (e) {}
+        }
+
+        const response = await fetch(API_BASE + url, requestOptions);
+        const data = await response.json();
+
+        if (response.status === 401) {
+          localStorage.removeItem("ts_token");
+          window.location.replace("index.html");
+          throw new Error("Session expired. Please login again.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || "API request failed");
+        }
+
+        return data;
+      };
+
+      window.addEventListener("DOMContentLoaded", function () {
+        const root = document.getElementById("channels-root");
+
+        if (!window.renderGroups) {
+          root.innerHTML =
+            '<div id="channel-loading">Channels module could not load. Please refresh.</div>';
+          return;
+        }
+
+        window.renderGroups(root);
+      });
+    })();
+  </script>
+
+  <script src="groups.js"></script>
+
+</body>
+</html>
