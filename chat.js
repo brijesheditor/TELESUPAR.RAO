@@ -1923,23 +1923,80 @@ document.addEventListener("click", event => {
     const seen = !!message.seenAt;
     const delivered = !!message.deliveredAt;
 
-    let attachmentHTML = "";
+    
+let attachmentHTML = "";
 
-    if (message.attachment?.url) {
-      const attachment = message.attachment;
-      const isImage = String(attachment.mimeType || "")
-        .startsWith("image/");
+if (message.attachment?.url) {
+  const attachment = message.attachment;
 
-      attachmentHTML = isImage
-        ? `<img src="${escapeHTML(attachment.url)}"
-             style="max-width:190px;border-radius:12px;display:block;margin-bottom:6px;" />`
-        : `<a href="${escapeHTML(attachment.url)}"
-             target="_blank"
-             rel="noopener"
-             style="color:#93c5fd;display:block;margin-bottom:6px;">
-             📎 ${escapeHTML(attachment.fileName || "Open file")}
-           </a>`;
-    }
+  const url = escapeHTML(attachment.url);
+  const mime = String(attachment.mimeType || "");
+
+  const isImage = mime.startsWith("image/");
+  const isVideo = mime.startsWith("video/");
+
+  if (isImage) {
+    attachmentHTML = `
+      <div
+        class="ts-media-open"
+        data-type="image"
+        data-src="${url}"
+        role="button"
+        tabindex="0"
+        aria-label="View photo"
+      >
+        <img
+          src="${url}"
+          alt="Shared photo"
+          loading="lazy"
+        />
+      </div>
+    `;
+  }
+
+  else if (isVideo) {
+    attachmentHTML = `
+      <div
+        class="ts-media-open"
+        data-type="video"
+        data-src="${url}"
+        role="button"
+        tabindex="0"
+        aria-label="Play shared video"
+      >
+        <video
+          src="${url}"
+          muted
+          playsinline
+          preload="metadata"
+        ></video>
+        <div style="
+          color:white;
+          font-size:12px;
+          padding:7px 4px;
+        ">▶ Open Video</div>
+      </div>
+    `;
+  }
+
+  else {
+    attachmentHTML = `
+      <a href="${url}"
+        target="_blank"
+        rel="noopener noreferrer"
+        style="
+          color:#93c5fd;
+          display:block;
+          margin-bottom:6px;
+        ">
+        📎 ${escapeHTML(
+          attachment.fileName || "Open file"
+        )}
+      </a>
+    `;
+  }
+}
+
 
     return `
       <div class="ts-message-row ${mine ? "mine" : "theirs"}">
