@@ -784,6 +784,107 @@
 }
 
 
+
+/* ==========================================
+   TELESUPAR FULL SCREEN MEDIA VIEWER
+========================================== */
+
+.ts-media-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,.97);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .22s ease;
+}
+
+.ts-media-viewer.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ts-media-header {
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(15,20,28,.75);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(15px);
+}
+
+.ts-media-back {
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.09);
+  color: white;
+  border-radius: 25px;
+  padding: 11px 17px;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ts-media-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.ts-media-content img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 5px;
+}
+
+.ts-media-content video {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: #000;
+  border-radius: 8px;
+}
+
+.ts-media-open {
+  cursor: pointer;
+  display: block;
+  max-width: 190px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.ts-media-open img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+}
+
+.ts-media-open video {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  background: #000;
+}
+
+body.ts-media-locked {
+  overflow: hidden !important;
+}
+
+
     /* MOBILE */
 
     @media(min-width:700px) {
