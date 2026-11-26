@@ -1764,6 +1764,131 @@ body.ts-media-locked {
     }
   }
 
+  
+/* ==========================================
+   TELESUPAR MEDIA VIEWER SYSTEM
+========================================== */
+
+let tsMediaViewer = null;
+
+function createMediaViewer() {
+  if (tsMediaViewer) return tsMediaViewer;
+
+  const viewer = document.createElement("div");
+  viewer.className = "ts-media-viewer";
+
+  viewer.innerHTML = `
+    <div class="ts-media-header">
+      <button class="ts-media-back" type="button">
+        ← Back
+      </button>
+      <div style="
+        flex:1;
+        text-align:center;
+        color:white;
+        font-size:13px;
+        font-weight:700;
+        padding-right:65px;
+      ">
+        TELESUPAR
+      </div>
+    </div>
+
+    <div class="ts-media-content"></div>
+  `;
+
+  document.body.appendChild(viewer);
+
+  viewer.querySelector(".ts-media-back")
+    .addEventListener("click", closeMediaViewer);
+
+  viewer.addEventListener("click", event => {
+    if (event.target === viewer) {
+      closeMediaViewer();
+    }
+  });
+
+  tsMediaViewer = viewer;
+  return viewer;
+}
+
+function openMediaViewer(url, type) {
+  if (!url) return;
+
+  const viewer = createMediaViewer();
+  const content = viewer.querySelector(".ts-media-content");
+
+  content.replaceChildren();
+
+  if (type === "video") {
+    const video = document.createElement("video");
+
+    video.src = url;
+    video.controls = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+
+    content.appendChild(video);
+
+    const playPromise = video.play();
+
+    if (playPromise?.catch) {
+      playPromise.catch(() => {});
+    }
+
+  } else {
+    const image = document.createElement("img");
+
+    image.src = url;
+    image.alt = "Full screen photo";
+
+    content.appendChild(image);
+  }
+
+  viewer.classList.add("active");
+  document.body.classList.add("ts-media-locked");
+}
+
+function closeMediaViewer() {
+  if (!tsMediaViewer) return;
+
+  const video = tsMediaViewer.querySelector("video");
+
+  if (video) {
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+  }
+
+  tsMediaViewer.querySelector(".ts-media-content")
+    .replaceChildren();
+
+  tsMediaViewer.classList.remove("active");
+  document.body.classList.remove("ts-media-locked");
+}
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeMediaViewer();
+  }
+});
+
+// Media click handling
+document.addEventListener("click", event => {
+  const media = event.target.closest(".ts-media-open");
+
+  if (!media) return;
+
+  event.preventDefault();
+
+  openMediaViewer(
+    media.dataset.src,
+    media.dataset.type
+  );
+});
+
+
   // ==========================================
   // RENDER MESSAGES
   // ==========================================
