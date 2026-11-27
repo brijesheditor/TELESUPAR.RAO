@@ -917,6 +917,104 @@
 
   document.head.appendChild(style);
 
+
+   
+/* =========================================
+   PROFILE POST ACTION MENU STYLES
+========================================= */
+
+const tspPostActionStyle = document.createElement("style");
+
+tspPostActionStyle.textContent = `
+  .tsp-post-wrap {
+    position:relative;
+    aspect-ratio:1;
+    min-width:0;
+    overflow:hidden;
+    background:#172033;
+  }
+
+  .tsp-post-wrap .tsp-post {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    aspect-ratio:auto;
+  }
+
+  .tsp-post-menu {
+    position:absolute;
+    top:7px;
+    right:7px;
+    z-index:5;
+    width:34px;
+    height:34px;
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:11px;
+    background:rgba(8,13,25,.82);
+    color:#fff;
+    font-size:23px;
+    line-height:1;
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+  }
+
+  .tsp-post-action-btn {
+    width:100%;
+    padding:15px;
+    border:0;
+    border-radius:13px;
+    background:#202b40;
+    color:#f8fafc;
+    font-size:14px;
+    font-weight:750;
+    text-align:left;
+    margin-top:9px;
+    cursor:pointer;
+  }
+
+  .tsp-post-action-btn.danger {
+    color:#fca5a5;
+    background:rgba(127,29,29,.22);
+  }
+
+  .tsp-post-edit-area {
+    width:100%;
+    min-height:130px;
+    box-sizing:border-box;
+    padding:13px;
+    border-radius:13px;
+    background:#1e293b;
+    border:1px solid rgba(255,255,255,.12);
+    color:#fff;
+    font:inherit;
+    font-size:14px;
+    line-height:1.6;
+    resize:vertical;
+  }
+
+  html[data-ts-theme="light"] .tsp-post-action-btn {
+    background:#e2e8f0;
+    color:#172033;
+  }
+
+  html[data-ts-theme="light"] .tsp-post-action-btn.danger {
+    background:#fee2e2;
+    color:#b91c1c;
+  }
+
+  html[data-ts-theme="light"] .tsp-post-edit-area {
+    background:#f8fafc;
+    color:#172033;
+    border-color:#cbd5e1;
+  }
+`;
+
+document.head.appendChild(tspPostActionStyle);
+
+
      /* =========================================
      TELESUPAR GLOBAL THEME SYSTEM
   ========================================= */
