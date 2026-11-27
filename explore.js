@@ -82,7 +82,7 @@
         </div>
 
         <div class="explore-cats" id="explore-cats-bar">
-          ${["All", "Mathematics", "Physics", "Chemistry", "Biology", "Programming", "General Studies", "English"]
+          ${["All", "Motivational", "Hindi", "Mathematics", "Physics", "Chemistry", "Biology", "Programming", "General Studies", "English"]
             .map(cat => `<button class="explore-cat-pill ${cat === "All" ? "active" : ""}" data-cat="${cat}">${cat}</button>`)
             .join("")}
         </div>
