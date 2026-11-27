@@ -1216,10 +1216,13 @@
 
             <div class="tsp-top-actions">
               <button
-                class="tsp-icon-btn"
-                id="tsp-refresh"
-                title="Refresh"
-              >↻</button>
+  class="tsp-icon-btn"
+  id="tsp-theme-toggle"
+  type="button"
+  title="Switch Theme"
+>
+  ${getTelesuparTheme() === "dark" ? "🌙" : "☀️"}
+</button>
 
               <button
                 class="tsp-icon-btn"
@@ -1373,9 +1376,13 @@
         btn.onclick = () => updatePostTab(btn.dataset.postTab);
       });
 
-      container.querySelector("#tsp-refresh").onclick = () => {
-        window.renderProfile(container);
-      };
+      const themeButton = container.querySelector("#tsp-theme-toggle");
+
+if (themeButton) {
+  themeButton.onclick = () => {
+    toggleTelesuparTheme(themeButton);
+  };
+}
 
       container.querySelector("#tsp-settings").onclick = () => {
         openProfileSettings(sharedUser, container);
