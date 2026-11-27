@@ -805,6 +805,7 @@
         </div>
         <label style="font-size:12px;color:#94a3b8">SUBJECT CATEGORY</label>
         <select id="modal-post-category" style="width:100%;margin:8px 0 16px;padding:13px;background:#1e293b;color:white;border:1px solid var(--ts-border);border-radius:12px">
+          <option>Motivational</option><option>Hindi</option>
           <option>Mathematics</option><option>Physics</option>
           <option>Chemistry</option><option>Biology</option>
           <option>Programming</option><option>General Studies</option>
