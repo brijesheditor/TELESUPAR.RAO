@@ -1632,44 +1632,257 @@ function renderPostTiles(posts) {
         </div>
       `;
 
-      const grid = container.querySelector("#tsp-post-grid");
+      
+const grid = container.querySelector("#tsp-post-grid");
 
-      function bindPostTiles() {
-        grid.querySelectorAll("[data-open-post]").forEach(tile => {
-          tile.onclick = () => {
-            const post = myPosts.find(item => {
-              return getPostId(item) === tile.dataset.openPost;
-            });
+let activePostTab = "posts";
 
-            if (post) openPost(post);
-          };
-        });
+function updatePostTab(tab) {
+  activePostTab = tab;
+
+  container.querySelectorAll("[data-post-tab]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.postTab === tab);
+  });
+
+  const shown = tab === "media"
+    ? myPosts.filter(postIsMedia)
+    : myPosts;
+
+  grid.innerHTML = renderPostTiles(shown);
+
+  container.querySelector("#tsp-post-count-label").textContent =
+    tab === "media"
+      ? `${shown.length} media posts`
+      : `${shown.length} posts loaded`;
+
+  bindPostTiles();
+}
+
+function bindPostTiles() {
+  grid.querySelectorAll("[data-open-post]").forEach(tile => {
+    tile.onclick = () => {
+      const post = myPosts.find(item =>
+        getPostId(item) === tile.dataset.openPost
+      );
+
+      if (post) openPost(post);
+    };
+  });
+
+  grid.querySelectorAll("[data-post-menu]").forEach(button => {
+    button.onclick = event => {
+      event.stopPropagation();
+
+      const post = myPosts.find(item =>
+        getPostId(item) === button.dataset.postMenu
+      );
+
+      if (post) openPostActions(post);
+    };
+  });
+}
+
+function openPostActions(post) {
+  const overlay = document.createElement("div");
+  overlay.className = "tsp-overlay";
+
+  overlay.innerHTML = `
+    <div class="tsp-modal">
+
+      <div class="tsp-modal-head">
+        <h3>Post Options</h3>
+        <button type="button" class="tsp-close" id="tsp-post-menu-close">×</button>
+      </div>
+
+      <button
+        type="button"
+        class="tsp-post-action-btn"
+        id="tsp-post-edit-btn"
+      >
+        ✎ &nbsp; Edit Post
+      </button>
+
+      <button
+        type="button"
+        class="tsp-post-action-btn danger"
+        id="tsp-post-delete-btn"
+      >
+        🗑 &nbsp; Delete Post
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  function closeMenu() {
+    overlay.remove();
+  }
+
+  overlay.querySelector("#tsp-post-menu-close").onclick = closeMenu;
+
+  overlay.onclick = event => {
+    if (event.target === overlay) closeMenu();
+  };
+
+  overlay.querySelector("#tsp-post-edit-btn").onclick = () => {
+    closeMenu();
+    openPostCaptionEditor(post);
+  };
+
+  overlay.querySelector("#tsp-post-delete-btn").onclick = async () => {
+    closeMenu();
+
+    if (!confirm("Are you sure you want to delete this post permanently?")) {
+      return;
+    }
+
+    try {
+      const result = await window.api(
+        `/api/posts/${encodeURIComponent(getPostId(post))}`,
+        {
+          method: "DELETE"
+        }
+      );
+
+      if (!result?.success) {
+        throw new Error(result?.message || "Post delete failed");
       }
 
-      function updatePostTab(tab) {
-        container.querySelectorAll("[data-post-tab]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.postTab === tab);
-        });
+      const index = myPosts.findIndex(item =>
+        getPostId(item) === getPostId(post)
+      );
 
-        const shown = tab === "media"
-          ? myPosts.filter(postIsMedia)
-          : myPosts;
-
-        grid.innerHTML = renderPostTiles(shown);
-
-        container.querySelector("#tsp-post-count-label").textContent =
-          tab === "media"
-            ? `${shown.length} media posts`
-            : `${shown.length} posts loaded`;
-
-        bindPostTiles();
+      if (index !== -1) {
+        myPosts.splice(index, 1);
       }
 
-      bindPostTiles();
+      const count = container.querySelector("#tsp-post-count strong");
 
-      container.querySelectorAll("[data-post-tab]").forEach(btn => {
-        btn.onclick = () => updatePostTab(btn.dataset.postTab);
-      });
+      if (count) {
+        count.textContent = myPosts.length;
+      }
+
+      updatePostTab(activePostTab);
+
+      alert("Post deleted successfully.");
+
+    } catch (error) {
+      alert(error.message || "Could not delete post.");
+    }
+  };
+}
+
+function openPostCaptionEditor(post) {
+  const overlay = document.createElement("div");
+  overlay.className = "tsp-overlay";
+
+  overlay.innerHTML = `
+    <div class="tsp-modal">
+
+      <div class="tsp-modal-head">
+        <h3>Edit Post</h3>
+        <button
+          type="button"
+          class="tsp-close"
+          id="tsp-edit-post-close"
+        >×</button>
+      </div>
+
+      <div class="tsp-field">
+        <label>Post caption / text</label>
+
+        <textarea
+          class="tsp-post-edit-area"
+          id="tsp-post-caption-input"
+          maxlength="2200"
+          placeholder="Write something..."
+        >${esc(post.caption || "")}</textarea>
+
+        <div class="tsp-char-count">
+          Maximum 2200 characters
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="tsp-btn primary"
+        id="tsp-post-save-btn"
+      >
+        Save Changes
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const closeButton = overlay.querySelector("#tsp-edit-post-close");
+  const captionInput = overlay.querySelector("#tsp-post-caption-input");
+  const saveButton = overlay.querySelector("#tsp-post-save-btn");
+
+  function closeEditor() {
+    overlay.remove();
+  }
+
+  closeButton.onclick = closeEditor;
+
+  overlay.onclick = event => {
+    if (event.target === overlay) closeEditor();
+  };
+
+  saveButton.onclick = async () => {
+    const caption = captionInput.value.trim();
+
+    if (!post.mediaUrl && !caption) {
+      alert("Text post cannot be empty.");
+      return;
+    }
+
+    if (caption.length > 2200) {
+      alert("Caption is too long.");
+      return;
+    }
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    try {
+      const result = await window.api(
+        `/api/posts/${encodeURIComponent(getPostId(post))}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ caption })
+        }
+      );
+
+      if (!result?.success) {
+        throw new Error(result?.message || "Post update failed");
+      }
+
+      post.caption = caption;
+
+      closeEditor();
+
+      updatePostTab(activePostTab);
+
+      alert("Post updated successfully.");
+
+    } catch (error) {
+      alert(error.message || "Could not update post.");
+
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Changes";
+    }
+  };
+}
+
+updatePostTab("posts");
+
+container.querySelectorAll("[data-post-tab]").forEach(btn => {
+  btn.onclick = () => updatePostTab(btn.dataset.postTab);
+});
+
 
       const themeButton = container.querySelector("#tsp-theme-toggle");
 
