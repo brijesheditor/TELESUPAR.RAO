@@ -940,6 +940,189 @@
 
   applyTelesuparTheme(getTelesuparTheme());
 
+   
+  /* =========================================
+     TELESUPAR GLOBAL LIGHT MODE
+  ========================================= */
+
+  const globalThemeStyle = document.createElement("style");
+  globalThemeStyle.id = "ts-global-theme-style";
+
+  globalThemeStyle.textContent = `
+    html[data-ts-theme="light"] {
+      color-scheme: light;
+
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-elevated: #e2e8f0;
+      --border: rgba(15,23,42,.12);
+      --text-primary: #172033;
+      --text-secondary: #64748b;
+
+      --ts-bg: #f1f5f9;
+      --ts-card: #ffffff;
+      --ts-border: rgba(15,23,42,.12);
+      --ts-muted: #64748b;
+      --ts-text: #172033;
+    }
+
+    html[data-ts-theme="light"] body,
+    html[data-ts-theme="light"] #app-container,
+    html[data-ts-theme="light"] #main-view {
+      background: #f1f5f9 !important;
+      color: #172033 !important;
+    }
+
+    /* Main header and navigation */
+    html[data-ts-theme="light"] .top-header,
+    html[data-ts-theme="light"] .bottom-nav {
+      background: rgba(255,255,255,.94) !important;
+      color: #172033 !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    /* HOME */
+    html[data-ts-theme="light"] .stories-bar {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    html[data-ts-theme="light"] .story-name,
+    html[data-ts-theme="light"] .home-section-heading strong {
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .post-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #172033 !important;
+    }
+
+    /* EXPLORE */
+    html[data-ts-theme="light"] .explore-container,
+    html[data-ts-theme="light"] .explore-cats,
+    html[data-ts-theme="light"] .explore-grid {
+      background: #f1f5f9 !important;
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .explore-top-bar {
+      background: rgba(255,255,255,.95) !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    html[data-ts-theme="light"] .explore-search-box,
+    html[data-ts-theme="light"] .explore-cat-pill {
+      background: #ffffff !important;
+      color: #172033 !important;
+      border-color: #dbe2ea !important;
+    }
+
+    html[data-ts-theme="light"] .explore-search-box input {
+      color: #172033 !important;
+    }
+
+    /* CHAT */
+    html[data-ts-theme="light"] .ts-chat-app {
+      background: #f1f5f9 !important;
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-chat-item,
+    html[data-ts-theme="light"] .ts-search-box,
+    html[data-ts-theme="light"] .ts-filter {
+      background: #ffffff !important;
+      color: #172033 !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-chat-name,
+    html[data-ts-theme="light"] .ts-empty-state strong {
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-search-box input {
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-chat-room {
+      background: #f8fafc !important;
+      color: #172033 !important;
+    }
+
+    /* CHANNELS */
+    html[data-ts-theme="light"] .ts-ig-app {
+      background: #f1f5f9 !important;
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-ig-top,
+    html[data-ts-theme="light"] .ts-search-box,
+    html[data-ts-theme="light"] .ts-group-box {
+      background: rgba(255,255,255,.96) !important;
+      border-color: #e2e8f0 !important;
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-back-btn,
+    html[data-ts-theme="light"] .ts-glass-btn {
+      background: #e2e8f0 !important;
+      color: #172033 !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-search-input {
+      background: #f8fafc !important;
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .ts-row-btn {
+      color: #172033 !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    /* PROFILE */
+    html[data-ts-theme="light"] .tsp-wrap {
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .tsp-card,
+    html[data-ts-theme="light"] .tsp-setting-detail {
+      background: #ffffff !important;
+      background-image: none !important;
+      border-color: #e2e8f0 !important;
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .tsp-name,
+    html[data-ts-theme="light"] .tsp-section-head,
+    html[data-ts-theme="light"] .tsp-stat,
+    html[data-ts-theme="light"] .tsp-setting-row {
+      color: #172033 !important;
+    }
+
+    html[data-ts-theme="light"] .tsp-icon-btn {
+      background: #ffffff !important;
+      color: #172033 !important;
+      border-color: #dbe2ea !important;
+    }
+
+    /* Inputs and overlays */
+    html[data-ts-theme="light"] input,
+    html[data-ts-theme="light"] textarea {
+      color: #172033;
+    }
+
+    html[data-ts-theme="light"] .tsp-modal,
+    html[data-ts-theme="light"] .tsp-settings-screen {
+      background: #ffffff !important;
+      color: #172033 !important;
+    }
+  `;
+
+  document.head.appendChild(globalThemeStyle);
+
+
   function toggleTelesuparTheme(button) {
     const nextTheme =
       getTelesuparTheme() === "dark" ? "light" : "dark";
