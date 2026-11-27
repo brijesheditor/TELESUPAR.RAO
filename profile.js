@@ -917,6 +917,43 @@
 
   document.head.appendChild(style);
 
+     /* =========================================
+     TELESUPAR GLOBAL THEME SYSTEM
+  ========================================= */
+
+  const TS_THEME_KEY = "telesupar_app_theme";
+
+  function getTelesuparTheme() {
+    return localStorage.getItem(TS_THEME_KEY) || "dark";
+  }
+
+  function applyTelesuparTheme(theme) {
+    const selectedTheme = theme === "light" ? "light" : "dark";
+
+    document.documentElement.setAttribute(
+      "data-ts-theme",
+      selectedTheme
+    );
+
+    localStorage.setItem(TS_THEME_KEY, selectedTheme);
+  }
+
+  applyTelesuparTheme(getTelesuparTheme());
+
+  function toggleTelesuparTheme(button) {
+    const nextTheme =
+      getTelesuparTheme() === "dark" ? "light" : "dark";
+
+    applyTelesuparTheme(nextTheme);
+
+    if (button) {
+      button.textContent = nextTheme === "dark" ? "🌙" : "☀️";
+      button.title = nextTheme === "dark"
+        ? "Switch to Light Mode"
+        : "Switch to Dark Mode";
+    }
+  }
+
   /* =========================================================
      2. HELPERS
   ========================================================= */
