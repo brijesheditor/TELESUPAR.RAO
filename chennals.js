@@ -1751,23 +1751,48 @@ pop.querySelectorAll("[data-emoji]").forEach((eb) => {
           drawInfo();
         };
 
-        const joinToggleRow = container.querySelector("#ts-toggle-join-row");
-        if (joinToggleRow) {
-          joinToggleRow.onclick = async () => {
-            if (isMember) {
-              alert("Leave Channel action is not available yet. Your membership is unchanged.");
-              return;
-            }
-            const joined = await apiReq(`/api/groups/${encodeURIComponent(current.id)}/join`, { method: "POST" });
-            if (!joined?.success || !joined.group) {
-              alert(joined?.message || "Channel join nahi ho paaya.");
-              return;
-            }
-            Object.assign(current, joined.group);
-            upsertChannel(current);
-            openChannelInfo(current);
-          };
-        }
+        
+const joinToggleRow = container.querySelector("#ts-toggle-join-row");
+
+if (joinToggleRow) {
+  joinToggleRow.onclick = async () => {
+
+    if (isMember) {
+      if (!confirm(`Leave "${current.name}" channel?`)) {
+        return;
+      }
+
+      const left = await apiReq(
+        `/api/groups/${encodeURIComponent(current.id)}/leave`,
+        { method: "DELETE" }
+      );
+
+      if (!left?.success) {
+        alert(left?.message || "Channel leave nahi hua.");
+        return;
+      }
+
+      removeChannel(current.id);
+      renderChannelList();
+      return;
+    }
+
+    const joined = await apiReq(
+      `/api/groups/${encodeURIComponent(current.id)}/join`,
+      { method: "POST" }
+    );
+
+    if (!joined?.success || !joined.group) {
+      alert(joined?.message || "Channel join nahi ho paaya.");
+      return;
+    }
+
+    Object.assign(current, joined.group);
+    upsertChannel(current);
+    openChannelInfo(current);
+  };
+}
+
 
         container.querySelector("#ts-info-link").onclick = async () => {
           const link = telesuparInviteUrl(current);
