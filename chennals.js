@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = "telesupar_ig_channels_v4";
   let OFFICIAL_ID = "";
-  const EMOJI_CHOICES = ["❤️", "👍", "👎", "🔥", "🥰", "👏", "😁"];
+  const EMOJI_CHOICES = ["❤️", "👍", "👎", "🔥", "🥰", "👏", "❤️‍🩹", "👀", "💯", "😁"];
 
   const style = document.createElement("style");
   style.id = "telesupar-ig-channel-style";
@@ -1175,28 +1175,33 @@
         if (e.target === pop) pop.remove();
       };
 
-      pop.querySelectorAll("[data-emoji]").forEach((eb) => {
-        eb.onclick = async () => {
-          const emoji = eb.dataset.emoji;
-          if (post.myReaction === emoji) {
-            post.reactions[emoji] = Math.max(0, (Number(post.reactions[emoji]) || 1) - 1);
-            post.myReaction = "";
-          } else {
-            if (post.myReaction) {
-              post.reactions[post.myReaction] = Math.max(0, (Number(post.reactions[post.myReaction]) || 1) - 1);
-            }
-            post.reactions[emoji] = (Number(post.reactions[emoji]) || 0) + 1;
-            post.myReaction = emoji;
-          }
-          upsertChannel(ch);
-          await apiReq(`/api/groups/${encodeURIComponent(ch.id)}/posts/${encodeURIComponent(post.id)}/react`, {
-            method: "POST",
-            body: JSON.stringify({ reaction: emoji })
-          });
-          pop.remove();
-          openChannelFeed(getChannelById(ch.id) || ch);
-        };
-      });
+      
+pop.querySelectorAll("[data-emoji]").forEach((eb) => {
+  eb.onclick = async () => {
+    const emoji = eb.dataset.emoji;
+
+    eb.disabled = true;
+
+    const result = await apiReq(
+      `/api/groups/${encodeURIComponent(ch.id)}/posts/${encodeURIComponent(post.id)}/react`,
+      {
+        method: "POST",
+        body: JSON.stringify({ reaction: emoji })
+      }
+    );
+
+    if (!result?.success || !result.group) {
+      eb.disabled = false;
+      alert(result?.message || "Reaction save nahi hui. Please retry.");
+      return;
+    }
+
+    upsertChannel(result.group);
+    pop.remove();
+    openChannelFeed(getChannelById(ch.id) || ch);
+  };
+});
+
 
       pop.querySelectorAll("[data-act]").forEach((ab) => {
         ab.onclick = async () => {
