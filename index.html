@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,242 +6,636 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>TELESUPAR</title>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
   <style>
     :root {
-      --bg-main: #090d16;
-      --bg-card: #111827;
-      --bg-elevated: #1e293b;
-      --border: rgba(255, 255, 255, 0.08);
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --accent-primary: #6366f1;
-      --accent-secondary: #ec4899;
-      --accent-teal: #14b8a6;
-      --gradient-brand: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-      --gradient-nav: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      --bg-main:#090d16;
+      --bg-card:#111827;
+      --bg-elevated:#1e293b;
+      --border:rgba(255,255,255,.08);
+      --text-primary:#f8fafc;
+      --text-secondary:#94a3b8;
+      --gradient-brand:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg-main); color: var(--text-primary); display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+    * {
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    }
 
-    /* Mobile-first App Frame */
+    body {
+      background:var(--bg-main);
+      color:var(--text-primary);
+      display:flex;
+      justify-content:center;
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    .hidden { display:none !important; }
+
     #app-container {
-      width: 100%;
-      max-width: 480px;
-      min-height: 100vh;
-      background: var(--bg-main);
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      padding-bottom: 86px;
+      width:100%;
+      max-width:480px;
+      min-height:100vh;
+      background:var(--bg-main);
+      border-left:1px solid var(--border);
+      border-right:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      position:relative;
+      padding-bottom:86px;
     }
 
-    /* Top Header */
     .top-header {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      background: rgba(9, 13, 22, 0.85);
-      backdrop-filter: blur(14px);
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
+      position:sticky;
+      top:0;
+      z-index:40;
+      background:rgba(9,13,22,.88);
+      backdrop-filter:blur(14px);
+      padding:14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--border);
     }
+
     .brand-title {
-      font-size: 21px;
-      font-weight: 800;
-      letter-spacing: 1.2px;
-      background: var(--gradient-brand);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size:21px;
+      font-weight:800;
+      letter-spacing:1.2px;
+      background:var(--gradient-brand);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
     }
-    .header-actions { display: flex; gap: 12px; align-items: center; }
+
+    .header-actions {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
     .icon-btn {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      position: relative;
-      transition: 0.2s;
+      background:var(--bg-elevated);
+      border:1px solid var(--border);
+      color:white;
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      position:relative;
+      transition:.2s;
     }
-    .icon-btn:active { transform: scale(0.92); }
+
+    .icon-btn:active { transform:scale(.92); }
+
     .badge-dot {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background: #ef4444;
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      min-width: 17px;
-      height: 17px;
-      border-radius: 99px;
-      display: grid;
-      place-items: center;
-      padding: 0 4px;
+      position:absolute;
+      top:-2px;
+      right:-2px;
+      background:#ef4444;
+      color:white;
+      font-size:10px;
+      font-weight:700;
+      min-width:17px;
+      height:17px;
+      border-radius:99px;
+      display:grid;
+      place-items:center;
+      padding:0 4px;
     }
 
-    /* Main Content Area */
-    #main-view { flex: 1; width: 100%; }
+    #main-view {
+      flex:1;
+      width:100%;
+    }
 
-    /* Circular Bottom Navigation Bar */
     .bottom-nav {
-      position: fixed;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 24px);
-      max-width: 456px;
-      height: 66px;
-      background: rgba(17, 24, 39, 0.92);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 35px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 0 10px;
-      z-index: 50;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      position:fixed;
+      bottom:12px;
+      left:50%;
+      transform:translateX(-50%);
+      width:calc(100% - 24px);
+      max-width:456px;
+      height:66px;
+      background:rgba(17,24,39,.94);
+      backdrop-filter:blur(18px);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:35px;
+      display:flex;
+      justify-content:space-around;
+      align-items:center;
+      padding:0 10px;
+      z-index:50;
+      box-shadow:0 12px 32px rgba(0,0,0,.6);
     }
 
     .nav-item {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      position: relative;
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      background:transparent;
+      border:none;
+      color:var(--text-secondary);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      width:52px;
+      height:52px;
+      border-radius:50%;
+      transition:all .3s;
     }
 
-    .nav-item svg { width: 22px; height: 22px; transition: 0.3s; }
-    .nav-label { font-size: 10px; margin-top: 3px; font-weight: 600; transition: 0.25s; }
+    .nav-item svg {
+      width:22px;
+      height:22px;
+    }
 
-    /* Active Circle Effect */
+    .nav-label {
+      font-size:10px;
+      margin-top:3px;
+      font-weight:600;
+    }
+
     .nav-item.active {
-      background: var(--gradient-brand);
-      color: #ffffff;
-      transform: translateY(-10px) scale(1.08);
-      box-shadow: 0 8px 20px rgba(168, 85, 247, 0.5), 0 0 0 4px var(--bg-main);
+      background:var(--gradient-brand);
+      color:white;
+      transform:translateY(-10px) scale(1.08);
+      box-shadow:0 8px 20px rgba(168,85,247,.5),0 0 0 4px var(--bg-main);
     }
-    .nav-item.active .nav-label { display: none; }
-    .nav-item.active svg { width: 24px; height: 24px; }
 
-    /* Auth Screen */
+    .nav-item.active .nav-label { display:none; }
+
+    /* PREMIUM AUTH SCREEN */
+
     #auth-screen {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-main);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      position:fixed;
+      inset:0;
+      z-index:100;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      overflow-y:auto;
+      background:
+        radial-gradient(ellipse at 15% 10%,rgba(99,102,241,.22),transparent 38%),
+        radial-gradient(ellipse at 90% 85%,rgba(236,72,153,.16),transparent 36%),
+        #070b14;
     }
-    .auth-card {
-      width: 100%;
-      max-width: 400px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 28px 22px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-    .auth-input {
-      width: 100%;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      color: #fff;
-      padding: 13px 15px;
-      border-radius: 14px;
-      margin-bottom: 12px;
-      font-size: 14px;
-      outline: none;
-    }
-    .auth-input:focus { border-color: #8b5cf6; }
-    .btn-primary {
-      width: 100%;
-      background: var(--gradient-brand);
-      border: none;
-      color: #fff;
-      padding: 14px;
-      border-radius: 14px;
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    .hidden { display: none !important; }
 
-    /* Notification Modal */
-    .drawer-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 80;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
+    .auth-card {
+      position:relative;
+      overflow:hidden;
+      width:100%;
+      max-width:430px;
+      padding:30px 24px 26px;
+      border-radius:28px;
+      background:linear-gradient(155deg,rgba(24,32,52,.97),rgba(12,18,31,.98));
+      border:1px solid rgba(167,139,250,.24);
+      box-shadow:0 28px 80px rgba(0,0,0,.55),0 0 45px rgba(99,102,241,.10);
     }
+
+    .auth-card:before {
+      content:"";
+      position:absolute;
+      width:190px;
+      height:190px;
+      right:-100px;
+      top:-110px;
+      border-radius:50%;
+      background:rgba(139,92,246,.18);
+      filter:blur(8px);
+      pointer-events:none;
+    }
+
+    .auth-mark {
+      width:62px;
+      height:62px;
+      margin:0 auto 14px;
+      display:grid;
+      place-items:center;
+      border-radius:21px;
+      background:linear-gradient(145deg,#6366f1,#a855f7 60%,#ec4899);
+      box-shadow:0 12px 30px rgba(139,92,246,.32);
+      font-size:25px;
+      font-weight:900;
+      color:white;
+    }
+
+    .auth-eyebrow {
+      color:#a78bfa;
+      text-align:center;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:2.4px;
+      margin-bottom:7px;
+    }
+
+    .auth-heading {
+      text-align:center;
+      font-size:23px;
+      font-weight:800;
+    }
+
+    .auth-subtitle {
+      color:#9aa9c0;
+      text-align:center;
+      font-size:13px;
+      line-height:1.6;
+      margin:8px 0 22px;
+    }
+
+    .auth-input {
+      width:100%;
+      background:rgba(30,41,59,.78);
+      border:1px solid rgba(148,163,184,.16);
+      color:white;
+      border-radius:14px;
+      padding:15px 16px;
+      margin-bottom:13px;
+      font-size:14px;
+      outline:none;
+      transition:.2s;
+    }
+
+    .auth-input:focus {
+      border-color:#8b5cf6;
+      box-shadow:0 0 0 3px rgba(139,92,246,.13);
+    }
+
+    .auth-input::placeholder { color:#718096; }
+
+    .btn-primary {
+      width:100%;
+      background:var(--gradient-brand);
+      border:none;
+      color:white;
+      padding:15px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:15px;
+      cursor:pointer;
+      box-shadow:0 10px 24px rgba(124,58,237,.24);
+      transition:.2s;
+    }
+
+    .btn-primary:active {
+      transform:scale(.985);
+      filter:brightness(1.08);
+    }
+
+    .btn-primary:disabled {
+      opacity:.65;
+      cursor:not-allowed;
+    }
+
+    .auth-step-note {
+      color:#8ea0b8;
+      font-size:12px;
+      text-align:center;
+      margin:-5px 0 16px;
+    }
+
+    .auth-progress {
+      display:flex;
+      gap:6px;
+      margin:0 auto 22px;
+      max-width:190px;
+    }
+
+    .auth-progress span {
+      height:4px;
+      flex:1;
+      border-radius:8px;
+      background:#334155;
+    }
+
+    .auth-progress span.active {
+      background:linear-gradient(90deg,#6366f1,#ec4899);
+    }
+
+    .auth-error {
+      min-height:18px;
+      line-height:1.45;
+    }
+
+    .auth-footer {
+      text-align:center;
+      margin-top:18px;
+      color:#8493a9;
+      font-size:13px;
+    }
+
+    .auth-footer a {
+      color:#c4b5fd;
+      font-weight:800;
+      text-decoration:none;
+      margin-left:5px;
+    }
+
+    .auth-trust {
+      display:flex;
+      justify-content:center;
+      gap:7px;
+      align-items:center;
+      color:#718096;
+      font-size:10px;
+      margin-top:18px;
+    }
+
+    /* FIRST SIGNUP WELCOME */
+
+    #welcome-screen {
+      position:fixed;
+      inset:0;
+      z-index:120;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      overflow-y:auto;
+      background:
+        radial-gradient(ellipse at 15% 5%,rgba(99,102,241,.24),transparent 38%),
+        #080d18;
+    }
+
+    .welcome-card {
+      width:100%;
+      max-width:440px;
+      border:1px solid rgba(167,139,250,.22);
+      border-radius:26px;
+      padding:26px 22px;
+      background:linear-gradient(155deg,#172137,#0e1626);
+      box-shadow:0 25px 70px rgba(0,0,0,.5);
+    }
+
+    .welcome-logo {
+      width:58px;
+      height:58px;
+      border-radius:19px;
+      display:grid;
+      place-items:center;
+      margin:0 auto 14px;
+      background:var(--gradient-brand);
+      font-weight:900;
+      font-size:23px;
+    }
+
+    .welcome-title {
+      text-align:center;
+      font-size:24px;
+      font-weight:850;
+    }
+
+    .welcome-desc {
+      text-align:center;
+      color:#94a3b8;
+      font-size:13px;
+      line-height:1.6;
+      margin:9px 0 20px;
+    }
+
+    .welcome-feature {
+      display:flex;
+      gap:13px;
+      align-items:center;
+      padding:12px;
+      margin:8px 0;
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:15px;
+      background:rgba(30,41,59,.48);
+    }
+
+    .welcome-icon {
+      width:38px;
+      height:38px;
+      flex:0 0 38px;
+      display:grid;
+      place-items:center;
+      border-radius:12px;
+      background:rgba(139,92,246,.17);
+      font-size:18px;
+    }
+
+    .welcome-feature strong {
+      display:block;
+      font-size:13px;
+      margin-bottom:3px;
+    }
+
+    .welcome-feature small {
+      color:#94a3b8;
+      font-size:11px;
+      line-height:1.4;
+    }
+
+    /* NOTIFICATIONS */
+
+    .drawer-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.7);
+      z-index:80;
+      display:flex;
+      justify-content:center;
+      align-items:flex-end;
+    }
+
     .drawer-box {
-      width: 100%;
-      max-width: 480px;
-      max-height: 75vh;
-      background: var(--bg-card);
-      border-top-left-radius: 24px;
-      border-top-right-radius: 24px;
-      padding: 20px;
-      overflow-y: auto;
+      width:100%;
+      max-width:480px;
+      max-height:75vh;
+      background:var(--bg-card);
+      border-radius:24px 24px 0 0;
+      padding:20px;
+      overflow-y:auto;
+    }
+
+    @media(max-height:720px) {
+      .auth-card {
+        padding-top:22px;
+        padding-bottom:20px;
+      }
+      .auth-mark {
+        width:50px;
+        height:50px;
+        margin-bottom:10px;
+      }
+      .auth-subtitle { margin-bottom:15px; }
     }
   </style>
 </head>
+
 <body>
 
   <!-- AUTH SCREEN -->
+
   <div id="auth-screen" class="hidden">
-    <div class="auth-card">
-      <h1 class="brand-title" style="text-align:center; font-size:28px; margin-bottom:6px;">TELESUPAR</h1>
-      <p style="text-align:center; color:var(--text-secondary); font-size:13px; margin-bottom:22px;">Social • Chat • Channels • Stories</p>
-      
-      <div id="register-fields" class="hidden">
-        <input type="text" id="auth-username" class="auth-input" placeholder="Username (e.g. rahul_dev)" />
-        <input type="text" id="auth-displayname" class="auth-input" placeholder="Display Name" />
-      </div>
-      <input type="email" id="auth-email" class="auth-input" placeholder="Email Address" />
-      <input type="password" id="auth-password" class="auth-input" placeholder="Password (min 6 chars)" />
-      
-      <p id="auth-error" style="color:#f87171; font-size:12px; margin-bottom:10px;"></p>
-      <button class="btn-primary" id="auth-submit-btn">Login to TELESUPAR</button>
-      
-      <p style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-secondary);">
-        <span id="auth-toggle-text">New to TELESUPAR?</span>
-        <a href="#" id="auth-toggle-link" style="color:#a855f7; font-weight:700; text-decoration:none;">Create Account</a>
+    <section class="auth-card">
+
+      <div class="auth-mark">T</div>
+      <div class="auth-eyebrow">YOUR LEARNING • SOCIAL SPACE</div>
+
+      <h1 class="auth-heading">TELESUPAR</h1>
+
+      <p class="auth-subtitle" id="auth-description">
+        Connect, learn and communicate in one place.
       </p>
-    </div>
+
+      <div id="auth-progress" class="auth-progress hidden">
+        <span class="active"></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <p id="auth-step-note" class="auth-step-note hidden"></p>
+
+      <div id="register-fields" class="hidden">
+        <input
+          type="text"
+          id="auth-username"
+          class="auth-input"
+          placeholder="Username (e.g. rahul_dev)"
+          autocomplete="username"
+          maxlength="24"
+        />
+
+        <input
+          type="text"
+          id="auth-displayname"
+          class="auth-input"
+          placeholder="Display Name"
+          autocomplete="name"
+          maxlength="40"
+        />
+      </div>
+
+      <input
+        type="email"
+        id="auth-email"
+        class="auth-input"
+        placeholder="Email Address"
+        autocomplete="email"
+      />
+
+      <input
+        type="password"
+        id="auth-password"
+        class="auth-input"
+        placeholder="Password"
+        autocomplete="current-password"
+      />
+
+      <p
+        id="auth-error"
+        class="auth-error"
+        style="color:#fca5a5;font-size:12px;margin:0 0 12px;"
+        aria-live="polite"
+      ></p>
+
+      <button class="btn-primary" id="auth-submit-btn">
+        Login to TELESUPAR
+      </button>
+
+      <p class="auth-footer">
+        <span id="auth-toggle-text">New to TELESUPAR?</span>
+        <a href="#" id="auth-toggle-link">Create Account</a>
+      </p>
+
+      <div class="auth-trust">
+        <span>✦</span>
+        <span>Built for learning and meaningful connections</span>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- FIRST SIGNUP WELCOME -->
+
+  <div id="welcome-screen" class="hidden">
+    <section class="welcome-card">
+
+      <div class="welcome-logo">T</div>
+
+      <h2 class="welcome-title">Welcome to TELESUPAR!</h2>
+
+      <p class="welcome-desc">
+        Your account is ready. Here is a quick guide to your new space.
+      </p>
+
+      <div class="welcome-feature">
+        <span class="welcome-icon">⌂</span>
+        <div>
+          <strong>Home</strong>
+          <small>See learning posts, stories and updates.</small>
+        </div>
+      </div>
+
+      <div class="welcome-feature">
+        <span class="welcome-icon">⌕</span>
+        <div>
+          <strong>Explore</strong>
+          <small>Discover learners, topics and useful lessons.</small>
+        </div>
+      </div>
+
+      <div class="welcome-feature">
+        <span class="welcome-icon">✉</span>
+        <div>
+          <strong>Chat</strong>
+          <small>Have conversations and share messages.</small>
+        </div>
+      </div>
+
+      <div class="welcome-feature">
+        <span class="welcome-icon">◉</span>
+        <div>
+          <strong>Channel</strong>
+          <small>Join channels and learning communities.</small>
+        </div>
+      </div>
+
+      <div class="welcome-feature">
+        <span class="welcome-icon">◎</span>
+        <div>
+          <strong>Profile</strong>
+          <small>Manage your profile and account details.</small>
+        </div>
+      </div>
+
+      <button
+        id="welcome-continue"
+        class="btn-primary"
+        style="margin-top:17px;"
+      >
+        Let's Get Started
+      </button>
+
+    </section>
   </div>
 
   <!-- MAIN APP -->
+
   <div id="app-container">
+
     <header class="top-header">
       <div class="brand-title">TELESUPAR</div>
+
       <div class="header-actions">
         <button class="icon-btn" id="btn-notifications" title="Notifications">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <svg
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+          >
+            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
           <span class="badge-dot hidden" id="notif-badge">0</span>
         </button>
       </div>
@@ -248,49 +643,69 @@
 
     <main id="main-view"></main>
 
-    <!-- CIRCULAR BOTTOM NAVIGATION -->
+    <!-- BOTTOM NAVIGATION -->
+
     <nav class="bottom-nav">
+
       <button class="nav-item active" data-tab="home">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
         <span class="nav-label">Home</span>
       </button>
 
       <button class="nav-item" data-tab="explore">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
         <span class="nav-label">Explore</span>
       </button>
 
       <button class="nav-item" data-tab="chat">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
         <span class="nav-label">Chat</span>
       </button>
 
       <button class="nav-item" data-tab="groups">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
         <span class="nav-label">Channel</span>
       </button>
 
       <button class="nav-item" data-tab="profile">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
         <span class="nav-label">Profile</span>
       </button>
+
     </nav>
   </div>
 
   <!-- NOTIFICATIONS MODAL -->
+
   <div id="notif-modal" class="drawer-overlay hidden">
     <div class="drawer-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <h3>Notifications</h3>
-        <button id="close-notif" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
+        <button
+          id="close-notif"
+          style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;"
+        >✕</button>
       </div>
+
       <div id="notif-list"></div>
+
     </div>
   </div>
 
-  <!-- SHARED CORE & MODULE SCRIPTS -->
+  <!-- SHARED CORE JAVASCRIPT -->
+
   <script>
-    // CHANGE THIS TO YOUR DEPLOYED SERVER URL (e.g. https://your-app.onrender.com)
     window.API_BASE = "https://telesupar.onrender.com";
 
     window.AppState = {
@@ -303,96 +718,324 @@
 
     window.api = async function(path, options = {}) {
       const headers = options.headers || {};
+
       if (window.AppState.token) {
         headers["Authorization"] = "Bearer " + window.AppState.token;
       }
+
       if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
         headers["Content-Type"] = "application/json";
       }
-      const res = await fetch(window.API_BASE + path, { ...options, headers });
+
+      const res = await fetch(window.API_BASE + path, {
+        ...options,
+        headers
+      });
+
       const data = await res.json();
+
       if (res.status === 401) {
         localStorage.removeItem("ts_token");
+        localStorage.removeItem("ts_user");
         location.reload();
       }
+
       return data;
     };
 
     window.avatarUrl = function(user) {
       if (user && user.avatar) return user.avatar;
-      const name = encodeURIComponent((user && (user.displayName || user.username)) || "U");
+
+      const name = encodeURIComponent(
+        (user && (user.displayName || user.username)) || "U"
+      );
+
       return `https://ui-avatars.com/api/?name=${name}&background=6366f1&color=fff&bold=true`;
     };
 
-    // Auth Logic
+    /* AUTHENTICATION */
+
     let isRegisterMode = false;
+    let signupStep = 1;
+
     const authScreen = document.getElementById("auth-screen");
+    const authError = document.getElementById("auth-error");
+    const authSubmit = document.getElementById("auth-submit-btn");
+    const registerFields = document.getElementById("register-fields");
+
+    const authEmail = document.getElementById("auth-email");
+    const authPassword = document.getElementById("auth-password");
+    const authUsername = document.getElementById("auth-username");
+    const authDisplayName = document.getElementById("auth-displayname");
+
+    const authProgress = document.getElementById("auth-progress");
+    const authStepNote = document.getElementById("auth-step-note");
+
+    function renderAuthMode() {
+      authError.textContent = "";
+      signupStep = 1;
+
+      registerFields.classList.toggle("hidden", !isRegisterMode);
+      authEmail.classList.toggle("hidden", isRegisterMode);
+      authPassword.classList.toggle("hidden", isRegisterMode);
+
+      authProgress.classList.toggle("hidden", !isRegisterMode);
+      authStepNote.classList.toggle("hidden", !isRegisterMode);
+
+      document.getElementById("auth-description").textContent =
+        isRegisterMode
+          ? "Create your account in three simple steps."
+          : "Connect, learn and communicate in one place.";
+
+      document.getElementById("auth-toggle-text").textContent =
+        isRegisterMode
+          ? "Already have an account?"
+          : "New to TELESUPAR?";
+
+      document.getElementById("auth-toggle-link").textContent =
+        isRegisterMode ? "Login" : "Create Account";
+
+      authSubmit.textContent = isRegisterMode
+        ? "Continue"
+        : "Login to TELESUPAR";
+
+      authPassword.autocomplete = "current-password";
+
+      if (isRegisterMode) {
+        updateSignupStep();
+      }
+    }
+
+    function updateSignupStep() {
+      const bars = authProgress.querySelectorAll("span");
+
+      bars.forEach((bar, i) => {
+        bar.classList.toggle("active", i < signupStep);
+      });
+
+      registerFields.classList.toggle("hidden", signupStep !== 1);
+      authEmail.classList.toggle("hidden", signupStep !== 2);
+      authPassword.classList.toggle("hidden", signupStep !== 3);
+
+      authStepNote.textContent =
+        signupStep === 1
+          ? "Step 1 of 3 · Your profile"
+          : signupStep === 2
+          ? "Step 2 of 3 · Your email address"
+          : "Step 3 of 3 · Create a password";
+
+      authSubmit.textContent =
+        signupStep === 3 ? "Create My Account" : "Continue";
+
+      authPassword.autocomplete = "new-password";
+      authError.textContent = "";
+    }
+
     document.getElementById("auth-toggle-link").onclick = (e) => {
       e.preventDefault();
+
       isRegisterMode = !isRegisterMode;
-      document.getElementById("register-fields").classList.toggle("hidden", !isRegisterMode);
-      document.getElementById("auth-submit-btn").textContent = isRegisterMode ? "Create Account" : "Login to TELESUPAR";
-      document.getElementById("auth-toggle-text").textContent = isRegisterMode ? "Already have an account?" : "New to TELESUPAR?";
-      document.getElementById("auth-toggle-link").textContent = isRegisterMode ? "Login" : "Create Account";
+      renderAuthMode();
     };
 
-    document.getElementById("auth-submit-btn").onclick = async () => {
-      const email = document.getElementById("auth-email").value.trim();
-      const password = document.getElementById("auth-password").value;
-      const endpoint = isRegisterMode ? "/api/register" : "/api/login";
+    authSubmit.onclick = async () => {
+      authError.textContent = "";
+
+      if (isRegisterMode) {
+
+        /* STEP 1: USERNAME + DISPLAY NAME */
+
+        if (signupStep === 1) {
+          const username = authUsername.value.trim();
+          const displayName = authDisplayName.value.trim();
+
+          if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+            authError.textContent =
+              "Username 3–24 characters ka ho; letters, numbers aur underscore use karein.";
+            return;
+          }
+
+          if (displayName.length < 2) {
+            authError.textContent =
+              "Please enter a display name (at least 2 characters).";
+            return;
+          }
+
+          signupStep = 2;
+          updateSignupStep();
+          return;
+        }
+
+        /* STEP 2: EMAIL */
+
+        if (signupStep === 2) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail.value.trim())) {
+            authError.textContent = "Please enter a valid email address.";
+            return;
+          }
+
+          signupStep = 3;
+          updateSignupStep();
+          return;
+        }
+
+        /* STEP 3: PASSWORD */
+
+        if (authPassword.value.length < 6) {
+          authError.textContent =
+            "Password kam se kam 6 characters ka hona chahiye.";
+          return;
+        }
+
+      } else {
+        if (!authEmail.value.trim() || !authPassword.value) {
+          authError.textContent =
+            "Please enter your email and password.";
+          return;
+        }
+      }
+
+      const endpoint = isRegisterMode
+        ? "/api/register"
+        : "/api/login";
+
       const payload = isRegisterMode
         ? {
-            username: document.getElementById("auth-username").value.trim(),
-            displayName: document.getElementById("auth-displayname").value.trim(),
-            email,
-            password
+            username: authUsername.value.trim(),
+            displayName: authDisplayName.value.trim(),
+            email: authEmail.value.trim(),
+            password: authPassword.value
           }
-        : { email, password };
+        : {
+            email: authEmail.value.trim(),
+            password: authPassword.value
+          };
 
-      const res = await window.api(endpoint, { method: "POST", body: JSON.stringify(payload) });
-      if (!res.success) {
-        document.getElementById("auth-error").textContent = res.message || "Authentication failed";
-        return;
+      authSubmit.disabled = true;
+      authSubmit.textContent = isRegisterMode
+        ? "Creating account..."
+        : "Logging in...";
+
+      try {
+        const res = await window.api(endpoint, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        if (!res || !res.success) {
+          authError.textContent =
+            (res && res.message) ||
+            "Authentication failed. Please try again.";
+          return;
+        }
+
+        if (!res.token || !res.user) {
+          authError.textContent =
+            "Server response incomplete. Please contact support.";
+          return;
+        }
+
+        localStorage.setItem("ts_token", res.token);
+        localStorage.setItem("ts_user", JSON.stringify(res.user));
+
+        window.AppState.token = res.token;
+        window.AppState.user = res.user;
+
+        authScreen.classList.add("hidden");
+
+        await initApp();
+
+        if (isRegisterMode) {
+          document.getElementById("welcome-screen")
+            .classList.remove("hidden");
+        }
+
+      } catch (err) {
+        authError.textContent =
+          "Network error. Please check your connection and try again.";
+
+      } finally {
+        authSubmit.disabled = false;
+        authSubmit.textContent = isRegisterMode
+          ? "Create My Account"
+          : "Login to TELESUPAR";
       }
-      localStorage.setItem("ts_token", res.token);
-      localStorage.setItem("ts_user", JSON.stringify(res.user));
-      window.AppState.token = res.token;
-      window.AppState.user = res.user;
-      initApp();
     };
 
-    // Navigation Switcher (Circular Active State)
+    document.getElementById("welcome-continue").onclick = () => {
+      document.getElementById("welcome-screen")
+        .classList.add("hidden");
+    };
+
+    /* NAVIGATION */
+
     window.switchTab = function(tabName) {
       window.AppState.activeTab = tabName;
+
       document.querySelectorAll(".nav-item").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.tab === tabName);
+        btn.classList.toggle(
+          "active",
+          btn.dataset.tab === tabName
+        );
       });
+
       const container = document.getElementById("main-view");
-      if (tabName === "home" && window.renderHome) window.renderHome(container);
-      if (tabName === "explore" && window.renderExplore) window.renderExplore(container);
-      if (tabName === "chat" && window.renderChat) window.renderChat(container);
-      if (tabName === "groups" && window.renderGroups) window.renderGroups(container);
-      if (tabName === "profile" && window.renderProfile) window.renderProfile(container);
+
+      if (tabName === "home" && window.renderHome) {
+        window.renderHome(container);
+      }
+
+      if (tabName === "explore" && window.renderExplore) {
+        window.renderExplore(container);
+      }
+
+      if (tabName === "chat" && window.renderChat) {
+        window.renderChat(container);
+      }
+
+      if (tabName === "groups" && window.renderGroups) {
+        window.renderGroups(container);
+      }
+
+      if (tabName === "profile" && window.renderProfile) {
+        window.renderProfile(container);
+      }
     };
 
     document.querySelectorAll(".nav-item").forEach(btn => {
-      btn.addEventListener("click", () => window.switchTab(btn.dataset.tab));
+      btn.addEventListener("click", () => {
+        window.switchTab(btn.dataset.tab);
+      });
     });
 
-    // Notifications Drawer
+    /* NOTIFICATIONS */
+
     document.getElementById("btn-notifications").onclick = async () => {
-      document.getElementById("notif-modal").classList.remove("hidden");
+      document.getElementById("notif-modal")
+        .classList.remove("hidden");
+
       const data = await window.api("/api/notifications");
       const list = document.getElementById("notif-list");
+
       if (!data.success || !data.notifications.length) {
-        list.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:20px;">No notifications yet</p>`;
+        list.innerHTML = `
+          <p style="color:#94a3b8;text-align:center;padding:20px;">
+            No notifications yet
+          </p>
+        `;
         return;
       }
+
       list.innerHTML = data.notifications.map(n => `
-        <div style="display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
-          <img src="${window.avatarUrl(n.actor)}" style="width:38px; height:38px; border-radius:50%; object-fit:cover;" />
+        <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+          <img
+            src="${window.avatarUrl(n.actor)}"
+            style="width:38px;height:38px;border-radius:50%;object-fit:cover;"
+          />
+
           <div style="font-size:13px;">
             <strong>${n.actor?.displayName || "Someone"}</strong>
+
             ${n.type === "post_like" ? "liked your post" : ""}
             ${n.type === "post_comment" ? `commented: "${n.commentText}"` : ""}
             ${n.type === "post_comment_reply" ? `replied: "${n.commentText}"` : ""}
@@ -401,40 +1044,80 @@
           </div>
         </div>
       `).join("");
-      await window.api("/api/notifications/read", { method: "PATCH" });
-      document.getElementById("notif-badge").classList.add("hidden");
+
+      await window.api("/api/notifications/read", {
+        method: "PATCH"
+      });
+
+      document.getElementById("notif-badge")
+        .classList.add("hidden");
     };
-    document.getElementById("close-notif").onclick = () => document.getElementById("notif-modal").classList.add("hidden");
+
+    document.getElementById("close-notif").onclick = () => {
+      document.getElementById("notif-modal")
+        .classList.add("hidden");
+    };
 
     async function loadNotifCount() {
       const data = await window.api("/api/notifications");
       const badge = document.getElementById("notif-badge");
+
       if (data.success && data.unreadCount > 0) {
         badge.textContent = data.unreadCount;
         badge.classList.remove("hidden");
       }
     }
 
+    /* SOCKET */
+
     function initSocket() {
       if (typeof io === "undefined") return;
+
       const socket = io(window.API_BASE);
-      socket.on("connect", () => socket.emit("authenticate", window.AppState.token));
+
+      socket.on("connect", () => {
+        socket.emit("authenticate", window.AppState.token);
+      });
+
       window.AppState.socket = socket;
     }
+
+    /* APP INITIALIZATION */
 
     async function initApp() {
       if (!window.AppState.token) {
         authScreen.classList.remove("hidden");
         return;
       }
+
       authScreen.classList.add("hidden");
-      const me = await window.api("/api/me");
-      if (me.success) {
-        window.AppState.user = me.user;
-        localStorage.setItem("ts_user", JSON.stringify(me.user));
+
+      let me;
+
+      try {
+        me = await window.api("/api/me");
+      } catch (err) {
+        authScreen.classList.remove("hidden");
+        return;
       }
+
+      if (!me || !me.success) {
+        localStorage.removeItem("ts_token");
+        localStorage.removeItem("ts_user");
+
+        window.AppState.token = "";
+        window.AppState.user = null;
+
+        authScreen.classList.remove("hidden");
+        return;
+      }
+
+      window.AppState.user = me.user;
+      localStorage.setItem("ts_user", JSON.stringify(me.user));
+
       initSocket();
       loadNotifCount();
+
       window.switchTab("home");
     }
 
@@ -442,14 +1125,14 @@
   </script>
 
   <!-- SHARED USER MODULE -->
-<script src="user.js"></script>
+  <script src="user.js"></script>
 
-<!-- FEATURE MODULES -->
-<script src="home.js"></script>
-<script src="explore.js"></script>
-<script src="chat.js"></script>
-<script src="chennals.js"></script>
-<script src="profile.js"></script>
-  
+  <!-- FEATURE MODULES -->
+  <script src="home.js"></script>
+  <script src="explore.js"></script>
+  <script src="chat.js"></script>
+  <script src="chennals.js"></script>
+  <script src="profile.js"></script>
+
 </body>
 </html>
