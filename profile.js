@@ -1310,23 +1310,26 @@ document.head.appendChild(tspPostActionStyle);
      3. POST GRID
   ========================================================= */
 
-  function renderPostTiles(posts) {
-    if (!posts.length) {
-      return `
-        <div class="tsp-empty">
-          <div class="tsp-empty-icon">▧</div>
-          <strong>No posts here yet</strong>
-          <span>Your shared posts will appear here.</span>
-        </div>
-      `;
-    }
+  
+function renderPostTiles(posts) {
+  if (!posts.length) {
+    return `
+      <div class="tsp-empty">
+        <div class="tsp-empty-icon">▧</div>
+        <strong>No posts here yet</strong>
+        <span>Your shared posts will appear here.</span>
+      </div>
+    `;
+  }
 
-    return posts.map(post => {
-      const id = getPostId(post);
-      const url = post.mediaUrl || "";
-      const video = post.mediaType === "video";
+  return posts.map(post => {
+    const id = getPostId(post);
+    const url = post.mediaUrl || "";
+    const video = post.mediaType === "video";
 
-      return `
+    return `
+      <div class="tsp-post-wrap">
+
         <button
           type="button"
           class="tsp-post"
@@ -1359,9 +1362,20 @@ document.head.appendChild(tspPostActionStyle);
               `
           }
         </button>
-      `;
-    }).join("");
-  }
+
+        <button
+          type="button"
+          class="tsp-post-menu"
+          data-post-menu="${esc(id)}"
+          aria-label="Post options"
+          title="Post options"
+        >⋮</button>
+
+      </div>
+    `;
+  }).join("");
+}
+
 
   function openFallbackPost(post) {
     const overlay = document.createElement("div");
