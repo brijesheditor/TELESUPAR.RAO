@@ -1950,141 +1950,226 @@ if (joinToggleRow) {
       };
     }
 
-    function openSubscribersScreen(chInput, initialMembers, onlyAdmins = false) {
+
+    
+    async function openSubscribersScreen(chInput, initialMembers, onlyAdmins = false) {
       const ch = getChannelById(chInput.id) || chInput;
+
       if (!canManageChannel(ch)) {
         alert("Only channel owner/admins can view subscribers and administrators.");
         return;
       }
+
       setNavHidden(true);
 
       let subSearch = "";
-      let list = Array.isArray(initialMembers) ? initialMembers : [];
-      if (onlyAdmins) {
-        const adminIds = new Set((ch.admins || []).map(String));
-        if (ch.ownerId) adminIds.add(String(ch.ownerId));
-        list = list.filter((m, idx) => {
-          const id = typeof m === "object" ? String(m.id || "") : String(m || "");
-          const role = typeof m === "object" ? String(m.role || "").toLowerCase() : "";
-          return adminIds.has(id) || role.includes("admin") || role.includes("creator") || role.includes("owner") || idx === 0;
-        });
-      }
+      let list = [];
 
-      function paintSubs() {
-        const q = subSearch.trim().toLowerCase();
-        const visible = list.filter((m, idx) => {
-          const obj = typeof m === "object" ? m : { id: m, name: `User ${idx + 1}`, role: "Member" };
-          const label = obj.name || obj.displayName || obj.username || `User ${idx + 1}`;
-          return !q || label.toLowerCase().includes(q);
-        });
+      container.innerHTML = `
+        <div class="ts-ig-app">
+          <div class="ts-ig-top">
+            <button type="button" class="ts-back-btn" id="ts-subs-back">← Back</button>
+            <span style="font-weight:700;font-size:15px;">
+              ${onlyAdmins ? "Administrators" : "Subscribers"}
+            </span>
+            <span style="font-size:12px;color:#f472b6;font-weight:700;" id="ts-subs-count">...</span>
+          </div>
+          <div style="text-align:center;padding:35px;color:#94a3b8;">
+            Loading real subscriber profiles...
+          </div>
+        </div>
+      `;
 
+      container.querySelector("#ts-subs-back").onclick = () => {
+        openChannelInfo(getChannelById(ch.id) || ch);
+      };
+
+      const result = await apiReq(
+        `/api/groups/${encodeURIComponent(ch.id)}/members`,
+        { method: "GET" }
+      );
+
+      if (!result?.success || !Array.isArray(result.members)) {
         container.innerHTML = `
           <div class="ts-ig-app">
             <div class="ts-ig-top">
               <button type="button" class="ts-back-btn" id="ts-subs-back">← Back</button>
-              <span style="font-weight:700; font-size:15px;">${onlyAdmins ? "Administrators" : "Subscribers"}</span>
-              <span style="font-size:12px; color:#f472b6; font-weight:700;">${list.length}</span>
+              <span style="font-weight:700;">${onlyAdmins ? "Administrators" : "Subscribers"}</span>
             </div>
-
-            <div class="ts-search-box">
-              <input type="text" class="ts-search-input" id="ts-subs-search" placeholder="Search..." value="${esc(subSearch)}" />
-            </div>
-
-            ${
-              !onlyAdmins
-                ? `<div class="ts-group-box">
-                    <div class="ts-row-btn" id="ts-add-sub-btn">
-                      <span style="color:#f472b6; font-weight:700;">＋ Add subscriber</span>
-                    </div>
-                    <div class="ts-row-btn" id="ts-copy-sub-link">
-                      <span style="color:#f472b6; font-weight:700;">🔗 Invite via Link</span>
-                    </div>
-                  </div>`
-                : ""
-            }
-
-            <div class="ts-group-box">
-              ${
-                visible.length
-                  ? visible
-                      .map((m, i) => {
-                        const obj = typeof m === "object"
-                          ? m
-                          : { id: m, name: `User ${i + 1}`, role: i === 0 ? "Creator" : "Member", status: "online" };
-                        const label = obj.name || obj.displayName || obj.username || `User ${i + 1}`;
-                        return `
-                          <div class="ts-row-btn" data-sub-uid="${esc(obj.id || "")}" data-sub-name="${esc(label)}">
-                            <div style="display:flex; align-items:center; gap:12px;">
-                              ${renderAvatar(label, obj.avatar || "", 44)}
-                              <div>
-                                <div style="font-weight:700; font-size:14px;">${esc(label)}</div>
-                                <div style="font-size:11px; color:#94a3b8;">${esc(obj.status || "subscriber")}</div>
-                              </div>
-                            </div>
-                            <span style="font-size:11px; color:#5eead4; font-weight:700;">${esc(obj.role || (onlyAdmins ? "Admin" : "Member"))}</span>
-                          </div>
-                        `;
-                      })
-                      .join("")
-                  : `<div style="text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px;">No users found.</div>`
-              }
+            <div style="text-align:center;padding:30px;color:#f87171;">
+              Subscriber profiles load nahi ho paaye.
+              <div style="margin-top:8px;font-size:12px;color:#94a3b8;">
+                Please refresh karke dobara try karein.
+              </div>
             </div>
           </div>
         `;
 
-        container.querySelector("#ts-subs-back").onclick = () => openChannelInfo(getChannelById(ch.id) || ch);
+        container.querySelector("#ts-subs-back").onclick = () => {
+          openChannelInfo(getChannelById(ch.id) || ch);
+        };
+        return;
+      }
 
-        const sEl = container.querySelector("#ts-subs-search");
-        if (sEl) {
-          sEl.oninput = (e) => {
-            subSearch = e.target.value;
-            const pos = sEl.selectionStart;
+      list = onlyAdmins
+        ? (Array.isArray(result.admins) ? result.admins : [])
+        : result.members;
+
+      function paintSubs() {
+        const q = subSearch.trim().toLowerCase();
+
+        const visible = list.filter(user => {
+          const name = String(
+            user.displayName || user.name || user.username || ""
+          ).toLowerCase();
+
+          const username = String(user.username || "").toLowerCase();
+
+          return !q || name.includes(q) || username.includes(q);
+        });
+
+        container.innerHTML = `
+          <div class="ts-ig-app">
+
+            <div class="ts-ig-top">
+              <button type="button" class="ts-back-btn" id="ts-subs-back">← Back</button>
+
+              <span style="font-weight:700;font-size:15px;">
+                ${onlyAdmins ? "Administrators" : "Subscribers"}
+              </span>
+
+              <span style="font-size:12px;color:#f472b6;font-weight:700;">
+                ${list.length}
+              </span>
+            </div>
+
+            <div class="ts-search-box">
+              <input
+                type="text"
+                class="ts-search-input"
+                id="ts-subs-search"
+                placeholder="Search name or username..."
+                value="${esc(subSearch)}"
+              />
+            </div>
+
+            ${!onlyAdmins ? `
+              <div class="ts-group-box">
+                <div class="ts-row-btn" id="ts-copy-sub-link">
+                  <span style="color:#f472b6;font-weight:700;">
+                    🔗 Invite via Link
+                  </span>
+                </div>
+              </div>
+            ` : ""}
+
+            <div class="ts-group-box">
+
+              ${
+                visible.length
+                  ? visible.map(user => {
+                      const id = String(user.id || "");
+                      const label = String(
+                        user.displayName ||
+                        user.name ||
+                        user.username ||
+                        "Unnamed user"
+                      );
+
+                      const username = user.username
+                        ? "@" + String(user.username).replace(/^@/, "")
+                        : "TELESUPAR member";
+
+                      return `
+                        <div
+                          class="ts-row-btn"
+                          data-sub-uid="${esc(id)}"
+                          data-sub-name="${esc(label)}"
+                        >
+                          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+
+                            ${renderAvatar(label, user.avatar || "", 44)}
+
+                            <div style="min-width:0;">
+                              <div style="font-weight:700;font-size:14px;">
+                                ${esc(label)}
+                              </div>
+
+                              <div style="font-size:11px;color:#94a3b8;">
+                                ${esc(username)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <span style="font-size:11px;color:#5eead4;font-weight:700;">
+                            ${esc(user.role || "Member")}
+                          </span>
+                        </div>
+                      `;
+                    }).join("")
+                  : `
+                    <div style="text-align:center;padding:28px 16px;color:#94a3b8;font-size:13px;">
+                      ${list.length ? "No matching users found." : "No subscribers yet."}
+                    </div>
+                  `
+              }
+
+            </div>
+          </div>
+        `;
+
+        container.querySelector("#ts-subs-back").onclick = () => {
+          openChannelInfo(getChannelById(ch.id) || ch);
+        };
+
+        const search = container.querySelector("#ts-subs-search");
+
+        if (search) {
+          search.oninput = event => {
+            subSearch = event.target.value;
+            const position = search.selectionStart;
+
             paintSubs();
-            const again = container.querySelector("#ts-subs-search");
-            if (again) {
-              again.focus();
-              try { again.setSelectionRange(pos, pos); } catch (_) {}
+
+            const nextSearch = container.querySelector("#ts-subs-search");
+            if (nextSearch) {
+              nextSearch.focus();
+              nextSearch.setSelectionRange(position, position);
             }
           };
         }
 
-        const addSubBtn = container.querySelector("#ts-add-sub-btn");
-        if (addSubBtn) {
-          addSubBtn.onclick = () => {
-            const val = (prompt("Enter subscriber name or user ID:") || "").trim();
-            if (!val) return;
-            const added = {
-              id: /^[a-f\d]{24}$/i.test(val) ? val : "u_" + Date.now(),
-              name: val,
-              role: "Member",
-              status: "online"
-            };
-            const allMembers = Array.isArray(ch.members) ? ch.members : [];
-            allMembers.push(added);
-            ch.members = allMembers;
-            ch.memberCount = allMembers.length;
-            upsertChannel(ch);
-            list = allMembers;
-            paintSubs();
-          };
-        }
-
         const copyLinkBtn = container.querySelector("#ts-copy-sub-link");
+
         if (copyLinkBtn) {
           copyLinkBtn.onclick = async () => {
             const link = telesuparInviteUrl(ch);
-            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link).catch(() => {});
-            alert("Invite Link copied: " + link);
+
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(link).catch(() => {});
+            }
+
+            alert("Invite Link: " + link);
           };
         }
 
-        container.querySelectorAll("[data-sub-uid]").forEach((row) => {
-          row.onclick = () => openUserProfileWithPosts(container, row.dataset.subUid, row.dataset.subName);
+        container.querySelectorAll("[data-sub-uid]").forEach(row => {
+          row.onclick = () => {
+            if (!row.dataset.subUid) return;
+
+            openUserProfileWithPosts(
+              container,
+              row.dataset.subUid,
+              row.dataset.subName
+            );
+          };
         });
       }
 
       paintSubs();
     }
+
+
 
     renderChannelList();
 
